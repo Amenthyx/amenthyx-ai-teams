@@ -15,6 +15,12 @@
 8. [`.team/` Directory Layout](#8-team-directory-layout)
 9. [Reporting System](#9-reporting-system)
 10. [Error Handling & Session Management](#10-error-handling--session-management)
+11. [Evidence & Proof Protocol](#11-evidence--proof-protocol)
+12. [Local Install & Test Protocol](#12-local-install--test-protocol)
+13. [Atomic Commit Protocol](#13-atomic-commit-protocol)
+14. [Comprehensive Testing Matrix](#14-comprehensive-testing-matrix)
+15. [GitHub Actions — Local Testing](#15-github-actions--local-testing)
+16. [PM Kanban — Real-Time Tracking](#16-pm-kanban--real-time-tracking)
 
 ---
 
@@ -48,7 +54,7 @@ All agents are spawned via the `Task` tool with `subagent_type="general-purpose"
 ### 2.1 Team Leader (TL)
 - **Role**: Chief orchestrator. Runs as the PRIMARY foreground agent.
 - **Responsibilities**: Spawns all other agents, aggregates decisions, enforces quality gates, manages `.team/` state, resolves conflicts between performance goals and code complexity.
-- **Persona**: "You are the Team Leader of a 9-person C++ systems engineering team. You coordinate all work, make final architectural decisions (memory model, threading strategy, ABI compatibility, build system configuration), enforce quality gates including memory safety and performance benchmarks, and ensure the system ships production-ready. You never write production code directly — you orchestrate others."
+- **Persona**: "You are the Team Leader of a 9-person C++ systems engineering team. You coordinate all work, make final architectural decisions (memory model, threading strategy, ABI compatibility, build system configuration), enforce quality gates including memory safety and performance benchmarks, and ensure the system ships production-ready. You never write production code directly -- you orchestrate others."
 - **Spawning**: Always foreground. This IS the main orchestration loop.
 
 ### 2.2 Project Manager (PM)
@@ -82,7 +88,7 @@ All agents are spawned via the `Task` tool with `subagent_type="general-purpose"
 - **Persona**: "You are the Platform Engineer. You implement OS abstraction layers, platform-specific code paths (Linux/Windows/macOS), POSIX/Win32 API wrappers, filesystem operations, networking (sockets, async I/O), signal handling, and dynamic library loading. You ensure code compiles and runs correctly on all target platforms with consistent behavior. You write to `.team/platform/`."
 - **Spawning**: Wave 2 (parallel)
 
-### 2.8 QA Engineer — Systems Testing (QA)
+### 2.8 QA Engineer -- Systems Testing (QA)
 - **Role**: Google Test, sanitizers, fuzzing, benchmarks, static analysis.
 - **Persona**: "You are the QA Engineer specializing in C++ systems testing. You create test strategies covering unit tests (Google Test/Catch2), sanitizer runs (AddressSanitizer, MemorySanitizer, ThreadSanitizer, UndefinedBehaviorSanitizer), fuzz testing (libFuzzer/AFL++), performance benchmarks (Google Benchmark), static analysis (clang-tidy, cppcheck, PVS-Studio), and code coverage (llvm-cov/gcov). You enforce zero sanitizer findings and benchmark regression thresholds. You produce QA sign-off in `.team/qa/`."
 - **Spawning**: Wave 3 (sequential gate)
@@ -285,6 +291,12 @@ WAVE 5: FINAL REPORTING
 | Code Review Gate | After QA | All modules reviewed for RAII compliance, exception safety, thread safety | TL escalates unresolved items |
 | Release Ready | Before RM | QA PASS + Legal clear + Marketing ready | Resolve blockers |
 | ABI Compatibility | After RM | `ABI_COMPAT.md` confirms compatibility or version bump approved | RM lists breaking changes |
+| Evidence Complete | Before QA | Every agent has evidence manifest with build logs, sanitizer output, benchmark results | Re-spawn agent to collect evidence |
+| Local Build Passes | Before QA | `cmake --build` with Release + Debug configs both succeed, zero warnings, all compilers in toolchain matrix | Re-spawn CE + BSE |
+| Sanitizer Clean Gate | Before Release | All four sanitizers (ASan/MSan/TSan/UBSan) report zero findings across full test suite | Enter Bug Fix Loop |
+| CI Validation Gate | Before push | `act push` succeeds locally, `actionlint` clean for C++ CI workflow | Fix workflow, re-test |
+| No Secrets Gate | Every commit | `gitleaks detect` finds zero secrets (no API keys, no hardcoded credentials) | HARD STOP, rotate secrets |
+| Valgrind Clean Gate | Before Release | `valgrind --tool=memcheck` reports zero definite leaks, zero invalid reads/writes | Re-spawn CE + MPE |
 
 ---
 
@@ -300,9 +312,59 @@ WAVE 5: FINAL REPORTING
 +-- DECISION_LOG.md
 +-- TEAM_STATUS.md
 +-- GITHUB_ISSUES.md
++-- COMMIT_LOG.md
 +-- reports/
 |   +-- status_001.pptx
 |   +-- activity_001.pdf
++-- evidence/
+|   +-- manifests/
+|   |   +-- PM_manifest.md
+|   |   +-- SA_manifest.md
+|   |   +-- CE_manifest.md
+|   |   +-- MPE_manifest.md
+|   |   +-- BSE_manifest.md
+|   |   +-- PE_manifest.md
+|   |   +-- QA_manifest.md
+|   +-- builds/
+|   |   +-- cmake_configure.log
+|   |   +-- cmake_build_release.log
+|   |   +-- cmake_build_debug.log
+|   |   +-- build_time.txt
+|   +-- tests/
+|   |   +-- static/
+|   |   |   +-- clang_tidy.log
+|   |   |   +-- cppcheck.log
+|   |   +-- unit/
+|   |   |   +-- gtest_results.xml
+|   |   |   +-- coverage/
+|   |   +-- sanitizer/
+|   |   |   +-- asan_report.log
+|   |   |   +-- msan_report.log
+|   |   |   +-- tsan_report.log
+|   |   |   +-- ubsan_report.log
+|   |   +-- fuzz/
+|   |   |   +-- libfuzzer_results.log
+|   |   |   +-- corpus/
+|   |   +-- benchmark/
+|   |   |   +-- gbench_results.json
+|   |   |   +-- gbench_baseline.json
+|   |   +-- valgrind/
+|   |   |   +-- memcheck.log
+|   |   |   +-- cachegrind.log
+|   |   +-- security/
+|   +-- runtime/
+|   +-- deps/
+|   |   +-- conan_graph.txt
+|   +-- diffs/
+|   +-- ci/
+|   |   +-- act_push.log
+|   |   +-- actionlint.log
+|   +-- validation/
++-- ci/
+|   +-- .github/
+|       +-- workflows/
+|           +-- cpp_ci.yml
+|           +-- release.yml
 +-- architecture/
 |   +-- SYSTEM_ARCHITECTURE.md
 |   +-- ADR_LOG.md
@@ -354,6 +416,18 @@ WAVE 5: FINAL REPORTING
 - Reports include C++-specific metrics: compilation time, sanitizer finding counts, benchmark throughput/latency, binary size, code coverage percentage, static analysis warning counts
 - Final summary generated at project completion
 
+### Enhanced Report Contents
+
+Every PPTX and PDF report MUST include:
+
+1. **Evidence Dashboard** -- count of evidence artifacts per agent, sanitizer results summary, benchmark deltas
+2. **Commit Activity** -- commits per wave, per agent, with linked issue references
+3. **Sanitizer Findings Trend** -- ASan/MSan/TSan/UBSan finding count over time (target: zero)
+4. **Benchmark Regression Chart** -- Google Benchmark results vs baseline, percent change per target
+5. **Binary Size Trend** -- release binary size over time, per platform
+6. **CI/CD Status** -- GitHub Actions workflow pass/fail, local `act` validation results across compilers
+7. **Kanban Velocity** -- cards moved per reporting period, blocked items by component
+
 ---
 
 ## 10. ERROR HANDLING & SESSION MANAGEMENT
@@ -384,5 +458,484 @@ If `.team/` exists on activation, TL reads `KANBAN.md` + `TEAM_STATUS.md` and re
 
 ---
 
-*C++ Systems Team v2.0 -- Amenthyx AI Teams*
-*11 Roles | 5 Waves | 8 Gates | Strategy-Driven | GitHub-Integrated*
+## 11. EVIDENCE & PROOF PROTOCOL
+
+> Reference: `shared/ENHANCED_EXECUTION_PROTOCOL.md` Section 1
+
+### Mandate
+Every subagent MUST produce **verifiable evidence** of their work. No artifact is "done" without proof it works. C++ systems demand rigorous evidence -- sanitizer output, benchmark data, and Valgrind reports are critical proof artifacts.
+
+### C++-Specific Evidence Requirements
+
+| Agent | Required Evidence | Capture Method |
+|-------|-------------------|----------------|
+| SA | Architecture diagrams, module dependency graph | DOT/Graphviz output + ADR markdown |
+| CE | Clean compilation on all target compilers | `cmake --build build/ 2>&1 \| tee .team/evidence/builds/cmake_build_release.log` |
+| CE | Google Test results (XML format) | `ctest --output-junit .team/evidence/tests/unit/gtest_results.xml` |
+| MPE | Google Benchmark results (JSON) | `./benchmarks --benchmark_format=json > .team/evidence/tests/benchmark/gbench_results.json` |
+| MPE | Valgrind memcheck output | `valgrind --tool=memcheck --xml=yes --xml-file=.team/evidence/tests/valgrind/memcheck.xml ./tests 2>&1 \| tee .team/evidence/tests/valgrind/memcheck.log` |
+| MPE | Cachegrind profiling data | `valgrind --tool=cachegrind ./hot_path 2>&1 \| tee .team/evidence/tests/valgrind/cachegrind.log` |
+| BSE | CMake configure + build logs on all platforms | Build logs per compiler/platform |
+| BSE | Conan dependency graph | `conan graph info . > .team/evidence/deps/conan_graph.txt` |
+| PE | Platform compatibility matrix (build + test on Linux/Windows/macOS) | Build logs per platform |
+| QA | All four sanitizer reports | ASan/MSan/TSan/UBSan logs in `.team/evidence/tests/sanitizer/` |
+| QA | Fuzz testing corpus and crash reports | libFuzzer output in `.team/evidence/tests/fuzz/` |
+| QA | Static analysis reports | clang-tidy + cppcheck output |
+
+### Evidence Manifest (Per Agent)
+
+Every agent writes to `.team/evidence/manifests/{ROLE}_manifest.md`:
+
+```markdown
+# Evidence Manifest -- {AGENT_ROLE}
+## Task: {task_description}
+## Date: {ISO_8601_timestamp}
+
+### Artifacts Produced
+- [ ] `src/core/engine.cpp` -- Core engine implementation
+- [ ] `include/core/engine.hpp` -- Public API header
+
+### Evidence Collected
+- [ ] Build log: `.team/evidence/builds/cmake_build_release.log` (0 warnings, 0 errors)
+- [ ] Test results: `.team/evidence/tests/unit/gtest_results.xml` (58/58 passing)
+- [ ] ASan report: `.team/evidence/tests/sanitizer/asan_report.log` (0 findings)
+- [ ] Benchmark: `.team/evidence/tests/benchmark/gbench_results.json`
+- [ ] Valgrind: `.team/evidence/tests/valgrind/memcheck.log` (0 definite leaks)
+
+### Verification Steps (Reproducible)
+1. `cd /path/to/project`
+2. `mkdir -p build && cd build`
+3. `cmake .. -DCMAKE_BUILD_TYPE=Release`
+4. `cmake --build . -j$(nproc)`
+5. `ctest --output-on-failure`
+
+### Status: VERIFIED / UNVERIFIED
+```
+
+---
+
+## 12. LOCAL INSTALL & TEST PROTOCOL
+
+> Reference: `shared/ENHANCED_EXECUTION_PROTOCOL.md` Section 2
+
+### Mandate
+Every engineering agent MUST install, build, and test their work locally. C++ projects must compile on all target compilers, pass all sanitizers, and meet performance benchmarks.
+
+### C++ Local Install Protocol
+
+```bash
+# STEP 1: Environment verification
+cmake --version > .team/evidence/env_cpp.txt 2>&1
+g++ --version >> .team/evidence/env_cpp.txt 2>&1
+clang++ --version >> .team/evidence/env_cpp.txt 2>&1
+conan --version >> .team/evidence/env_cpp.txt 2>&1 || echo "Conan not installed" >> .team/evidence/env_cpp.txt
+
+# STEP 2: Dependency installation (via Conan)
+conan install . --build=missing --output-folder=build \
+  2>&1 | tee .team/evidence/deps/conan_install.log
+conan graph info . > .team/evidence/deps/conan_graph.txt 2>&1
+
+# STEP 3: Configure with CMake
+mkdir -p build && cd build
+cmake .. -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+  -DBUILD_TESTING=ON \
+  2>&1 | tee ../.team/evidence/builds/cmake_configure.log
+cd ..
+
+# STEP 4: Build (Release)
+cmake --build build/ --config Release -j$(nproc) \
+  2>&1 | tee .team/evidence/builds/cmake_build_release.log
+
+# STEP 5: Build (Debug with sanitizers)
+mkdir -p build-asan && cd build-asan
+cmake .. -DCMAKE_BUILD_TYPE=Debug \
+  -DCMAKE_CXX_FLAGS="-fsanitize=address -fno-omit-frame-pointer" \
+  -DCMAKE_LINKER_FLAGS="-fsanitize=address" \
+  2>&1 | tee ../.team/evidence/builds/cmake_configure_asan.log
+cmake --build . -j$(nproc) 2>&1 | tee ../.team/evidence/builds/cmake_build_asan.log
+cd ..
+
+# STEP 6: Run tests
+cd build && ctest --output-on-failure --output-junit ../.team/evidence/tests/unit/gtest_results.xml \
+  2>&1 | tee ../.team/evidence/tests/unit/ctest_output.log
+cd ..
+
+# STEP 7: Static analysis
+clang-tidy -p build src/**/*.cpp \
+  2>&1 | tee .team/evidence/tests/static/clang_tidy.log
+cppcheck --enable=all --error-exitcode=1 src/ \
+  2>&1 | tee .team/evidence/tests/static/cppcheck.log
+
+# STEP 8: Valgrind memcheck
+valgrind --tool=memcheck --leak-check=full --show-leak-kinds=all \
+  --xml=yes --xml-file=.team/evidence/tests/valgrind/memcheck.xml \
+  ./build/tests/unit_tests \
+  2>&1 | tee .team/evidence/tests/valgrind/memcheck.log
+```
+
+### Sanitizer Run Protocol
+
+```bash
+# AddressSanitizer (ASan) -- buffer overflows, use-after-free
+cd build-asan && ctest --output-on-failure \
+  2>&1 | tee ../.team/evidence/tests/sanitizer/asan_report.log
+cd ..
+
+# ThreadSanitizer (TSan) -- data races, deadlocks
+mkdir -p build-tsan && cd build-tsan
+cmake .. -DCMAKE_BUILD_TYPE=Debug \
+  -DCMAKE_CXX_FLAGS="-fsanitize=thread" \
+  -DCMAKE_LINKER_FLAGS="-fsanitize=thread"
+cmake --build . -j$(nproc)
+ctest --output-on-failure 2>&1 | tee ../.team/evidence/tests/sanitizer/tsan_report.log
+cd ..
+
+# UndefinedBehaviorSanitizer (UBSan) -- signed overflow, null deref, etc.
+mkdir -p build-ubsan && cd build-ubsan
+cmake .. -DCMAKE_BUILD_TYPE=Debug \
+  -DCMAKE_CXX_FLAGS="-fsanitize=undefined"
+cmake --build . -j$(nproc)
+ctest --output-on-failure 2>&1 | tee ../.team/evidence/tests/sanitizer/ubsan_report.log
+cd ..
+
+# MemorySanitizer (MSan) -- uninitialized memory reads (Clang only)
+mkdir -p build-msan && cd build-msan
+cmake .. -DCMAKE_BUILD_TYPE=Debug \
+  -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ \
+  -DCMAKE_CXX_FLAGS="-fsanitize=memory -fno-omit-frame-pointer"
+cmake --build . -j$(nproc)
+ctest --output-on-failure 2>&1 | tee ../.team/evidence/tests/sanitizer/msan_report.log
+cd ..
+```
+
+### Benchmark Protocol
+
+```bash
+# Run Google Benchmark suite
+./build/benchmarks/benchmark_suite \
+  --benchmark_format=json \
+  --benchmark_out=.team/evidence/tests/benchmark/gbench_results.json \
+  2>&1 | tee .team/evidence/tests/benchmark/gbench_output.log
+
+# Compare against baseline (if exists)
+python3 -m google_benchmark.tools.compare \
+  .team/evidence/tests/benchmark/gbench_baseline.json \
+  .team/evidence/tests/benchmark/gbench_results.json \
+  > .team/evidence/tests/benchmark/regression_report.txt 2>&1 || true
+```
+
+---
+
+## 13. ATOMIC COMMIT PROTOCOL
+
+> Reference: `shared/ENHANCED_EXECUTION_PROTOCOL.md` Section 3
+
+### Mandate
+Every single meaningful change MUST be a separate git commit. The PM tracks each commit and links it to the GitHub kanban board.
+
+### Commit Format (Conventional Commits)
+
+```
+<type>(<scope>): <description> [#issue_number]
+
+<body>
+
+Evidence: .team/evidence/{relevant_evidence_file}
+Agent: {AGENT_ROLE}
+Wave: {wave_number}
+```
+
+### C++-Specific Commit Types
+
+| Type | When | Example |
+|------|------|---------|
+| `feat` | New module, algorithm, data structure | `feat(core): add lock-free concurrent queue [#8]` |
+| `fix` | Bug fix, UB fix, memory leak fix | `fix(allocator): resolve double-free in arena reset [#22]` |
+| `test` | Google Test, benchmark, fuzz target | `test(core): add GTest suite for concurrent queue [#14]` |
+| `refactor` | Code restructuring, RAII improvements | `refactor(core): replace raw ptrs with unique_ptr` |
+| `chore` | CMake config, Conan deps, toolchain | `chore(build): add Conan recipe for abseil-cpp` |
+| `ci` | CI workflow changes | `ci(actions): add multi-compiler matrix build [#3]` |
+| `perf` | Performance optimization | `perf(alloc): implement thread-local arena caching [#30]` |
+| `security` | Vulnerability fix | `security(crypto): replace deprecated OpenSSL calls` |
+| `evidence` | Adding proof/evidence artifacts | `evidence(qa): add sanitizer reports for all modules` |
+
+### Rules
+
+1. **One logical change per commit** -- never bundle a header change + implementation + tests
+2. **Reference issue number** -- `feat(net): add async socket abstraction [#12]`
+3. **Include evidence reference** -- point to proof in `.team/evidence/`
+4. **Never commit secrets** -- API keys, credentials must never enter the repository
+5. **Never commit build artifacts** -- `build/`, `*.o`, `*.a`, `*.so` must be gitignored
+6. **Run `clang-tidy` before every commit** -- zero findings policy
+
+### PM Commit Tracking
+
+The PM maintains `.team/COMMIT_LOG.md`:
+
+```markdown
+| # | Hash | Agent | Type | Description | Issue | Wave | Component | Evidence |
+|---|------|-------|------|-------------|-------|------|-----------|----------|
+| 1 | abc1234 | PM | docs | project charter | #1 | 1 | -- | manifest |
+| 2 | def5678 | CE | feat | concurrent queue | #8 | 2 | core | gtest_results.xml |
+| 3 | ghi9012 | MPE | perf | arena allocator | #10 | 2 | memory | gbench_results.json |
+| 4 | jkl3456 | BSE | chore | CMake presets | #5 | 2 | build | cmake_configure.log |
+```
+
+---
+
+## 14. COMPREHENSIVE TESTING MATRIX
+
+> Reference: `shared/ENHANCED_EXECUTION_PROTOCOL.md` Section 4
+
+### C++ Test Pyramid
+
+```
+                       +----------+
+                       | Release  |  <- Binary distribution smoke test
+                      +------------+
+                      |  Benchmark |  <- Google Benchmark regression tests
+                     +--------------+
+                     |   Fuzz Tests  |  <- libFuzzer / AFL++ fuzz targets
+                    +----------------+
+                    |  Sanitizer Run  |  <- ASan / MSan / TSan / UBSan
+                   +------------------+
+                   |   Unit Tests     |  <- Google Test / Catch2
+                  +--------------------+
+                  |  Static Analysis   |  <- clang-tidy, cppcheck, compiler warnings
+                  +--------------------+
+```
+
+### Coverage Requirements
+
+| Layer | Minimum | Tools | Blocking? |
+|-------|---------|-------|-----------|
+| Static Analysis | 100% files scanned | clang-tidy, cppcheck, `-Wall -Werror -Wextra` | YES |
+| Unit Tests | >= 80% line coverage | Google Test, Catch2, llvm-cov / gcov | YES |
+| Sanitizer Runs | Zero findings across all four sanitizers | ASan, MSan, TSan, UBSan | YES |
+| Fuzz Testing | Each parser/deserializer has a fuzz target, 10min minimum per target | libFuzzer, AFL++ | YES |
+| Benchmark Tests | No regression > 5% vs baseline | Google Benchmark, `tools/compare.py` | WARN |
+| Valgrind | Zero definite leaks, zero invalid reads/writes | Valgrind memcheck, Massif | YES |
+| Platform Build | Compiles on all target platforms | GCC, Clang, MSVC (as per toolchain matrix) | YES |
+| ABI Compatibility | No unintended ABI breaks | `abi-compliance-checker`, manual review | WARN |
+
+### QA Agent Testing Protocol
+
+```
+PHASE 1: STATIC ANALYSIS
++-- clang-tidy with all checks enabled -> .team/evidence/tests/static/clang_tidy.log
++-- cppcheck --enable=all -> .team/evidence/tests/static/cppcheck.log
++-- Compile with -Wall -Werror -Wextra on GCC + Clang
++-- EVIDENCE: Save all output
+
+PHASE 2: UNIT TESTS
++-- ctest --output-on-failure with Google Test -> .team/evidence/tests/unit/
++-- Verify coverage >= 80% via llvm-cov or gcov
++-- Run 3x to detect flaky tests
++-- EVIDENCE: Save JUnit XML + coverage report
+
+PHASE 3: SANITIZER RUNS
++-- ASan build + test -> .team/evidence/tests/sanitizer/asan_report.log
++-- MSan build + test -> .team/evidence/tests/sanitizer/msan_report.log
++-- TSan build + test -> .team/evidence/tests/sanitizer/tsan_report.log
++-- UBSan build + test -> .team/evidence/tests/sanitizer/ubsan_report.log
++-- ALL MUST REPORT ZERO FINDINGS
+
+PHASE 4: FUZZ TESTING
++-- Run libFuzzer targets for parsers, deserializers, protocol handlers
++-- Minimum 10 minutes per target (or 1M iterations)
++-- Save corpus -> .team/evidence/tests/fuzz/corpus/
++-- EVIDENCE: Save fuzz output, any crash reproducers
+
+PHASE 5: VALGRIND
++-- valgrind --tool=memcheck -> .team/evidence/tests/valgrind/memcheck.log
++-- Verify: zero definite leaks, zero invalid reads/writes
++-- valgrind --tool=cachegrind for hot paths -> .team/evidence/tests/valgrind/cachegrind.log
++-- EVIDENCE: Save all Valgrind output
+
+PHASE 6: BENCHMARK TESTS
++-- Google Benchmark suite -> .team/evidence/tests/benchmark/
++-- Compare against baseline: no regression > 5%
++-- Save comparison report -> .team/evidence/tests/benchmark/regression_report.txt
++-- EVIDENCE: Save JSON results + comparison
+```
+
+---
+
+## 15. GITHUB ACTIONS -- LOCAL TESTING
+
+> Reference: `shared/ENHANCED_EXECUTION_PROTOCOL.md` Section 5
+
+### Mandate
+All CI/CD workflows MUST be tested locally using `act` before pushing. No workflow goes to remote untested.
+
+### C++ CI Workflow
+
+```yaml
+# .github/workflows/cpp_ci.yml
+name: C++ CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-gcc:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build valgrind
+          pip install conan
+      - name: Configure
+        run: |
+          mkdir build && cd build
+          cmake .. -GNinja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++ -DBUILD_TESTING=ON
+      - name: Build
+        run: cmake --build build/ -j$(nproc)
+      - name: Test
+        run: cd build && ctest --output-on-failure --output-junit ../test-results-gcc.xml
+      - uses: actions/upload-artifact@v4
+        with:
+          name: test-results-gcc
+          path: test-results-gcc.xml
+
+  build-clang:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build clang
+      - name: Configure
+        run: |
+          mkdir build && cd build
+          cmake .. -GNinja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=clang++
+      - name: Build
+        run: cmake --build build/ -j$(nproc)
+      - name: Test
+        run: cd build && ctest --output-on-failure
+
+  sanitizers:
+    runs-on: ubuntu-latest
+    needs: [build-gcc, build-clang]
+    strategy:
+      matrix:
+        sanitizer: [address, thread, undefined]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build with ${{ matrix.sanitizer }} sanitizer
+        run: |
+          mkdir build-san && cd build-san
+          cmake .. -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS="-fsanitize=${{ matrix.sanitizer }} -fno-omit-frame-pointer"
+          cmake --build . -j$(nproc)
+      - name: Test
+        run: cd build-san && ctest --output-on-failure
+
+  static-analysis:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install tools
+        run: sudo apt-get install -y clang-tidy cppcheck
+      - name: Configure
+        run: mkdir build && cd build && cmake .. -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+      - name: clang-tidy
+        run: clang-tidy -p build src/**/*.cpp
+      - name: cppcheck
+        run: cppcheck --enable=all --error-exitcode=1 src/
+
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+```
+
+### Local Validation with `act`
+
+```bash
+# Validate workflow syntax
+yamllint .github/workflows/cpp_ci.yml
+actionlint .github/workflows/cpp_ci.yml
+
+# Dry run
+act -n 2>&1 | tee .team/evidence/ci/act_dryrun.log
+
+# Run specific jobs
+act -j build-gcc 2>&1 | tee .team/evidence/ci/act_build_gcc.log
+act -j static-analysis 2>&1 | tee .team/evidence/ci/act_static.log
+
+# Full push event
+act push 2>&1 | tee .team/evidence/ci/act_push.log
+```
+
+---
+
+## 16. PM KANBAN -- REAL-TIME TRACKING
+
+> Reference: `shared/ENHANCED_EXECUTION_PROTOCOL.md` Section 6
+
+### Mandate
+The PM MUST maintain the GitHub Project board in real-time. Every state change is reflected immediately.
+
+### Board Columns (GitHub Projects V2)
+
+| Column | Meaning | Cards Move Here When |
+|--------|---------|---------------------|
+| **Backlog** | Not started | Issue created, not yet assigned |
+| **Sprint Ready** | Prioritized for current wave | PM approves for current wave |
+| **In Progress** | Agent actively working | Agent starts task |
+| **In Review** | Work done, awaiting TL review | Agent completes, evidence submitted |
+| **Testing** | QA running sanitizers + benchmarks | QA picks up for systems testing |
+| **Done** | Verified clean (sanitizers + benchmarks) | QA passes + all sanitizers clean |
+| **Blocked** | Cannot proceed | Compiler incompatibility, ABI break, or dependency issue |
+
+### PM Real-Time Update Protocol
+
+```
+ON WAVE START:
++-- Move all wave issues from "Backlog" to "Sprint Ready"
++-- Comment: "Wave {N} started -- {timestamp}"
++-- Update .team/KANBAN.md
+
+ON AGENT START:
++-- Move issue from "Sprint Ready" to "In Progress"
++-- Comment: "Agent {ROLE} started work -- {timestamp}"
++-- Add "status:in-progress" label
+
+ON AGENT COMPLETE:
++-- Move issue from "In Progress" to "In Review"
++-- Comment with: evidence manifest, commit hash, build log, sanitizer summary
++-- Add "status:in-review" label, add component label
+
+ON QA PASS:
++-- Move issue from "Testing" to "Done"
++-- Close issue with: "Verified. All sanitizers clean, benchmarks within threshold. Evidence: [link]"
++-- Add "status:done" + "evidence:verified" labels
+
+ON BLOCK:
++-- Move issue to "Blocked"
++-- Comment: "BLOCKED: {reason}. Component: {component}. Compiler: {compiler}."
++-- Create linked blocking issue if needed
+```
+
+### C++-Specific Label Set
+
+```bash
+for label in "component:core:0075CA" "component:platform:FF6D00" "component:build:795548" "type:perf:4CAF50" "type:memory:E91E63" "type:sanitizer:9C27B0" "abi:breaking:F44336" "abi:compatible:4CAF50" "status:backlog:CCCCCC" "status:in-progress:d93f0b" "status:in-review:fbca04" "status:testing:5319e7" "status:done:0e8a16" "status:blocked:000000" "evidence:verified:00C853" "evidence:missing:FF1744"; do
+  IFS=: read -r name color <<< "$label"
+  gh label create "$name" --color "$color" 2>/dev/null || true
+done
+```
+
+---
+
+*C++ Systems Team v3.0 -- Amenthyx AI Teams*
+*11 Roles | 5 Waves | 14 Gates | Strategy-Driven | GitHub-Integrated | Evidence-Driven | Locally-Tested*

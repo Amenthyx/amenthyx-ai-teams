@@ -1,6 +1,7 @@
 # Blockchain Web3 Team
 # Activation: `--team web3`
 # Focus: Smart contracts, DeFi protocols, Web3 applications, and blockchain infrastructure
+# Version: v3.0 -- Enhanced Execution Protocol
 
 ---
 
@@ -11,10 +12,16 @@
 4. [Subagent Orchestration Engine](#4-subagent-orchestration-engine)
 5. [PM Artifacts & GitHub Integration](#5-pm-artifacts--github-integration)
 6. [Wave-Based Parallel Execution](#6-wave-based-parallel-execution)
-7. [Quality Gates](#7-quality-gates)
-8. [`.team/` Directory Layout](#8-team-directory-layout)
-9. [Reporting System](#9-reporting-system)
-10. [Error Handling & Session Management](#10-error-handling--session-management)
+7. [Evidence & Proof Protocol](#7-evidence--proof-protocol)
+8. [Local Install & Test Protocol](#8-local-install--test-protocol)
+9. [Atomic Commit Protocol](#9-atomic-commit-protocol)
+10. [Comprehensive Testing Matrix](#10-comprehensive-testing-matrix)
+11. [GitHub Actions -- Local Testing](#11-github-actions----local-testing)
+12. [PM Kanban -- Real-Time Tracking](#12-pm-kanban----real-time-tracking)
+13. [Quality Gates](#13-quality-gates)
+14. [`.team/` Directory Layout](#14-team-directory-layout)
+15. [Reporting System](#15-reporting-system)
+16. [Error Handling & Session Management](#16-error-handling--session-management)
 
 ---
 
@@ -26,13 +33,14 @@ When the user says `--team web3 --strategy <path>`, activate this protocol.
 ### Initialization Sequence
 ```
 1. Read this TEAM.md completely
-2. Read the strategy file at <path> — this becomes PROJECT STRATEGY
-3. Create `.team/` directory structure (see Section 8)
-4. Spawn Team Leader agent (foreground — this is the orchestrator)
-5. Team Leader spawns PM agent (foreground — must complete before others)
-6. PM produces Protocol Design Document + Smart Contract Architecture + creates GitHub Project
-7. Team Leader reviews PM output, then spawns remaining agents in waves
-8. Begin wave-based execution (see Section 6)
+2. Read shared/ENHANCED_EXECUTION_PROTOCOL.md for shared protocol details
+3. Read the strategy file at <path> -- this becomes PROJECT STRATEGY
+4. Create `.team/` directory structure (see Section 14)
+5. Spawn Team Leader agent (foreground -- this is the orchestrator)
+6. Team Leader spawns PM agent (foreground -- must complete before others)
+7. PM produces Protocol Design Document + Smart Contract Architecture + creates GitHub Project
+8. Team Leader reviews PM output, then spawns remaining agents in waves
+9. Begin wave-based execution (see Section 6)
 ```
 
 ### Strategy Integration
@@ -241,6 +249,7 @@ WAVE 1: PLANNING (Sequential -- PM foreground)
 +-- PM: GitHub Project board + protocol labels
 +-- PM: Initial PPTX + PDF
 +-- GATE: All PM artifacts exist
++-- EVIDENCE: GitHub Project screenshot, milestone list
 
 WAVE 1.5: RESEARCH (Background, Parallel)
 +-- Tokenomics: token model, supply schedule, incentive analysis
@@ -252,23 +261,27 @@ WAVE 2: PROTOCOL ENGINEERING (Background, Parallel -- 5 agents)
 +-- BA, SC, FE3, PE, AUD -- all in parallel
 +-- AUD performs continuous review of SC and PE output
 +-- SYNC: TL waits for all 5 agents, triages audit findings
++-- EVIDENCE: Forge test output, Slither scan, gas snapshots after each task
 
-WAVE 2.5: PM REPORTING
+WAVE 2.5: PM REPORTING + EVIDENCE COLLECTION
 +-- PM: 6-hour PPTX + PDF with gas usage and audit finding metrics
-+-- PM: Update GitHub issues
++-- PM: Update GitHub issues with evidence links
 +-- PM: Update KANBAN.md
++-- TL: Verify evidence artifacts exist for all completed tasks
 
 WAVE 3: TESTING + AUDIT (Sequential Gate)
 +-- GATE: All protocol engineering artifacts exist
 +-- QA: unit tests, invariant tests, fork tests, gas snapshots
 +-- AUD: final audit report with all findings classified
 +-- GATE: QA_SIGNOFF.md = PASS AND audit report has zero Critical/High open findings
++-- EVIDENCE: Forge test results, Slither report, gas snapshot diff, fuzz coverage
 
 WAVE 3.5: REMEDIATION LOOP (Conditional)
 +-- IF QA/AUDIT FAIL -> re-spawn engineers -> QA + AUD re-test -> loop until PASS
++-- Evidence must be regenerated after each remediation cycle
 
 WAVE 4: DEPLOYMENT (Sequential Gate)
-+-- GATE: QA PASS + Audit PASS + Legal clearance + Tokenomics finalized
++-- GATE: QA PASS + Audit PASS + Legal clearance + Tokenomics finalized + Evidence complete
 +-- RM: deployment scripts, contract verification, multisig setup
 +-- RM: testnet deployment -> monitoring -> mainnet deployment
 +-- RM: GitHub Release via gh release create
@@ -282,23 +295,515 @@ WAVE 5: FINAL REPORTING
 
 ---
 
-## 7. QUALITY GATES
+## 7. EVIDENCE & PROOF PROTOCOL
 
-| Gate | When | Check | Action if FAIL |
-|------|------|-------|----------------|
-| Planning Complete | After PM | Charter + milestones + GitHub Project exists | Re-spawn PM |
-| Compilation Gate | After SC | Hardhat/Foundry compile with zero warnings | Re-spawn SC |
-| Unit Test Gate | After QA | Forge/Hardhat tests pass, >= 95% line coverage | Enter Bug Fix Loop |
-| Formal Verification | After AUD | Certora/Halmos specs pass on critical invariants | Re-spawn SC + AUD |
-| Security Audit Gate | After AUD | Slither + Mythril: zero Critical/High findings | Enter Remediation Loop |
-| Gas Optimization Gate | After QA | Gas snapshots within budget, no regressions | Re-spawn SC |
-| Testnet Deployment | After RM | Full E2E on testnet with monitoring confirmed | Re-spawn RM |
-| Mainnet Simulation | After QA | Fork test simulates mainnet state correctly | Re-spawn QA + SC |
-| Deployment Approved | After RM | DEPLOYMENT_SIGNOFF.md approved | RM lists blocking items |
+Every deliverable requires verifiable evidence. Smart contracts are immutable once deployed -- evidence is non-negotiable.
+
+### Blockchain/Web3 Evidence Requirements
+
+| Artifact | Required Evidence | Storage Path |
+|----------|-------------------|--------------|
+| Foundry Build | `forge build` clean output with contract sizes | `.team/evidence/forge-build-log.txt` |
+| Unit Tests | `forge test -vvv` output with all tests passing | `.team/evidence/forge-test-output.txt` |
+| Test Coverage | `forge coverage` report showing line/branch coverage | `.team/evidence/forge-coverage-report.txt` |
+| Gas Snapshots | `forge snapshot` output with per-function gas costs | `.team/evidence/forge-gas-snapshot.txt` |
+| Gas Diff | `forge snapshot --diff` showing regressions from baseline | `.team/evidence/forge-gas-diff.txt` |
+| Slither Analysis | Slither JSON output with detector results | `.team/evidence/slither-analysis.json` |
+| Echidna Fuzzing | Echidna campaign results after 10M+ runs | `.team/evidence/echidna-results.json` |
+| Certora Verification | Certora verification report (HTML or JSON) | `.team/evidence/certora-verification.html` |
+| Halmos Symbolic Exec | Halmos output showing all properties verified | `.team/evidence/halmos-output.txt` |
+| Testnet Deployment | Deployment log with contract addresses and tx hashes | `.team/evidence/testnet-deployment.json` |
+| Fork Tests | `forge test --fork-url` output with mainnet state assertions | `.team/evidence/fork-test-output.txt` |
+| Secrets Scan | gitleaks clean output (no private keys or mnemonics) | `.team/evidence/gitleaks-scan.txt` |
+
+### Evidence Collection Commands
+
+```bash
+# Foundry build
+forge build --sizes 2>&1 | tee .team/evidence/forge-build-log.txt
+
+# Unit tests (verbose)
+forge test -vvv 2>&1 | tee .team/evidence/forge-test-output.txt
+
+# Test coverage
+forge coverage 2>&1 | tee .team/evidence/forge-coverage-report.txt
+
+# Gas snapshots
+forge snapshot 2>&1 | tee .team/evidence/forge-gas-snapshot.txt
+# Gas snapshot diff (compare against baseline)
+forge snapshot --diff .gas-snapshot-baseline 2>&1 | tee .team/evidence/forge-gas-diff.txt
+
+# Slither static analysis
+slither . --json .team/evidence/slither-analysis.json
+slither . --print human-summary 2>&1 | tee .team/evidence/slither-summary.txt
+
+# Echidna fuzzing
+echidna . --contract MyContract --config echidna.yaml \
+  --corpus-dir .team/evidence/echidna-corpus/ \
+  2>&1 | tee .team/evidence/echidna-results.json
+
+# Medusa fuzzing (alternative)
+medusa fuzz --config medusa.toml 2>&1 | tee .team/evidence/medusa-results.json
+
+# Certora formal verification
+certoraRun certora/conf/MyContract.conf 2>&1 | tee .team/evidence/certora-verification.html
+
+# Halmos symbolic execution
+halmos --contract MyContract 2>&1 | tee .team/evidence/halmos-output.txt
+
+# Testnet deployment proof
+forge script script/Deploy.s.sol --rpc-url $TESTNET_RPC --broadcast \
+  2>&1 | tee .team/evidence/testnet-deployment.json
+# Verify contracts on block explorer
+forge verify-contract $CONTRACT_ADDRESS src/MyContract.sol:MyContract \
+  --chain-id 11155111 --etherscan-api-key $ETHERSCAN_KEY \
+  2>&1 | tee -a .team/evidence/testnet-deployment.json
+
+# Fork tests
+forge test --fork-url $MAINNET_RPC -vvv 2>&1 | tee .team/evidence/fork-test-output.txt
+
+# Secrets scan (critical for Web3 -- private keys must never be committed)
+gitleaks detect --source . --report-path .team/evidence/gitleaks-scan.txt
+```
+
+### Evidence Freshness Policy
+- All evidence must be regenerated after any Solidity code change
+- Gas snapshots must be compared against the committed baseline
+- Audit evidence must reference the exact commit hash being audited
+- Testnet deployment evidence becomes stale after contract code changes
+- PM tracks evidence commit hashes to ensure no gap between code and proof
 
 ---
 
-## 8. `.team/` DIRECTORY LAYOUT
+## 8. LOCAL INSTALL & TEST PROTOCOL
+
+### Prerequisites
+```bash
+# Foundry (Solidity development toolkit)
+curl -L https://foundry.paradigm.xyz | bash
+foundryup
+
+# Verify installation
+forge --version
+cast --version
+anvil --version
+chisel --version
+
+# Node.js for frontend and Hardhat (if needed)
+nvm install 20
+npm install -g hardhat
+
+# Security tools
+pip install slither-analyzer
+pip install mythril
+cargo install --git https://github.com/crytic/echidna
+# Certora: pip install certora-cli (requires license)
+# Halmos: pip install halmos
+
+# Report generation
+pip install python-pptx reportlab
+```
+
+### Project Initialization
+```bash
+# Foundry project
+forge init my_protocol
+cd my_protocol
+
+# Install dependencies
+forge install OpenZeppelin/openzeppelin-contracts
+forge install foundry-rs/forge-std
+
+# Configure remappings
+echo '@openzeppelin/=lib/openzeppelin-contracts/' >> remappings.txt
+echo 'forge-std/=lib/forge-std/src/' >> remappings.txt
+```
+
+### Build Verification
+```bash
+# 1. Compile all contracts
+forge build --sizes
+
+# 2. Run all tests
+forge test -vvv
+
+# 3. Check coverage
+forge coverage
+
+# 4. Run Slither
+slither . --print human-summary
+
+# 5. Gas snapshot
+forge snapshot
+
+# 6. Secrets scan
+gitleaks detect --source .
+```
+
+### Run Verification
+```bash
+# Start local Anvil node
+anvil --fork-url $MAINNET_RPC --block-time 12
+
+# Deploy to local fork
+forge script script/Deploy.s.sol --rpc-url http://localhost:8545 --broadcast
+
+# Interact with deployed contracts
+cast call $CONTRACT_ADDRESS "totalSupply()" --rpc-url http://localhost:8545
+cast send $CONTRACT_ADDRESS "mint(address,uint256)" $USER_ADDRESS 1000000 \
+  --rpc-url http://localhost:8545 --private-key $ANVIL_KEY
+```
+
+---
+
+## 9. ATOMIC COMMIT PROTOCOL
+
+### Conventional Commit Format
+```
+<type>(<scope>): <description>
+
+[optional body]
+
+[optional footer]
+```
+
+### Blockchain/Web3 Commit Types
+
+| Type | When | Example |
+|------|------|---------|
+| `feat(contract)` | New smart contract, new function | `feat(contract): add ERC-4626 vault with yield strategy` |
+| `feat(protocol)` | New protocol mechanism, oracle integration | `feat(protocol): add Chainlink price feed integration for collateral` |
+| `feat(frontend)` | New dApp page, wallet integration | `feat(frontend): add swap interface with slippage protection` |
+| `feat(governance)` | New governance feature, voting mechanism | `feat(governance): add quadratic voting with delegate support` |
+| `fix(contract)` | Smart contract bug fix | `fix(contract): prevent reentrancy in withdraw function` |
+| `fix(gas)` | Gas optimization | `fix(gas): use unchecked math in loop counter, saves 200 gas/iter` |
+| `test(unit)` | Unit test for contract function | `test(unit): add forge tests for vault deposit/withdraw cycle` |
+| `test(invariant)` | Invariant/property-based test | `test(invariant): add totalSupply conservation invariant` |
+| `test(fuzz)` | Fuzzing campaign configuration | `test(fuzz): add Echidna config for AMM price manipulation` |
+| `test(fork)` | Fork test against mainnet state | `test(fork): add mainnet fork test for oracle integration` |
+| `audit(finding)` | Audit finding documentation | `audit(finding): document H-01 reentrancy in staking contract` |
+| `audit(fix)` | Audit finding remediation | `audit(fix): resolve H-01 with nonReentrant guard` |
+| `chore(deploy)` | Deployment script, config | `chore(deploy): add deterministic CREATE2 deployment script` |
+| `docs(natspec)` | NatSpec documentation | `docs(natspec): add NatSpec for all public vault functions` |
+
+### Per-Task Commit Workflow
+```bash
+# 1. Stage only task-related files
+git add src/Vault.sol
+git add test/Vault.t.sol
+git add script/DeployVault.s.sol
+
+# 2. Commit with conventional format
+git commit -m "feat(contract): add ERC-4626 vault with yield strategy
+
+- Implements ERC-4626 tokenized vault standard
+- Yield strategy via external DeFi protocol integration
+- Reentrancy guard on all external calls
+- Gas: deposit=45,210 withdraw=38,900 (within budget)
+"
+
+# 3. Record commit hash for PM tracking
+TASK_COMMIT=$(git rev-parse --short HEAD)
+```
+
+### Security-Sensitive Commit Rules
+```bash
+# NEVER commit private keys, mnemonics, or RPC URLs with API keys
+# Use .env files (gitignored) for sensitive values
+echo ".env" >> .gitignore
+echo "broadcast/" >> .gitignore  # Foundry broadcast logs contain deployer addresses
+
+# Verify no secrets before commit
+gitleaks detect --source . --staged
+```
+
+---
+
+## 10. COMPREHENSIVE TESTING MATRIX
+
+### Test Layers
+
+| Layer | Tool | Scope | Coverage Target |
+|-------|------|-------|-----------------|
+| Unit Tests | Forge test | Individual function behavior, edge cases | >= 95% line coverage |
+| Integration Tests | Forge test (multi-contract) | Contract interaction, cross-contract calls | Critical interaction paths |
+| Fork Tests | Forge test --fork-url | Real mainnet state, oracle responses, liquidity pools | All external integrations |
+| Invariant Tests | Forge invariant tests | Protocol invariants that must always hold | All critical invariants |
+| Fuzz Tests | Echidna / Medusa | Property violations under random inputs (10M+ runs) | All user-facing functions |
+| Gas Snapshot Tests | Forge snapshot | Gas regression detection per function | All public functions |
+| Static Analysis | Slither + Aderyn | Known vulnerability patterns, code quality | All contracts |
+| Symbolic Execution | Mythril + Halmos | Reachability of dangerous states | Critical contracts |
+| Formal Verification | Certora Prover | Mathematical proof of invariants | Core protocol invariants |
+| Upgrade Safety | OpenZeppelin Upgrades plugin | Storage layout compatibility, initializer safety | All upgradeable contracts |
+| Testnet E2E | Deployment script + cast calls | Full deployment and interaction flow on testnet | Complete deployment |
+
+### Test Execution Order
+```bash
+# Phase 1: Compilation
+forge build --sizes
+
+# Phase 2: Static analysis
+slither . --json .team/evidence/slither-analysis.json
+slither . --print human-summary
+
+# Phase 3: Unit tests
+forge test -vvv 2>&1 | tee .team/evidence/forge-test-output.txt
+
+# Phase 4: Coverage check
+forge coverage 2>&1 | tee .team/evidence/forge-coverage-report.txt
+
+# Phase 5: Gas snapshot
+forge snapshot 2>&1 | tee .team/evidence/forge-gas-snapshot.txt
+forge snapshot --diff .gas-snapshot-baseline
+
+# Phase 6: Invariant tests
+forge test --match-contract Invariant -vvv
+
+# Phase 7: Fuzz testing
+echidna . --contract MyContract --config echidna.yaml
+
+# Phase 8: Fork tests
+forge test --fork-url $MAINNET_RPC -vvv 2>&1 | tee .team/evidence/fork-test-output.txt
+
+# Phase 9: Formal verification (if Certora license available)
+certoraRun certora/conf/MyContract.conf
+
+# Phase 10: Symbolic execution
+halmos --contract MyContract
+
+# Phase 11: Secrets scan
+gitleaks detect --source . --report-path .team/evidence/gitleaks-scan.txt
+```
+
+### Foundry Invariant Test Example
+```solidity
+// test/invariants/VaultInvariant.t.sol
+contract VaultInvariantTest is Test {
+    Vault vault;
+    ERC20Mock token;
+
+    function setUp() public {
+        token = new ERC20Mock();
+        vault = new Vault(address(token));
+    }
+
+    // Invariant: totalAssets >= totalSupply (no inflation without deposits)
+    function invariant_totalAssetsGeTotalSupply() public view {
+        assertGe(vault.totalAssets(), vault.totalSupply());
+    }
+
+    // Invariant: sum of all balances == totalSupply
+    function invariant_balanceSumEqTotalSupply() public view {
+        // ... check sum of all holder balances
+    }
+}
+```
+
+### Gas Optimization Evidence Template
+```
++---------------------------+----------+--------+----------+
+| Function                  | Gas Used | Budget | Status   |
++---------------------------+----------+--------+----------+
+| deposit(uint256)          | 45,210   | 60,000 | PASS     |
+| withdraw(uint256)         | 38,900   | 50,000 | PASS     |
+| transfer(address,uint256) | 28,100   | 35,000 | PASS     |
+| claim()                   | 62,500   | 55,000 | OVER     |
++---------------------------+----------+--------+----------+
+Total gas regression from baseline: -2.3% (improved)
+```
+
+---
+
+## 11. GITHUB ACTIONS -- LOCAL TESTING
+
+### CI Pipeline Definition
+```yaml
+# .github/workflows/web3.yml
+name: Smart Contract CI
+on: [push, pull_request]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+      - name: Build
+        run: forge build --sizes
+      - name: Run tests
+        run: forge test -vvv
+      - name: Check coverage
+        run: forge coverage --report lcov
+      - name: Gas snapshot
+        run: |
+          forge snapshot
+          forge snapshot --diff .gas-snapshot || echo "Gas changes detected"
+
+  security-analysis:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Install Slither
+        run: pip install slither-analyzer
+      - name: Run Slither
+        run: slither . --json slither-output.json || true
+      - name: Check for high severity
+        run: |
+          python -c "
+          import json
+          data = json.load(open('slither-output.json'))
+          highs = [d for d in data.get('results', {}).get('detectors', []) if d['impact'] in ['High', 'Critical']]
+          if highs:
+              for h in highs: print(f\"[{h['impact']}] {h['check']}: {h['description']}\")
+              exit(1)
+          print('No high/critical findings')
+          "
+
+  invariant-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+      - name: Run invariant tests
+        run: forge test --match-contract Invariant -vvv
+
+  secrets-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
+```
+
+### Local CI Validation with `act`
+```bash
+# Run individual jobs
+act push --job build-and-test
+act push --job security-analysis
+act push --job invariant-tests
+act push --job secrets-scan
+
+# Run all jobs
+act push
+
+# Save validation log as evidence
+act push 2>&1 | tee .team/ci/act-validation-log.txt
+```
+
+### Web3-Specific CI Checks
+```bash
+# Storage layout check (for upgradeable contracts)
+forge inspect MyContract storage-layout --pretty
+
+# Interface compliance check
+forge inspect MyContract abi | python -c "import json,sys; abi=json.load(sys.stdin); print(f'{len(abi)} functions/events')"
+
+# Gas regression check against committed baseline
+forge snapshot --check .gas-snapshot
+
+# NatSpec completeness check
+forge doc --build 2>&1 | grep -c "warning" | xargs test 0 -eq
+
+# Contract size check (EIP-170 limit: 24,576 bytes)
+forge build --sizes 2>&1 | grep -E "Contract|Size"
+```
+
+---
+
+## 12. PM KANBAN -- REAL-TIME TRACKING
+
+### GitHub Projects V2 Setup
+```bash
+# Create project board
+gh project create --title "Web3: <protocol-name>" --owner @me
+
+# Create custom fields for Web3 projects
+gh project field-create <PROJECT_NUMBER> --owner @me --name "Contract" --data-type "TEXT"
+gh project field-create <PROJECT_NUMBER> --owner @me --name "Audit Status" --data-type "SINGLE_SELECT" \
+  --single-select-options "not-started,in-review,finding-reported,remediated,verified"
+gh project field-create <PROJECT_NUMBER> --owner @me --name "Gas Budget" --data-type "NUMBER"
+gh project field-create <PROJECT_NUMBER> --owner @me --name "Evidence Status" --data-type "SINGLE_SELECT" \
+  --single-select-options "pending,collected,verified,stale"
+gh project field-create <PROJECT_NUMBER> --owner @me --name "Chain" --data-type "SINGLE_SELECT" \
+  --single-select-options "ethereum,arbitrum,optimism,polygon,base"
+```
+
+### Real-Time Issue Updates
+After each task completion:
+```bash
+# Update issue with contract-specific details
+gh issue edit <NUMBER> --add-label "status:done"
+gh issue comment <NUMBER> --body "Task completed:
+- Contract: Vault.sol (45 sloc)
+- Tests: 24/24 passed, 97.2% coverage
+- Gas: deposit=45,210, withdraw=38,900 (within budget)
+- Slither: 0 high/critical findings
+- Evidence: .team/evidence/forge-test-output.txt
+- Commit: $(git rev-parse --short HEAD)"
+```
+
+### PM 6-Hour Report Cycle
+```
+CYCLE START:
+  1. Read KANBAN.md for current state
+  2. Query GitHub Issues: gh issue list --state all --json number,title,state,labels
+  3. Collect test/audit evidence from .team/evidence/
+  4. Generate PPTX with:
+     - Contract development status (table)
+     - Gas usage per function (bar chart)
+     - Audit finding severity breakdown (pie chart)
+     - Test coverage heatmap (per contract)
+     - Testnet deployment status (checklist)
+     - Evidence collection status (checklist)
+  5. Generate PDF with detailed audit findings
+  6. Commit reports
+CYCLE END
+```
+
+### Evidence-Linked Kanban Columns
+
+| Column | Entry Criteria | Exit Criteria |
+|--------|---------------|---------------|
+| Backlog | Issue created with contract/protocol label | PM assigns to wave |
+| In Progress | Agent spawned and working | Agent writes first artifact |
+| In Review | Contract implemented, tests written | All tests pass, Slither clean |
+| Audit Review | Code complete, evidence collected | Audit findings addressed |
+| Testnet | Deployed to testnet with verification | E2E tests pass on testnet |
+| Done | All gates pass, evidence verified, commit recorded | PM closes issue |
+| Blocked | Audit finding, gas regression, dependency | Blocker resolved |
+
+---
+
+## 13. QUALITY GATES
+
+| # | Gate | When | Check | Evidence Required | Action if FAIL |
+|---|------|------|-------|-------------------|----------------|
+| G1 | Planning Complete | After PM | Charter + milestones + GitHub Project exists | GitHub Project screenshot | Re-spawn PM |
+| G2 | Compilation Gate | After SC | Hardhat/Foundry compile with zero warnings | Forge build log, contract ABIs | Re-spawn SC |
+| G3 | Unit Test Gate | After QA | Forge/Hardhat tests pass, >= 95% line coverage | `forge test` output, `forge coverage` report | Enter Bug Fix Loop |
+| G4 | Slither Static Analysis | After AUD | Slither: zero high-severity detectors triggered | Slither JSON output | Re-spawn SC + AUD |
+| G5 | Formal Verification | After AUD | Certora/Halmos specs pass on critical invariants | Certora verification report, Halmos output | Re-spawn SC + AUD |
+| G6 | Fuzz Testing | After AUD | Echidna/Medusa campaigns: zero assertion failures after 10M+ runs | Echidna corpus results, Medusa campaign log | Re-spawn SC |
+| G7 | Gas Optimization Gate | After QA | Gas snapshots within budget, no regressions from baseline | `forge snapshot` diff output | Re-spawn SC |
+| G8 | Testnet Deployment | After RM | Full E2E on testnet with monitoring confirmed | Testnet deployment log, contract addresses | Re-spawn RM |
+| G9 | Mainnet Fork Simulation | After QA | Fork test simulates mainnet state correctly | Fork test output with state assertions | Re-spawn QA + SC |
+| G10 | Secrets Gate | Before deploy | No private keys, RPC URLs, or mnemonics in codebase | `gitleaks detect` clean output | Block deployment |
+| G11 | Evidence Gate | Before deploy | All evidence artifacts in `.team/evidence/` | File existence check | Block deployment |
+| G12 | Deployment Approved | After RM | DEPLOYMENT_SIGNOFF.md approved | Sign-off with audit + QA + legal | RM lists blocking items |
+
+---
+
+## 14. `.team/` DIRECTORY LAYOUT
 
 ```
 .team/
@@ -313,6 +818,27 @@ WAVE 5: FINAL REPORTING
 +-- reports/
 |   +-- status_001.pptx
 |   +-- activity_001.pdf
++-- evidence/
+|   +-- forge-build-log.txt
+|   +-- forge-test-output.txt
+|   +-- forge-coverage-report.txt
+|   +-- forge-gas-snapshot.txt
+|   +-- forge-gas-diff.txt
+|   +-- slither-analysis.json
+|   +-- slither-summary.txt
+|   +-- echidna-results.json
+|   +-- certora-verification.html
+|   +-- halmos-output.txt
+|   +-- testnet-deployment.json
+|   +-- fork-test-output.txt
+|   +-- gitleaks-scan.txt
++-- ci/
+|   +-- .github/
+|   |   +-- workflows/
+|   |       +-- web3.yml
+|   |       +-- security-audit-ci.yml
+|   |       +-- gas-snapshot.yml
+|   +-- act-validation-log.txt
 +-- protocol-design/
 +-- smart-contracts/
 +-- web3-frontend/
@@ -327,16 +853,23 @@ WAVE 5: FINAL REPORTING
 
 ---
 
-## 9. REPORTING SYSTEM
+## 15. REPORTING SYSTEM
 
+### Standard Reports
 - **PPTX**: Every 6 hours via `shared/PPTX_GENERATOR.py` -- includes gas usage trends, audit finding severity charts, and test coverage metrics
 - **PDF**: Activity summaries via `shared/PDF_GENERATOR.py` -- includes detailed audit findings and deployment readiness checklist
 - PM tracks intervals by reading timestamps from previous reports
 - Final summary generated at project completion with deployment addresses and audit certification
 
+### Enhanced Report Content
+- **Evidence slides**: Each PPTX includes Slither finding summaries, gas snapshot comparisons, and test coverage heatmaps
+- **Gas optimization dashboard**: Gas per function (table), gas trend over commits (chart), gas vs. budget (gauge)
+- **Audit finding tracker**: Severity breakdown (critical/high/medium/low/info), remediation status per finding
+- **Testnet deployment summary**: Contract addresses, verification links, E2E test results
+
 ---
 
-## 10. ERROR HANDLING & SESSION MANAGEMENT
+## 16. ERROR HANDLING & SESSION MANAGEMENT
 
 ### Error Handling
 - **Agent failure**: Re-spawn with same prompt + failure context (max 3 retries)
@@ -363,5 +896,6 @@ If `.team/` exists on activation, TL reads `KANBAN.md` + `TEAM_STATUS.md` and re
 
 ---
 
-*Blockchain Web3 Team v2.0 -- Amenthyx AI Teams*
-*12 Roles | 5 Waves | 9 Gates | Strategy-Driven | GitHub-Integrated*
+*Blockchain Web3 Team v3.0 -- Amenthyx AI Teams*
+*12 Roles | 5 Waves | 12 Gates | Strategy-Driven | GitHub-Integrated | Evidence-Based*
+*See shared/ENHANCED_EXECUTION_PROTOCOL.md for cross-team protocol details*

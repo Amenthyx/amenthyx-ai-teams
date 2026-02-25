@@ -1,6 +1,7 @@
 # Cybersecurity Team
 # Activation: `--team security`
 # Focus: Security testing, penetration testing, compliance, and incident response
+# Version: v3.0 -- Enhanced Execution Protocol
 
 ---
 
@@ -15,6 +16,12 @@
 8. [`.team/` Directory Layout](#8-team-directory-layout)
 9. [Reporting System](#9-reporting-system)
 10. [Error Handling & Session Management](#10-error-handling--session-management)
+11. [Evidence & Proof Protocol](#11-evidence--proof-protocol)
+12. [Local Install & Test Protocol](#12-local-install--test-protocol)
+13. [Atomic Commit Protocol](#13-atomic-commit-protocol)
+14. [Comprehensive Testing Matrix](#14-comprehensive-testing-matrix)
+15. [GitHub Actions -- Local Testing](#15-github-actions----local-testing)
+16. [PM Kanban -- Real-Time Tracking](#16-pm-kanban----real-time-tracking)
 
 ---
 
@@ -26,13 +33,14 @@ When the user says `--team security --strategy <path>`, activate this protocol.
 ### Initialization Sequence
 ```
 1. Read this TEAM.md completely
-2. Read the strategy file at <path> — this becomes PROJECT STRATEGY
-3. Create `.team/` directory structure (see Section 8)
-4. Spawn Team Leader agent (foreground — this is the orchestrator)
-5. Team Leader spawns PM agent (foreground — must complete before others)
-6. PM produces Security Assessment Charter + Threat Model Plan + creates GitHub Project
-7. Team Leader reviews PM output, then spawns remaining agents in waves
-8. Begin wave-based execution (see Section 6)
+2. Read shared/ENHANCED_EXECUTION_PROTOCOL.md for shared protocol details
+3. Read the strategy file at <path> -- this becomes PROJECT STRATEGY
+4. Create `.team/` directory structure (see Section 8)
+5. Spawn Team Leader agent (foreground -- this is the orchestrator)
+6. Team Leader spawns PM agent (foreground -- must complete before others)
+7. PM produces Security Assessment Charter + Threat Model Plan + creates GitHub Project
+8. Team Leader reviews PM output, then spawns remaining agents in waves
+9. Begin wave-based execution (see Section 6)
 ```
 
 ### Strategy Integration
@@ -295,16 +303,20 @@ WAVE 5: FINAL REPORTING
 
 ## 7. QUALITY GATES
 
-| Gate | When | Check | Action if FAIL |
-|------|------|-------|----------------|
-| Planning Complete | After PM | Charter + ROE + GitHub Project exists | Re-spawn PM |
-| Threat Model Complete | After SA | THREAT_MODEL.md with STRIDE analysis | Re-spawn SA |
-| Pentest Complete | After PT | All findings documented with CVSS scores | Re-spawn PT |
-| Compliance Checklist | After CO | Gap analysis covers required frameworks | Re-spawn CO |
-| Remediation Verified | After QA | All critical/high findings resolved or risk-accepted | Enter Remediation Loop |
-| Security Architecture Review | Before Release | Defense-in-depth validated | Resolve gaps |
-| Incident Response Plan | Before Release | IR_PLAN.md covers all threat scenarios | Re-spawn IR |
-| Deployment Approved | After RM | DEPLOYMENT_SIGNOFF.md approved | RM lists blocking items |
+| # | Gate | When | Check | Evidence Required | Action if FAIL |
+|---|------|------|-------|-------------------|----------------|
+| G1 | Planning Complete | After PM | Charter + ROE + GitHub Project exists | GitHub Project screenshot | Re-spawn PM |
+| G2 | Threat Model Complete | After SA | THREAT_MODEL.md with STRIDE analysis | STRIDE matrix, attack tree diagram | Re-spawn SA |
+| G3 | Pentest Complete | After PT | All findings documented with CVSS scores | OWASP ZAP HTML report, Burp Suite export | Re-spawn PT |
+| G4 | SAST/DAST Complete | After APPSEC | All scans executed, findings triaged | Semgrep SARIF output, ZAP scan report | Re-spawn APPSEC |
+| G5 | Compliance Checklist | After CO | Gap analysis covers required frameworks | Control mapping spreadsheet, evidence matrix | Re-spawn CO |
+| G6 | Remediation Verified | After QA | All critical/high findings resolved or risk-accepted | Retest results with pass/fail per finding | Enter Remediation Loop |
+| G7 | Container Scan | Before release | Trivy container scan: zero critical CVEs | Trivy JSON report | Block release |
+| G8 | Security Architecture Review | Before Release | Defense-in-depth validated | Architecture diagram with security controls annotated | Resolve gaps |
+| G9 | Incident Response Plan | Before Release | IR_PLAN.md covers all threat scenarios | Tabletop exercise results | Re-spawn IR |
+| G10 | Secrets Gate | Before Release | No credentials, tokens, API keys in codebase | `gitleaks detect` clean output | Block release |
+| G11 | Evidence Gate | Before Release | All evidence artifacts exist in `.team/evidence/` | File existence check | Block release |
+| G12 | Deployment Approved | After RM | DEPLOYMENT_SIGNOFF.md approved | Sign-off document | RM lists blocking items |
 
 ---
 
@@ -323,6 +335,25 @@ WAVE 5: FINAL REPORTING
 +-- reports/
 |   +-- status_001.pptx
 |   +-- activity_001.pdf
++-- evidence/
+|   +-- owasp-zap-scan.html
+|   +-- owasp-zap-scan.json
+|   +-- burp-suite-export.xml
+|   +-- semgrep-sast-results.sarif
+|   +-- nuclei-scan-results.json
+|   +-- trivy-container-scan.json
+|   +-- nmap-scan-results.xml
+|   +-- gitleaks-scan.txt
+|   +-- pentest-proof-of-concept/
+|   |   +-- vuln-001-sqli-poc.md
+|   |   +-- vuln-002-xss-poc.md
++-- ci/
+|   +-- .github/
+|   |   +-- workflows/
+|   |       +-- security-scan-ci.yml
+|   |       +-- container-scan.yml
+|   |       +-- sast-scan.yml
+|   +-- act-validation-log.txt
 +-- threat-model/
 +-- pentest-reports/
 +-- compliance/
@@ -341,10 +372,17 @@ WAVE 5: FINAL REPORTING
 
 ## 9. REPORTING SYSTEM
 
+### Standard Reports
 - **PPTX**: Every 6 hours via `shared/PPTX_GENERATOR.py` -- includes vulnerability severity breakdown charts and CVSS distribution
 - **PDF**: Activity summaries via `shared/PDF_GENERATOR.py` -- includes detailed finding descriptions and remediation status
 - PM tracks intervals by reading timestamps from previous reports
 - Final summary generated at project completion with full risk posture assessment
+
+### Enhanced Report Content
+- **Evidence slides**: Each PPTX includes scan result screenshots, CVSS score distributions, and pentest proof-of-concept summaries
+- **Vulnerability dashboard**: Severity breakdown chart (critical/high/medium/low/info), remediation progress gauge
+- **Compliance status matrix**: Framework coverage percentage per standard (SOC2, ISO 27001, etc.)
+- **Pentest evidence appendix**: PDF includes redacted proof-of-concept screenshots and reproduction steps
 
 ---
 
@@ -374,5 +412,443 @@ If `.team/` exists on activation, TL reads `KANBAN.md` + `TEAM_STATUS.md` and re
 
 ---
 
-*Cybersecurity Team v2.0 -- Amenthyx AI Teams*
-*12 Roles | 5 Waves | 8 Gates | Strategy-Driven | GitHub-Integrated*
+## 11. EVIDENCE & PROOF PROTOCOL
+
+Every finding requires verifiable evidence. No vulnerability is considered confirmed without proof.
+
+### Cybersecurity Evidence Requirements
+
+| Artifact | Required Evidence | Storage Path |
+|----------|-------------------|--------------|
+| OWASP ZAP Scan | ZAP HTML report + JSON export with all alerts | `.team/evidence/owasp-zap-scan.html`, `.json` |
+| Burp Suite Assessment | Burp project export with request/response pairs | `.team/evidence/burp-suite-export.xml` |
+| Semgrep SAST | SARIF output with all findings and severity | `.team/evidence/semgrep-sast-results.sarif` |
+| Nuclei Scanner | JSON scan results with matched templates | `.team/evidence/nuclei-scan-results.json` |
+| Trivy Container Scan | JSON report with CVE details per container | `.team/evidence/trivy-container-scan.json` |
+| Nmap Network Scan | XML output with service/version detection | `.team/evidence/nmap-scan-results.xml` |
+| Pentest PoC | Per-vulnerability markdown with steps, screenshots, CVSS | `.team/evidence/pentest-proof-of-concept/` |
+| Secrets Scan | gitleaks clean output confirming no secrets | `.team/evidence/gitleaks-scan.txt` |
+
+### Evidence Collection Commands
+
+```bash
+# OWASP ZAP automated scan
+docker run --rm -v $(pwd):/zap/wrk owasp/zap2docker-stable zap-baseline.py \
+  -t https://target.example.com -J zap-results.json -r zap-report.html
+cp zap-results.json .team/evidence/owasp-zap-scan.json
+cp zap-report.html .team/evidence/owasp-zap-scan.html
+
+# Semgrep SAST scan
+semgrep scan --config=auto --sarif --output .team/evidence/semgrep-sast-results.sarif .
+semgrep scan --config=p/owasp-top-ten --sarif --output .team/evidence/semgrep-owasp.sarif .
+
+# Nuclei vulnerability scanner
+nuclei -u https://target.example.com -t cves/ -t vulnerabilities/ -t misconfigurations/ \
+  -json -o .team/evidence/nuclei-scan-results.json
+
+# Trivy container scanning
+trivy image --format json --output .team/evidence/trivy-container-scan.json <image:tag>
+trivy fs --format json --output .team/evidence/trivy-fs-scan.json .
+
+# Nmap network scan
+nmap -sV -sC -oX .team/evidence/nmap-scan-results.xml target.example.com
+
+# Burp Suite CLI scan (if available)
+burpsuite_pro --project-file=scan.burp --config-file=scan_config.json
+# Export results manually to .team/evidence/burp-suite-export.xml
+
+# gitleaks secrets detection
+gitleaks detect --source . --report-format json --report-path .team/evidence/gitleaks-scan.txt
+
+# CIS Benchmark check (Docker containers)
+docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+  docker/docker-bench-security 2>&1 | tee .team/evidence/docker-bench.txt
+```
+
+### Proof-of-Concept Documentation Template
+```markdown
+# Vulnerability: [ID] - [Title]
+
+## CVSS v3.1 Score: [Score] ([Severity])
+Vector: AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:N
+
+## Description
+[What the vulnerability is and why it matters]
+
+## Reproduction Steps
+1. [Step 1 with exact commands/requests]
+2. [Step 2]
+3. [Step 3]
+
+## Evidence
+- Request: [HTTP request showing exploit]
+- Response: [HTTP response confirming vulnerability]
+- Screenshot: [path to screenshot if applicable]
+
+## Impact
+[Business impact of exploitation]
+
+## Remediation
+[Specific fix recommendation with code examples]
+```
+
+### Evidence Freshness Policy
+- Scan results must be regenerated if target system changes after initial scan
+- Pentest PoCs must be re-verified before final report delivery
+- PM tracks scan timestamps and flags stale evidence in KANBAN.md
+
+---
+
+## 12. LOCAL INSTALL & TEST PROTOCOL
+
+### Prerequisites
+```bash
+# Python environment
+python -m venv .venv
+source .venv/bin/activate
+
+# Core security tools
+pip install semgrep
+pip install bandit  # Python SAST
+pip install safety  # Dependency vulnerability check
+
+# Docker-based tools
+docker pull owasp/zap2docker-stable
+docker pull projectdiscovery/nuclei:latest
+docker pull aquasec/trivy:latest
+docker pull ghcr.io/gitleaks/gitleaks:latest
+
+# System tools (install via package manager)
+# nmap, wireshark-cli, nikto, dirb, gobuster, ffuf
+
+# Report generation
+pip install python-pptx reportlab
+```
+
+### Docker-Based Security Lab
+```bash
+# docker-compose.security.yml for local testing environment
+docker compose -f docker-compose.security.yml up -d
+# Services: target webapp, OWASP ZAP proxy, Juice Shop (test target), DVWA
+```
+
+### Build Verification
+```bash
+# 1. Verify all security tools are available
+semgrep --version
+nuclei --version
+trivy --version
+gitleaks version
+nmap --version
+
+# 2. Run quick SAST scan to verify tool chain
+semgrep scan --config=auto --dry-run .
+
+# 3. Verify container scanning works
+trivy image --severity HIGH,CRITICAL alpine:latest
+
+# 4. Verify secrets scanning works
+gitleaks detect --source . --no-git --verbose
+```
+
+### Run Verification
+```bash
+# Full security scan pipeline
+./scripts/run_full_scan.sh --target https://target.example.com
+
+# Individual tool verification
+semgrep scan --config=auto .
+nuclei -u https://target.example.com -t cves/
+trivy fs --severity HIGH,CRITICAL .
+gitleaks detect --source .
+```
+
+---
+
+## 13. ATOMIC COMMIT PROTOCOL
+
+### Conventional Commit Format
+```
+<type>(<scope>): <description>
+
+[optional body]
+
+[optional footer]
+```
+
+### Cybersecurity Commit Types
+
+| Type | When | Example |
+|------|------|---------|
+| `feat(scan)` | New scan configuration, new scanner integration | `feat(scan): add nuclei scan template for custom API checks` |
+| `feat(policy)` | New security policy, compliance rule | `feat(policy): add SOC2 control mapping for access management` |
+| `feat(detection)` | New detection rule, IR playbook | `feat(detection): add SIEM rule for brute-force login detection` |
+| `fix(vuln)` | Vulnerability remediation code | `fix(vuln): patch SQL injection in user search endpoint` |
+| `fix(config)` | Security misconfiguration fix | `fix(config): enforce TLS 1.3 minimum in nginx config` |
+| `test(pentest)` | Pentest PoC, retest script | `test(pentest): add automated retest for VULN-001 SQLi` |
+| `test(compliance)` | Compliance verification test | `test(compliance): add PCI-DSS requirement 6.5 check` |
+| `docs(finding)` | Vulnerability report, remediation guide | `docs(finding): document VULN-003 with CVSS and remediation` |
+| `chore(scan)` | Scanner config updates, rule updates | `chore(scan): update nuclei templates to v9.7.0` |
+| `audit(report)` | Final audit report artifacts | `audit(report): add executive summary for Q4 assessment` |
+
+### Per-Task Commit Workflow
+```bash
+# 1. Stage only task-related files
+git add security-scans/nuclei-custom-templates/api-auth-bypass.yaml
+git add .team/evidence/nuclei-scan-results.json
+
+# 2. Commit with conventional format
+git commit -m "feat(scan): add nuclei template for API auth bypass detection
+
+- Custom nuclei template targeting JWT validation weaknesses
+- Tests for missing signature verification, expired token acceptance
+- Matched against OWASP API Security Top 10 A2
+"
+
+# 3. Record commit hash for PM tracking
+TASK_COMMIT=$(git rev-parse --short HEAD)
+```
+
+---
+
+## 14. COMPREHENSIVE TESTING MATRIX
+
+### Test Layers
+
+| Layer | Tool | Scope | Coverage Target |
+|-------|------|-------|-----------------|
+| SAST (Static Analysis) | Semgrep + Bandit + SonarQube | Source code vulnerabilities, insecure patterns | OWASP Top 10 coverage |
+| DAST (Dynamic Analysis) | OWASP ZAP + Burp Suite | Running application vulnerabilities | All endpoints |
+| Dependency Scanning | Snyk + Safety + Trivy (fs mode) | Known CVEs in dependencies | All dependencies |
+| Container Scanning | Trivy (image mode) | Container image CVEs, misconfigurations | All container images |
+| Secrets Detection | gitleaks + truffleHog | Hardcoded secrets, API keys, tokens | Entire repository history |
+| Network Scanning | Nmap + Nuclei | Open ports, vulnerable services, misconfigurations | All target hosts |
+| Compliance Checks | CIS Benchmarks + custom scripts | Configuration compliance per framework | Target frameworks |
+| Infrastructure Scanning | Checkov + tfsec | IaC misconfigurations (Terraform, CloudFormation) | All IaC files |
+| Penetration Testing | Manual + Burp Suite + Metasploit | Business logic, chained attacks, auth bypass | Critical attack paths |
+| Remediation Verification | Automated retests + manual validation | Confirmed fix for each finding | All critical/high findings |
+
+### Test Execution Order
+```bash
+# Phase 1: Secrets scan (immediate block if secrets found)
+gitleaks detect --source . --report-format json --report-path .team/evidence/gitleaks-scan.txt
+[ $? -eq 0 ] || echo "SECRETS FOUND -- BLOCK ALL FURTHER TESTING"
+
+# Phase 2: SAST scanning
+semgrep scan --config=auto --sarif --output .team/evidence/semgrep-sast-results.sarif .
+bandit -r src/ -f json -o .team/evidence/bandit-results.json
+
+# Phase 3: Dependency scanning
+safety check --json --output .team/evidence/safety-check.json
+trivy fs --format json --output .team/evidence/trivy-fs-scan.json .
+
+# Phase 4: Container scanning
+trivy image --format json --output .team/evidence/trivy-container-scan.json <image:tag>
+
+# Phase 5: DAST scanning (requires running application)
+docker run --rm owasp/zap2docker-stable zap-baseline.py \
+  -t https://target.example.com -J .team/evidence/owasp-zap-scan.json
+
+# Phase 6: Network scanning
+nmap -sV -sC -oX .team/evidence/nmap-scan-results.xml target.example.com
+nuclei -u https://target.example.com -json -o .team/evidence/nuclei-scan-results.json
+
+# Phase 7: Infrastructure scanning (if IaC present)
+checkov -d infrastructure/ --output-file-path .team/evidence/ --output junitxml
+
+# Phase 8: Penetration testing (manual, documented in PoC files)
+
+# Phase 9: Remediation retesting
+python scripts/retest_findings.py --findings .team/pentest-reports/VULNERABILITY_FINDINGS.md
+```
+
+### OWASP Top 10 Coverage Matrix
+```
+| OWASP ID | Category                           | Scanner          | Status  |
+|----------|------------------------------------|------------------|---------|
+| A01:2021 | Broken Access Control              | ZAP + Manual PT  | [ ]     |
+| A02:2021 | Cryptographic Failures             | Semgrep + Manual | [ ]     |
+| A03:2021 | Injection                          | Semgrep + ZAP    | [ ]     |
+| A04:2021 | Insecure Design                    | Threat Model     | [ ]     |
+| A05:2021 | Security Misconfiguration          | Nuclei + CIS     | [ ]     |
+| A06:2021 | Vulnerable Components              | Trivy + Snyk     | [ ]     |
+| A07:2021 | Auth & Session Management          | ZAP + Manual PT  | [ ]     |
+| A08:2021 | Software and Data Integrity        | Semgrep + Manual | [ ]     |
+| A09:2021 | Security Logging Monitoring        | Manual Review    | [ ]     |
+| A10:2021 | Server-Side Request Forgery        | ZAP + Nuclei     | [ ]     |
+```
+
+---
+
+## 15. GITHUB ACTIONS -- LOCAL TESTING
+
+### CI Pipeline Definition
+```yaml
+# .github/workflows/security-scan-ci.yml
+name: Security Scan CI
+on: [push, pull_request]
+
+jobs:
+  secrets-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Run gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
+
+  sast-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Semgrep
+        uses: returntocorp/semgrep-action@v1
+        with:
+          config: >-
+            p/owasp-top-ten
+            p/security-audit
+            p/secrets
+      - name: Upload SARIF
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: semgrep.sarif
+
+  dependency-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Trivy fs scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'HIGH,CRITICAL'
+      - name: Upload Trivy SARIF
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: trivy-results.sarif
+
+  container-scan:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build image
+        run: docker build -t app:${{ github.sha }} .
+      - name: Run Trivy container scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'app:${{ github.sha }}'
+          format: 'json'
+          output: 'trivy-container.json'
+          severity: 'HIGH,CRITICAL'
+          exit-code: '1'
+```
+
+### Local CI Validation with `act`
+```bash
+# Run individual security scan jobs
+act push --job secrets-scan
+act push --job sast-scan
+act push --job dependency-scan
+
+# Run all security jobs
+act push
+
+# Save validation log as evidence
+act push 2>&1 | tee .team/ci/act-validation-log.txt
+```
+
+### Security-Specific CI Checks
+```bash
+# Quick SAST check before commit
+semgrep scan --config=auto --error .
+
+# Dependency vulnerability check
+safety check --full-report
+
+# Container security baseline
+trivy image --severity CRITICAL --exit-code 1 <image:tag>
+
+# Infrastructure-as-Code scan
+checkov -d infrastructure/ --hard-fail-on HIGH,CRITICAL
+```
+
+---
+
+## 16. PM KANBAN -- REAL-TIME TRACKING
+
+### GitHub Projects V2 Setup
+```bash
+# Create project board
+gh project create --title "Security: <engagement-name>" --owner @me
+
+# Create custom fields for security engagements
+gh project field-create <PROJECT_NUMBER> --owner @me --name "CVSS Score" --data-type "NUMBER"
+gh project field-create <PROJECT_NUMBER> --owner @me --name "Severity" --data-type "SINGLE_SELECT" \
+  --single-select-options "critical,high,medium,low,informational"
+gh project field-create <PROJECT_NUMBER> --owner @me --name "Finding Status" --data-type "SINGLE_SELECT" \
+  --single-select-options "new,confirmed,remediated,risk-accepted,false-positive"
+gh project field-create <PROJECT_NUMBER> --owner @me --name "Evidence Status" --data-type "SINGLE_SELECT" \
+  --single-select-options "pending,collected,verified,stale"
+```
+
+### Real-Time Issue Updates
+After each finding:
+```bash
+# Create vulnerability issue
+gh issue create --title "[CVSS 9.8] SQL Injection in /api/search" \
+  --label "severity:critical,type:injection,status:new" \
+  --body "## Finding Details
+  - CVSS: 9.8 (Critical)
+  - Vector: AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H
+  - Evidence: .team/evidence/pentest-proof-of-concept/vuln-001-sqli-poc.md
+  "
+
+# Update after remediation
+gh issue edit <NUMBER> --add-label "status:remediated" --remove-label "status:new"
+gh issue comment <NUMBER> --body "Remediation verified:
+- Retest: PASS
+- Evidence: .team/evidence/retest-vuln-001.log
+- Commit: $(git rev-parse --short HEAD)"
+```
+
+### PM 6-Hour Report Cycle
+```
+CYCLE START:
+  1. Read KANBAN.md for current finding states
+  2. Query GitHub Issues: gh issue list --label "severity:critical,severity:high" --json number,title,labels
+  3. Aggregate scan results from .team/evidence/
+  4. Generate PPTX with:
+     - Vulnerability severity breakdown (pie chart)
+     - CVSS score distribution (histogram)
+     - Remediation progress (stacked bar)
+     - OWASP Top 10 coverage matrix (table)
+     - Evidence collection status (checklist)
+  5. Generate PDF with detailed finding descriptions
+  6. Commit reports
+CYCLE END
+```
+
+### Evidence-Linked Kanban Columns
+
+| Column | Entry Criteria | Exit Criteria |
+|--------|---------------|---------------|
+| New | Finding identified by scanner or manual testing | Triage by TL (confirmed or false-positive) |
+| Confirmed | Evidence collected, CVSS scored, PoC documented | Remediation plan created |
+| Remediation In Progress | Fix being developed | Fix committed and deployed to test |
+| Retest | QA retesting remediated finding | Retest evidence collected |
+| Remediated | Retest passed, evidence verified | PM closes issue |
+| Risk Accepted | TL + stakeholder accept residual risk | Documented in DECISION_LOG.md |
+| False Positive | Finding confirmed as false positive | Evidence of false positive documented |
+
+---
+
+*Cybersecurity Team v3.0 -- Amenthyx AI Teams*
+*12 Roles | 5 Waves | 12 Gates | Strategy-Driven | GitHub-Integrated | Evidence-Based*
+*See shared/ENHANCED_EXECUTION_PROTOCOL.md for cross-team protocol details*

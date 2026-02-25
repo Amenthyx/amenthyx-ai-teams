@@ -1,6 +1,7 @@
 # Game Development Team
 # Activation: `--team gameDev`
 # Focus: Game development, Unity, Unreal Engine, game design, and interactive entertainment
+# Version: v3.0 -- Enhanced Execution Protocol
 
 ---
 
@@ -11,10 +12,16 @@
 4. [Subagent Orchestration Engine](#4-subagent-orchestration-engine)
 5. [PM Artifacts & GitHub Integration](#5-pm-artifacts--github-integration)
 6. [Wave-Based Parallel Execution](#6-wave-based-parallel-execution)
-7. [Quality Gates](#7-quality-gates)
-8. [`.team/` Directory Layout](#8-team-directory-layout)
-9. [Reporting System](#9-reporting-system)
-10. [Error Handling & Session Management](#10-error-handling--session-management)
+7. [Evidence & Proof Protocol](#7-evidence--proof-protocol)
+8. [Local Install & Test Protocol](#8-local-install--test-protocol)
+9. [Atomic Commit Protocol](#9-atomic-commit-protocol)
+10. [Comprehensive Testing Matrix](#10-comprehensive-testing-matrix)
+11. [GitHub Actions -- Local Testing](#11-github-actions----local-testing)
+12. [PM Kanban -- Real-Time Tracking](#12-pm-kanban----real-time-tracking)
+13. [Quality Gates](#13-quality-gates)
+14. [`.team/` Directory Layout](#14-team-directory-layout)
+15. [Reporting System](#15-reporting-system)
+16. [Error Handling & Session Management](#16-error-handling--session-management)
 
 ---
 
@@ -26,13 +33,14 @@ When the user says `--team gameDev --strategy <path>`, activate this protocol.
 ### Initialization Sequence
 ```
 1. Read this TEAM.md completely
-2. Read the strategy file at <path> — this becomes PROJECT STRATEGY
-3. Create `.team/` directory structure (see Section 8)
-4. Spawn Team Leader agent (foreground — this is the orchestrator)
-5. Team Leader spawns PM agent (foreground — must complete before others)
-6. PM produces Game Design Document outline + Production Plan + creates GitHub Project
-7. Team Leader reviews PM output, then spawns remaining agents in waves
-8. Begin wave-based execution (see Section 6)
+2. Read shared/ENHANCED_EXECUTION_PROTOCOL.md for shared protocol details
+3. Read the strategy file at <path> -- this becomes PROJECT STRATEGY
+4. Create `.team/` directory structure (see Section 14)
+5. Spawn Team Leader agent (foreground -- this is the orchestrator)
+6. Team Leader spawns PM agent (foreground -- must complete before others)
+7. PM produces Game Design Document outline + Production Plan + creates GitHub Project
+8. Team Leader reviews PM output, then spawns remaining agents in waves
+9. Begin wave-based execution (see Section 6)
 ```
 
 ### Strategy Integration
@@ -239,6 +247,7 @@ WAVE 1: PLANNING (Sequential -- PM foreground)
 +-- PM: GitHub Project board + discipline labels
 +-- PM: Initial PPTX + PDF
 +-- GATE: All PM artifacts exist
++-- EVIDENCE: GitHub Project screenshot, milestone list
 
 WAVE 1.5: RESEARCH (Background, Parallel)
 +-- Marketing: store page, press kit, trailer script, launch plan
@@ -248,22 +257,26 @@ WAVE 1.5: RESEARCH (Background, Parallel)
 WAVE 2: GAME ENGINEERING (Background, Parallel -- 6 agents)
 +-- GA, GP, GFX, PHY, AUD, LD -- all in parallel
 +-- SYNC: TL waits for all 6 agents, validates system integration
++-- EVIDENCE: Each agent captures build logs, profiling data, test results
 
-WAVE 2.5: PM REPORTING
+WAVE 2.5: PM REPORTING + EVIDENCE COLLECTION
 +-- PM: 6-hour PPTX + PDF with feature completion and performance metrics
-+-- PM: Update GitHub issues
++-- PM: Update GitHub issues with evidence links
 +-- PM: Update KANBAN.md
++-- TL: Verify evidence artifacts exist for all completed tasks
 
 WAVE 3: QA (Sequential Gate)
 +-- GATE: All game engineering artifacts exist
 +-- QA: playtesting, performance profiling, platform compliance
-+-- GATE: QA_SIGNOFF.md = PASS
++-- QA: Collect frame profiling screenshots, memory reports, test results
++-- GATE: QA_SIGNOFF.md = PASS with all evidence collected
 
 WAVE 3.5: BUG FIX LOOP (Conditional)
 +-- IF QA FAIL -> re-spawn engineers -> QA re-tests -> loop until PASS
++-- Evidence must be regenerated after each fix cycle
 
 WAVE 4: RELEASE (Sequential Gate)
-+-- GATE: QA PASS + Legal platform clearance + Marketing ready
++-- GATE: QA PASS + Legal platform clearance + Marketing ready + Evidence complete
 +-- RM: platform builds, submission packages, changelog, day-one patch plan
 +-- RM: GitHub Release via gh release create
 +-- GATE: DEPLOYMENT_SIGNOFF.md approved
@@ -276,22 +289,539 @@ WAVE 5: FINAL REPORTING
 
 ---
 
-## 7. QUALITY GATES
+## 7. EVIDENCE & PROOF PROTOCOL
 
-| Gate | When | Check | Action if FAIL |
-|------|------|-------|----------------|
-| Planning Complete | After PM | Charter + milestones + GitHub Project exists | Re-spawn PM |
-| Build Gate | After GA+GP | Unity/Unreal project compiles for all target platforms | Re-spawn GA with build logs |
-| Playtest Gate | After QA | Gameplay loop validated, core mechanics feel good | Enter Bug Fix Loop |
-| Performance Gate | After QA | Target FPS on target hardware (30/60/120 per platform) | Re-spawn GFX + GA |
-| Memory Budget Gate | After QA | RAM usage within platform limits with headroom | Re-spawn GA + GFX |
-| Load Time Gate | After QA | Scene transitions within target seconds | Re-spawn GA |
-| Platform Cert Gate | After QA | Console TRC/XR checklist passes, Steam review ready | Re-spawn RM + relevant engineer |
-| Deployment Approved | After RM | DEPLOYMENT_SIGNOFF.md approved | RM lists blocking items |
+Every deliverable requires verifiable evidence. No build is considered shippable without proof.
+
+### Game Development Evidence Requirements
+
+| Artifact | Required Evidence | Storage Path |
+|----------|-------------------|--------------|
+| Build Compilation | Build log per platform with zero errors, binary sizes | `.team/evidence/build-log-unity.txt` or `build-log-unreal.txt` |
+| Shader Compilation | Shader compile log showing all variants compiled for target GPUs | `.team/evidence/shader-compilation.log` |
+| Frame Rate Benchmark | Frame time profiler output (avg, 1% low, 0.1% low) per platform | `.team/evidence/frame-time-profile.json` |
+| Memory Profile | Memory profiler snapshot per platform showing allocation breakdown | `.team/evidence/memory-profiler-snapshot.json` |
+| Load Times | Load time measurements per scene/level per platform | `.team/evidence/load-time-measurements.csv` |
+| Draw Call Analysis | RenderDoc capture summary with draw call count and batching stats | `.team/evidence/draw-call-analysis.txt` |
+| Playtest Feedback | Structured playtest session notes with ratings and feedback | `.team/evidence/playtest-feedback.md` |
+| Platform Compliance | TRC/XR checklist or Steam review checklist completed | `.team/evidence/platform-compliance-checklist.md` |
+| Test Results | Edit mode + play mode test runner XML results | `.team/evidence/play-mode-tests.xml` |
+| Secrets Scan | gitleaks clean output (no API keys or credentials) | `.team/evidence/gitleaks-scan.txt` |
+
+### Evidence Collection Commands
+
+```bash
+# Unity build (command line)
+Unity -batchmode -nographics -projectPath . -buildTarget StandaloneWindows64 \
+  -executeMethod BuildScript.Build -logFile .team/evidence/build-log-unity.txt
+# Check build log for errors
+grep -c "Error" .team/evidence/build-log-unity.txt | xargs test 0 -eq
+
+# Unreal build
+UnrealBuildTool.exe MyProject Win64 Shipping \
+  -log=.team/evidence/build-log-unreal.txt
+
+# Unity play mode tests (command line)
+Unity -batchmode -nographics -projectPath . \
+  -runTests -testResults .team/evidence/play-mode-tests.xml \
+  -testPlatform PlayMode
+
+# Unity edit mode tests
+Unity -batchmode -nographics -projectPath . \
+  -runTests -testResults .team/evidence/edit-mode-tests.xml \
+  -testPlatform EditMode
+
+# Shader compilation check (Unity)
+Unity -batchmode -nographics -projectPath . \
+  -executeMethod ShaderUtil.CompileAllShaders \
+  -logFile .team/evidence/shader-compilation.log
+
+# Frame time profiling (custom script output)
+python scripts/parse_profiler_output.py --input profiler_capture.json \
+  --output .team/evidence/frame-time-profile.json
+
+# Memory profiling (Unity Memory Profiler or custom)
+python scripts/parse_memory_snapshot.py --input memory_snapshot.raw \
+  --output .team/evidence/memory-profiler-snapshot.json
+
+# Load time measurement script
+python scripts/measure_load_times.py --scenes "MainMenu,Level1,Level2,Level3" \
+  --output .team/evidence/load-time-measurements.csv
+
+# RenderDoc frame analysis (post-capture)
+python scripts/analyze_renderdoc_capture.py --input capture.rdc \
+  --output .team/evidence/draw-call-analysis.txt
+
+# Secrets scan
+gitleaks detect --source . --report-path .team/evidence/gitleaks-scan.txt
+```
+
+### Evidence Freshness Policy
+- Build evidence must correspond to the exact commit being released
+- Performance benchmarks must be run on target hardware, not development machines
+- Playtest feedback must be from the current build, not previous versions
+- PM tracks evidence commit hashes to ensure freshness
 
 ---
 
-## 8. `.team/` DIRECTORY LAYOUT
+## 8. LOCAL INSTALL & TEST PROTOCOL
+
+### Prerequisites -- Unity
+```bash
+# Install Unity Hub (download from unity.com)
+# Install Unity Editor version matching project (e.g., 2022.3 LTS)
+# Required modules: Windows Build Support, Linux Build Support, Android/iOS as needed
+
+# CLI tools
+npm install -g unity-test-runner  # if using custom test runner
+
+# Code analysis
+dotnet tool install -g dotnet-format
+dotnet tool install -g roslynator.dotnet.cli
+
+# Report generation
+pip install python-pptx reportlab
+```
+
+### Prerequisites -- Unreal Engine
+```bash
+# Install Unreal Engine via Epic Games Launcher
+# Or build from source: git clone UE5, Setup.bat, GenerateProjectFiles.bat
+
+# CLI tools
+# UnrealBuildTool, UnrealEditor-Cmd available after engine install
+
+# Code analysis (C++)
+pip install cpplint
+sudo apt install cppcheck  # or brew install cppcheck
+
+# Report generation
+pip install python-pptx reportlab
+```
+
+### Prerequisites -- Godot
+```bash
+# Godot CLI
+# Download from https://godotengine.org/download
+# Or via package manager:
+# Linux: snap install godot-4
+# macOS: brew install godot
+# Windows: scoop install godot
+
+# Godot export templates
+godot --headless --export-templates
+```
+
+### Docker-Based Build Environment
+```bash
+# Unity Docker builds (GameCI)
+docker pull unityci/editor:ubuntu-2022.3.0f1-linux-il2cpp-3
+docker run --rm -v $(pwd):/project \
+  -e UNITY_LICENSE="$(cat Unity_v2022.x.ulf)" \
+  unityci/editor:ubuntu-2022.3.0f1-linux-il2cpp-3 \
+  unity-editor -batchmode -nographics -projectPath /project \
+  -executeMethod BuildScript.Build -logFile -
+
+# Godot Docker builds
+docker pull barichello/godot-ci:4.2
+docker run --rm -v $(pwd):/project barichello/godot-ci:4.2 \
+  godot --headless --export-release "Linux/X11" /project/build/game.x86_64
+```
+
+### Build Verification
+```bash
+# Unity: Build for all target platforms
+Unity -batchmode -nographics -projectPath . -buildTarget StandaloneWindows64 -executeMethod BuildScript.Build
+Unity -batchmode -nographics -projectPath . -buildTarget StandaloneLinux64 -executeMethod BuildScript.Build
+
+# Unreal: Build for all target platforms
+UnrealBuildTool.exe MyProject Win64 Shipping
+UnrealBuildTool.exe MyProject Linux Shipping
+
+# Verify no compilation errors
+grep -c "error" build.log | xargs test 0 -eq
+
+# Check binary sizes
+ls -lh Build/
+```
+
+### Run Verification
+```bash
+# Unity: Enter play mode and run automated tests
+Unity -batchmode -nographics -projectPath . -runTests -testPlatform PlayMode
+
+# Launch standalone build and verify startup
+./Build/MyGame.exe --automated-test --timeout 60
+
+# Verify scene loads without errors
+Unity -batchmode -nographics -projectPath . \
+  -executeMethod TestRunner.LoadAllScenes
+```
+
+---
+
+## 9. ATOMIC COMMIT PROTOCOL
+
+### Conventional Commit Format
+```
+<type>(<scope>): <description>
+
+[optional body]
+
+[optional footer]
+```
+
+### Game Development Commit Types
+
+| Type | When | Example |
+|------|------|---------|
+| `feat(gameplay)` | New gameplay mechanic, system, or controller | `feat(gameplay): add double-jump mechanic with coyote time` |
+| `feat(graphics)` | New shader, VFX, rendering feature | `feat(graphics): add volumetric fog shader with temporal reprojection` |
+| `feat(physics)` | New physics feature, collision system | `feat(physics): add destructible wall system with debris spawning` |
+| `feat(audio)` | New audio system, music feature | `feat(audio): add adaptive music system with combat/explore layers` |
+| `feat(level)` | New level, blockout, encounter | `feat(level): add tutorial level blockout with pacing beats` |
+| `feat(ui)` | New UI screen, HUD element | `feat(ui): add inventory screen with drag-and-drop slots` |
+| `fix(gameplay)` | Gameplay bug, feel issue, balance | `fix(gameplay): correct wall-jump velocity causing ceiling clip` |
+| `fix(graphics)` | Rendering bug, shader error, visual glitch | `fix(graphics): fix shadow acne on thin geometry` |
+| `perf(graphics)` | Performance optimization, batching | `perf(graphics): reduce draw calls 40% via GPU instancing` |
+| `perf(loading)` | Load time optimization | `perf(loading): add async scene loading with progress bar` |
+| `test(playmode)` | Play mode test, gameplay test | `test(playmode): add play mode test for combat damage calculation` |
+| `test(editmode)` | Edit mode test, tool test | `test(editmode): add edit mode test for level generator` |
+| `chore(build)` | Build pipeline, asset import settings | `chore(build): configure texture compression for Android` |
+| `docs(design)` | Game design document update | `docs(design): update GDD with revised combat flow` |
+
+### Per-Task Commit Workflow
+```bash
+# 1. Stage only task-related files (use Git LFS for large assets)
+git add Assets/Scripts/PlayerController.cs
+git add Assets/Tests/PlayMode/TestPlayerController.cs
+
+# 2. Commit with conventional format
+git commit -m "feat(gameplay): add double-jump mechanic with coyote time
+
+- 0.15s coyote time window after leaving platform edge
+- Double-jump resets on ground contact or wall-slide
+- Configurable jump height and gravity multiplier via ScriptableObject
+- Draw calls: +0, Memory: +0.2KB
+"
+
+# 3. Record commit hash for PM tracking
+TASK_COMMIT=$(git rev-parse --short HEAD)
+```
+
+### Git LFS Configuration
+```bash
+# Track large binary assets
+git lfs track "*.fbx"
+git lfs track "*.png"
+git lfs track "*.wav"
+git lfs track "*.mp3"
+git lfs track "*.ogg"
+git lfs track "*.psd"
+git lfs track "*.tga"
+git lfs track "*.exr"
+git lfs track "*.uasset"
+git lfs track "*.umap"
+git add .gitattributes
+```
+
+---
+
+## 10. COMPREHENSIVE TESTING MATRIX
+
+### Test Layers
+
+| Layer | Tool | Scope | Coverage Target |
+|-------|------|-------|-----------------|
+| Edit Mode Tests | Unity Test Framework / UE Automation | Editor tools, asset validation, serialization | >= 80% for tools |
+| Play Mode Tests | Unity Test Framework / UE Functional Tests | Gameplay mechanics, state machines, AI behavior | >= 70% for gameplay code |
+| Shader Tests | Custom shader test framework | Shader compilation, visual regression | All shaders compile |
+| Performance Tests | Unity Profiler / Unreal Insights + custom | Frame time, memory, draw calls, load times | All target platforms |
+| Integration Tests | Custom test scenes | System interaction, scene transitions, save/load | Critical gameplay paths |
+| Platform Tests | Build + run per platform | Platform-specific issues, input, rendering | All target platforms |
+| Playtest Sessions | Structured playtest + feedback forms | Game feel, fun factor, difficulty curve, UX | 3+ sessions per milestone |
+| Regression Tests | Automated test suite | No previously-fixed bugs reappear | All fixed bugs have tests |
+| Platform Cert | TRC/XR checklist / Steam checklist | Platform submission requirements | 100% compliance |
+
+### Test Execution Order
+```bash
+# Phase 1: Code analysis
+dotnet format --verify-no-changes  # Unity C#
+# Or: cpplint --recursive Source/  # Unreal C++
+
+# Phase 2: Edit mode tests
+Unity -batchmode -nographics -projectPath . -runTests -testPlatform EditMode \
+  -testResults .team/evidence/edit-mode-tests.xml
+
+# Phase 3: Play mode tests
+Unity -batchmode -nographics -projectPath . -runTests -testPlatform PlayMode \
+  -testResults .team/evidence/play-mode-tests.xml
+
+# Phase 4: Build for all platforms
+Unity -batchmode -nographics -projectPath . -buildTarget StandaloneWindows64 \
+  -executeMethod BuildScript.Build -logFile .team/evidence/build-log-unity.txt
+
+# Phase 5: Shader compilation verification
+Unity -batchmode -nographics -projectPath . \
+  -executeMethod ShaderUtil.CompileAllShaders \
+  -logFile .team/evidence/shader-compilation.log
+
+# Phase 6: Performance profiling (on target hardware)
+./Build/MyGame.exe --profile --benchmark-scene Level1 \
+  --output .team/evidence/frame-time-profile.json
+
+# Phase 7: Memory profiling
+./Build/MyGame.exe --memory-profile --scene Level1 \
+  --output .team/evidence/memory-profiler-snapshot.json
+
+# Phase 8: Load time measurement
+./scripts/measure_load_times.sh 2>&1 | tee .team/evidence/load-time-measurements.csv
+
+# Phase 9: Secrets scan
+gitleaks detect --source . --report-path .team/evidence/gitleaks-scan.txt
+```
+
+### Frame Rate Benchmark Template
+```json
+{
+  "platform": "Windows 10, RTX 3070, 16GB RAM",
+  "resolution": "1920x1080",
+  "quality_preset": "High",
+  "scenes": [
+    {
+      "name": "MainMenu",
+      "avg_fps": 144,
+      "1_percent_low": 120,
+      "0.1_percent_low": 95,
+      "target_fps": 60,
+      "PASS": true
+    },
+    {
+      "name": "Level1_Combat",
+      "avg_fps": 72,
+      "1_percent_low": 58,
+      "0.1_percent_low": 45,
+      "target_fps": 60,
+      "PASS": false,
+      "notes": "1% low below target during large particle burst"
+    }
+  ]
+}
+```
+
+---
+
+## 11. GITHUB ACTIONS -- LOCAL TESTING
+
+### CI Pipeline Definition
+```yaml
+# .github/workflows/gamedev.yml
+name: Game Build CI
+on: [push, pull_request]
+
+jobs:
+  code-quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - name: Check C# formatting (Unity)
+        run: dotnet format --verify-no-changes Assets/Scripts/
+
+  unity-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - uses: game-ci/unity-test-runner@v4
+        with:
+          projectPath: .
+          testMode: all
+          artifactsPath: test-results
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: test-results/
+
+  unity-build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        targetPlatform: [StandaloneWindows64, StandaloneLinux64, WebGL]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - uses: game-ci/unity-builder@v4
+        with:
+          projectPath: .
+          targetPlatform: ${{ matrix.targetPlatform }}
+      - name: Check build size
+        run: |
+          BUILD_SIZE=$(du -sb build/ | cut -f1)
+          echo "Build size: $BUILD_SIZE bytes"
+          if [ "$BUILD_SIZE" -gt 5368709120 ]; then exit 1; fi
+      - name: Upload build
+        uses: actions/upload-artifact@v4
+        with:
+          name: Build-${{ matrix.targetPlatform }}
+          path: build/
+
+  asset-validation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - name: Check for oversized textures
+        run: |
+          find Assets/ -name "*.png" -o -name "*.tga" | while read f; do
+            SIZE=$(identify -format "%wx%h" "$f" 2>/dev/null)
+            W=$(echo $SIZE | cut -dx -f1)
+            H=$(echo $SIZE | cut -dx -f2)
+            if [ "$W" -gt 4096 ] || [ "$H" -gt 4096 ]; then
+              echo "OVERSIZED: $f ($SIZE)"; exit 1
+            fi
+          done
+
+  secrets-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
+```
+
+### Local CI Validation with `act`
+```bash
+# Run individual CI jobs
+act push --job code-quality
+act push --job unity-tests
+act push --job unity-build
+act push --job asset-validation
+act push --job secrets-scan
+
+# Run all jobs
+act push
+
+# Save validation log as evidence
+act push 2>&1 | tee .team/ci/act-validation-log.txt
+```
+
+### Game-Specific CI Checks
+```bash
+# Shader variant count check (prevent shader explosion)
+Unity -batchmode -nographics -projectPath . \
+  -executeMethod BuildScript.CheckShaderVariantCount --max-variants 10000
+
+# Asset validation (missing references, broken prefabs)
+Unity -batchmode -nographics -projectPath . \
+  -executeMethod AssetValidator.ValidateAll
+
+# Scene load test (all scenes load without errors)
+Unity -batchmode -nographics -projectPath . \
+  -executeMethod TestRunner.LoadAllScenes
+
+# Build size check (binary within platform limits)
+ls -la Build/*.exe | awk '{if ($5 > MAX_SIZE) exit 1}'
+
+# Git LFS check (ensure large files are tracked)
+find . -name "*.fbx" -o -name "*.wav" -o -name "*.psd" | while read f; do
+  git lfs pointer --check "$f" || echo "NOT LFS TRACKED: $f"
+done
+```
+
+---
+
+## 12. PM KANBAN -- REAL-TIME TRACKING
+
+### GitHub Projects V2 Setup
+```bash
+# Create project board
+gh project create --title "GameDev: <project-name>" --owner @me
+
+# Create custom fields for game projects
+gh project field-create <PROJECT_NUMBER> --owner @me --name "Discipline" --data-type "SINGLE_SELECT" \
+  --single-select-options "gameplay,graphics,physics,audio,level,ui"
+gh project field-create <PROJECT_NUMBER> --owner @me --name "Milestone" --data-type "SINGLE_SELECT" \
+  --single-select-options "vertical-slice,alpha,beta,gold"
+gh project field-create <PROJECT_NUMBER> --owner @me --name "Performance Impact" --data-type "SINGLE_SELECT" \
+  --single-select-options "none,minor,significant,needs-profiling"
+gh project field-create <PROJECT_NUMBER> --owner @me --name "Evidence Status" --data-type "SINGLE_SELECT" \
+  --single-select-options "pending,collected,verified,stale"
+```
+
+### Real-Time Issue Updates
+After each task completion:
+```bash
+# Update issue status with performance impact
+gh issue edit <NUMBER> --add-label "status:done"
+gh issue comment <NUMBER> --body "Task completed:
+- Build: compiles clean on all platforms
+- Draw calls: +12 (instanced, within budget)
+- Memory: +2.4MB (textures, compressed)
+- Tests: 23/23 play mode tests passed
+- Evidence: .team/evidence/build-log-unity.txt
+- Commit: $(git rev-parse --short HEAD)"
+```
+
+### PM 6-Hour Report Cycle
+```
+CYCLE START:
+  1. Read KANBAN.md for current state
+  2. Query GitHub Issues: gh issue list --state all --json number,title,state,labels
+  3. Collect performance metrics from .team/evidence/
+  4. Generate PPTX with:
+     - Feature completion by discipline (stacked bar)
+     - FPS benchmarks per platform (table)
+     - Memory usage per scene (bar chart)
+     - Draw call budget utilization (gauge)
+     - Bug severity breakdown (pie chart)
+     - Playtest feedback summary (bullet points)
+     - Evidence collection status (checklist)
+  5. Generate PDF with detailed technical analysis
+  6. Commit reports
+CYCLE END
+```
+
+### Evidence-Linked Kanban Columns
+
+| Column | Entry Criteria | Exit Criteria |
+|--------|---------------|---------------|
+| Backlog | Issue created with discipline label | PM assigns to sprint/milestone |
+| In Progress | Agent spawned and working | Agent writes first artifact |
+| In Review | Feature implemented, build compiles | Play mode tests pass, evidence collected |
+| Evidence Collected | Performance profile + test results saved | Within performance budget, no regressions |
+| Done | QA sign-off, performance verified, commit recorded | PM closes issue |
+| Blocked | Build failure, art asset missing, design question | Blocker resolved, re-enter In Progress |
+
+---
+
+## 13. QUALITY GATES
+
+| # | Gate | When | Check | Evidence Required | Action if FAIL |
+|---|------|------|-------|-------------------|----------------|
+| G1 | Planning Complete | After PM | Charter + milestones + GitHub Project exists | GitHub Project screenshot | Re-spawn PM |
+| G2 | Build Gate | After GA+GP | Unity/Unreal project compiles for all target platforms | Build log per platform, binary sizes | Re-spawn GA with build logs |
+| G3 | Shader Compilation | After GFX | All shaders compile without errors on all target GPUs | Shader compilation log, variant count | Re-spawn GFX |
+| G4 | Playtest Gate | After QA | Gameplay loop validated, core mechanics feel good | Playtest session notes, feedback summary | Enter Bug Fix Loop |
+| G5 | Frame Rate Gate | After QA | Target FPS on target hardware (30/60/120 per platform) | Frame time profiler output, 1% low FPS data | Re-spawn GFX + GA |
+| G6 | Memory Budget Gate | After QA | RAM usage within platform limits with headroom | Memory profiler snapshot per platform | Re-spawn GA + GFX |
+| G7 | Load Time Gate | After QA | Scene transitions within target seconds | Load time measurements per scene | Re-spawn GA |
+| G8 | Draw Call Gate | After QA | Draw calls within budget (batching, instancing verified) | RenderDoc capture, draw call count | Re-spawn GFX |
+| G9 | Platform Cert Gate | After QA | Console TRC/XR checklist passes, Steam review ready | Platform compliance checklist | Re-spawn RM + relevant engineer |
+| G10 | Secrets Gate | Before release | No API keys, store secrets, or credentials in build | `gitleaks detect` clean output | Block release |
+| G11 | Evidence Gate | Before release | All evidence artifacts in `.team/evidence/` | File existence check | Block release |
+| G12 | Deployment Approved | After RM | DEPLOYMENT_SIGNOFF.md approved | Sign-off document | RM lists blocking items |
+
+---
+
+## 14. `.team/` DIRECTORY LAYOUT
 
 ```
 .team/
@@ -306,6 +836,27 @@ WAVE 5: FINAL REPORTING
 +-- reports/
 |   +-- status_001.pptx
 |   +-- activity_001.pdf
++-- evidence/
+|   +-- build-log-unity.txt
+|   +-- build-log-unreal.txt
+|   +-- shader-compilation.log
+|   +-- frame-time-profile.json
+|   +-- memory-profiler-snapshot.json
+|   +-- load-time-measurements.csv
+|   +-- draw-call-analysis.txt
+|   +-- renderdoc-capture-summary.txt
+|   +-- playtest-feedback.md
+|   +-- platform-compliance-checklist.md
+|   +-- play-mode-tests.xml
+|   +-- edit-mode-tests.xml
+|   +-- gitleaks-scan.txt
++-- ci/
+|   +-- .github/
+|   |   +-- workflows/
+|   |       +-- gamedev.yml
+|   |       +-- play-mode-tests.yml
+|   |       +-- shader-compile-check.yml
+|   +-- act-validation-log.txt
 +-- game-design/
 +-- gameplay/
 +-- graphics/
@@ -321,16 +872,23 @@ WAVE 5: FINAL REPORTING
 
 ---
 
-## 9. REPORTING SYSTEM
+## 15. REPORTING SYSTEM
 
+### Standard Reports
 - **PPTX**: Every 6 hours via `shared/PPTX_GENERATOR.py` -- includes FPS benchmarks, memory usage charts, and feature completion percentages
 - **PDF**: Activity summaries via `shared/PDF_GENERATOR.py` -- includes playtest feedback summaries and bug severity breakdown
 - PM tracks intervals by reading timestamps from previous reports
 - Final summary generated at project completion with full platform readiness assessment
 
+### Enhanced Report Content
+- **Evidence slides**: Each PPTX includes frame time graphs, memory waterfall charts, and RenderDoc capture summaries
+- **Performance dashboard**: FPS across platforms (table), 1% low frame time (chart), memory per scene (bar chart)
+- **Build status matrix**: Build success/fail per platform, binary sizes, shader variant counts
+- **Playtest feedback summary**: Core loop rating, fun factor, friction points, suggested improvements
+
 ---
 
-## 10. ERROR HANDLING & SESSION MANAGEMENT
+## 16. ERROR HANDLING & SESSION MANAGEMENT
 
 ### Error Handling
 - **Agent failure**: Re-spawn with same prompt + failure context (max 3 retries)
@@ -357,5 +915,6 @@ If `.team/` exists on activation, TL reads `KANBAN.md` + `TEAM_STATUS.md` and re
 
 ---
 
-*Game Development Team v2.0 -- Amenthyx AI Teams*
-*12 Roles | 5 Waves | 8 Gates | Strategy-Driven | GitHub-Integrated*
+*Game Development Team v3.0 -- Amenthyx AI Teams*
+*12 Roles | 5 Waves | 12 Gates | Strategy-Driven | GitHub-Integrated | Evidence-Based*
+*See shared/ENHANCED_EXECUTION_PROTOCOL.md for cross-team protocol details*

@@ -1,4 +1,4 @@
-# Activation Protocol
+# Activation Protocol v3.0
 
 ## How `--team` and `--strategy` Work
 
@@ -53,10 +53,57 @@ If no team matches the given name, print available teams:
 ```
 No team found matching "<name>". Available teams:
 
-  --team fullStack      Full-Stack Team (general full-stack development)
-  --team flutter        Flutter Mobile Team (Flutter/Dart mobile apps)
-  --team dotnet         .NET Enterprise Team (C#, .NET enterprise)
-  ...
+  --team fullStack          Full-Stack Team (general full-stack development)
+  --team flutter            Flutter Mobile Team (Flutter/Dart mobile apps)
+  --team dotnet             .NET Enterprise Team (C#, .NET enterprise)
+  --team cpp                C++ Systems Team (C++ systems/performance)
+  --team pythonData         Python Data Team (data science, ML pipelines)
+  --team javaSpring         Java Spring Team (Java, Spring Boot backends)
+  --team react              React Frontend Team (React, Next.js, TypeScript)
+  --team nodejs             Node.js Backend Team (Node.js, Express, NestJS)
+  --team rust               Rust Systems Team (Rust, safety-critical)
+  --team goCloud            Go Cloud Team (Go microservices, cloud-native)
+  --team swiftIOS           Swift iOS Team (Swift, Apple ecosystem)
+  --team kotlinAndroid      Kotlin Android Team (Kotlin, Android native)
+  --team devops             DevOps Team (CI/CD, automation, pipelines)
+  --team infraCloud         Cloud Infrastructure Team (AWS/GCP/Azure, IaC)
+  --team dataEng            Data Engineering Team (ETL, Spark, Airflow)
+  --team aiML               AI/ML Team (machine learning, deep learning)
+  --team security           Cybersecurity Team (pentesting, compliance)
+  --team embeddedIoT        Embedded IoT Team (firmware, embedded systems)
+  --team gameDev            Game Dev Team (Unity, Unreal, game engines)
+  --team web3               Blockchain Web3 Team (smart contracts, DeFi)
+  --team agenticAI          Agentic AI Team (agent frameworks, multi-agent)
+  --team elixirPhoenix      Elixir/Phoenix Team (OTP, LiveView, real-time)
+  --team scalaSpark         Scala/Spark Team (big data, stream processing)
+  --team rubyRails          Ruby on Rails Team (Rails 7+, Hotwire, Turbo)
+  --team phpLaravel         PHP/Laravel Team (PHP 8+, Laravel, Livewire)
+  --team vueFrontend        Vue.js Frontend Team (Vue 3, Nuxt 3, Pinia)
+  --team angularEnterprise  Angular Enterprise Team (Angular 17+, NgRx)
+  --team sre                SRE Team (reliability, incident response)
+  --team platformEng        Platform Engineering Team (developer platforms)
+  --team reactNative        React Native Team (Expo, cross-platform mobile)
+  --team databaseEng        Database Engineering Team (PostgreSQL, MongoDB)
+  --team apiDesign          API Design Team (REST, GraphQL, gRPC)
+  --team lowcodeAutomation  Low-Code Automation Team (n8n, Retool)
+  --team qaAutomation       QA Automation Team (Selenium, Playwright)
+  --team techWriting        Technical Writing Team (docs, API docs)
+  --team uxDesign           UX/UI Design Team (Figma, design systems)
+  --team perfEng            Performance Engineering Team (load testing)
+  --team dataScience        Data Science Team (Jupyter, pandas, stats)
+  --team computerVision     Computer Vision Team (OpenCV, YOLO)
+  --team nlpLLM             NLP/LLM Team (fine-tuning, RLHF, RAG)
+  --team roboticsROS        Robotics/ROS Team (ROS2, SLAM, planning)
+  --team xrSpatial          XR/Spatial Computing Team (Unity XR, ARKit)
+  --team edgeComputing      Edge Computing Team (TinyML, WASM, edge)
+  --team quantumComputing   Quantum Computing Team (Qiskit, Cirq)
+  --team fintech            FinTech Team (payments, banking, PCI-DSS)
+  --team healthtech         HealthTech Team (HIPAA, FHIR, health data)
+  --team edtech             EdTech Team (LMS, learning analytics)
+  --team ecommerce          E-Commerce Team (Shopify, marketplaces)
+  --team realtimeSystems    Real-Time Systems Team (WebSockets, MQTT)
+  --team accessibility      Accessibility Team (WCAG 2.2, screen readers)
+  --team openSource         Open Source Team (community, governance)
 
 Pick a team or check your spelling.
 ```
@@ -81,7 +128,8 @@ Once matched, the protocol:
 
 1. Reads the matched team's `TEAM.md` in full
 2. Reads the strategy file in full
-3. Combines them into the Team Leader's activation prompt:
+3. Reads the Enhanced Execution Protocol (`shared/ENHANCED_EXECUTION_PROTOCOL.md`)
+4. Combines them into the Team Leader's activation prompt:
 
 ```
 You are activating as the Team Leader for the {TEAM_NAME}.
@@ -92,17 +140,28 @@ TEAM PROTOCOL:
 PROJECT STRATEGY:
 {contents of strategy file}
 
+ENHANCED EXECUTION PROTOCOL:
+{contents of ENHANCED_EXECUTION_PROTOCOL.md}
+
 SHARED RESOURCES:
 - PM GitHub Integration: {contents of PM_GITHUB_INTEGRATION.md}
 - PPTX Generator: shared/PPTX_GENERATOR.py
 - PDF Generator: shared/PDF_GENERATOR.py
+
+CRITICAL REQUIREMENTS:
+1. Every agent MUST produce evidence (screenshots, logs, test results)
+2. Every change MUST be an atomic git commit with conventional format
+3. PM MUST maintain GitHub kanban board in real-time
+4. All tests MUST pass locally before QA wave
+5. GitHub Actions MUST be validated locally with `act` before pushing
+6. PM MUST produce PPTX + PDF reports with evidence dashboards
 
 Begin execution at Wave 0.
 ```
 
 ### Execution Context Injection
 
-The strategy file content is injected into EVERY agent's prompt as `PROJECT STRATEGY:` context. This ensures all team members — from PM to QA to Release Manager — understand the project goals, constraints, and success criteria.
+The strategy file AND enhanced execution protocol are injected into EVERY agent's prompt:
 
 ```
 Task(
@@ -116,6 +175,13 @@ Task(
   PROJECT CHARTER:
   {read .team/PROJECT_CHARTER.md}
 
+  ENHANCED EXECUTION PROTOCOL:
+  You MUST follow the Evidence & Proof Protocol:
+  - Produce evidence manifest at .team/evidence/manifests/{ROLE}_manifest.md
+  - Save all build/test/runtime output to .team/evidence/
+  - Every change = 1 atomic commit with conventional format
+  - Reference issue number in every commit
+
   YOUR TASKS:
   ...
   """
@@ -127,12 +193,16 @@ Task(
 | Command | Action |
 |---------|--------|
 | `--team <name> --strategy <path>` | Activate a new team session |
-| `team status` | Show current KANBAN + TIMELINE |
+| `team status` | Show current KANBAN + evidence dashboard + test status |
 | `team report` | Force PM to generate PPTX + PDF now |
+| `team evidence` | Show evidence collection status per agent |
+| `team commits` | Show atomic commit log |
+| `team tests` | Show test coverage status across all layers |
+| `team ci` | Show GitHub Actions local validation status |
 | `team decide <topic>` | Trigger decision aggregation |
-| `team gate check` | Run all quality gate checks |
-| `pause team` | Save state and pause execution |
-| `resume team` | Resume from saved `.team/` state |
+| `team gate check` | Run all quality gate checks (including evidence gates) |
+| `pause team` | Save state to `.team/TEAM_STATUS.md` |
+| `resume team` | Resume from `.team/` saved state |
 
 ### Multiple Teams
 
@@ -140,8 +210,13 @@ You can run multiple teams on different projects simultaneously in different ter
 
 ### Adding New Teams
 
-1. Create a numbered folder in the repo: `22-your-team/`
-2. Add a `TEAM.md` with the standard structure
+1. Create a numbered folder in the repo: `52-your-team/`
+2. Add a `TEAM.md` with the standard structure (including enhanced sections)
 3. Include `Activation: --team yourKeyword` in the header
 4. Push to `Amenthyx/amenthyx-ai-teams`
 5. The team is immediately discoverable on next `git pull`
+
+---
+
+*Activation Protocol v3.0 — Amenthyx AI Teams*
+*51 Teams | Evidence-Driven | Real-Time Kanban | Atomic Commits | CI-Validated*

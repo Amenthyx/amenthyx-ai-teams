@@ -1,24 +1,35 @@
-# PM GitHub Integration Protocol
+# PM GitHub Integration Protocol v3.0
 
 ## Overview
 
-Every team's Project Manager agent uses the `gh` CLI to create and manage GitHub Projects, milestones, issues, and releases. This integrates the team's kanban board, deliverables, and milestones directly into GitHub for visibility and tracking.
+Every team's Project Manager agent uses the `gh` CLI to create and manage GitHub Projects, milestones, issues, and releases. This integrates the team's kanban board, deliverables, and milestones directly into GitHub for real-time visibility and tracking.
+
+**v3.0 Enhancements**: Real-time kanban board updates, evidence-linked issues, atomic commit tracking, CI/CD status integration.
 
 ## Prerequisites
 
 - `gh` CLI installed and authenticated (`gh auth status`)
 - Write access to the project's GitHub repository
 - GitHub Projects (v2) enabled on the repository
+- `act` installed for local GitHub Actions testing (`act --version`)
 
 ## Setup Commands
 
-### 1. Create GitHub Project Board
+### 1. Create GitHub Project Board (V2 with Enhanced Columns)
 
 ```bash
 # Create a new project board linked to the repo
 gh project create --title "{PROJECT_NAME} — Kanban" --owner "{ORG_OR_USER}" --format "board"
 
 # Note the project number from output for subsequent commands
+# Add custom fields for enhanced tracking
+gh project field-create {PROJECT_NUMBER} --owner "{ORG}" --name "Wave" \
+  --data-type "SINGLE_SELECT" \
+  --single-select-options "Wave 0,Wave 1,Wave 1.5,Wave 2,Wave 2.5,Wave 3,Wave 3.5,Wave 4,Wave 5"
+
+gh project field-create {PROJECT_NUMBER} --owner "{ORG}" --name "Agent" --data-type "TEXT"
+gh project field-create {PROJECT_NUMBER} --owner "{ORG}" --name "Evidence" --data-type "TEXT"
+gh project field-create {PROJECT_NUMBER} --owner "{ORG}" --name "Commit" --data-type "TEXT"
 ```
 
 ### 2. Create Milestones
@@ -42,7 +53,7 @@ gh api repos/{OWNER}/{REPO}/milestones -f title="M4: Release" \
   -f due_on="2025-01-28T00:00:00Z"
 ```
 
-### 3. Create Labels
+### 3. Create Labels (Enhanced Set)
 
 ```bash
 # Role labels
@@ -62,68 +73,177 @@ gh label create "P0:critical" --color "b60205" --description "Must-have, blockin
 gh label create "P1:high" --color "d93f0b" --description "Should-have"
 gh label create "P2:medium" --color "fbca04" --description "Nice-to-have"
 
-# Status labels
+# Status labels (enhanced for real-time tracking)
+gh label create "status:backlog" --color "CCCCCC" --description "Not started"
+gh label create "status:sprint-ready" --color "0075ca" --description "Ready for current wave"
+gh label create "status:in-progress" --color "d93f0b" --description "Agent actively working"
+gh label create "status:in-review" --color "fbca04" --description "Work done, TL reviewing"
+gh label create "status:testing" --color "5319e7" --description "QA testing"
+gh label create "status:done" --color "0e8a16" --description "Verified complete"
 gh label create "status:blocked" --color "000000" --description "Blocked by dependency"
-gh label create "status:in-review" --color "0075ca" --description "In review"
+
+# Evidence labels
+gh label create "evidence:verified" --color "00C853" --description "Evidence manifest submitted and verified"
+gh label create "evidence:missing" --color "FF1744" --description "Evidence not yet submitted"
+gh label create "evidence:partial" --color "FFC107" --description "Some evidence missing"
 
 # Wave labels
+gh label create "wave:0-init" --color "e1e4e8" --description "Wave 0: Initialization"
 gh label create "wave:1-planning" --color "bfdadc" --description "Wave 1: Planning"
+gh label create "wave:1.5-research" --color "d1bcf9" --description "Wave 1.5: Research"
 gh label create "wave:2-engineering" --color "d4c5f9" --description "Wave 2: Engineering"
 gh label create "wave:3-qa" --color "fef2c0" --description "Wave 3: QA"
 gh label create "wave:4-release" --color "f9d0c4" --description "Wave 4: Release"
+gh label create "wave:5-reporting" --color "c2e0c6" --description "Wave 5: Reporting"
+
+# Test labels
+gh label create "tests:passing" --color "0e8a16" --description "All tests passing"
+gh label create "tests:failing" --color "b60205" --description "Tests failing"
+gh label create "tests:pending" --color "fbca04" --description "Tests not yet run"
+
+# CI/CD labels
+gh label create "ci:validated" --color "0e8a16" --description "GitHub Actions validated locally with act"
+gh label create "ci:pending" --color "fbca04" --description "CI not yet validated"
 ```
 
-### 4. Create Issues for Deliverables
+### 4. Create Issues for Deliverables (Enhanced with Evidence Requirements)
 
 ```bash
-# PM issues the PM creates issues for each deliverable
-# Example: Backend API Design
+# Template for creating issues with evidence requirements
 gh issue create \
-  --title "Design REST API contracts" \
+  --title "feat(api): implement user CRUD endpoints" \
   --body "## Description
-Design all REST API endpoints with request/response schemas.
+Design and implement REST API endpoints for user management.
 
 ## Acceptance Criteria
+- [ ] POST /api/users — create user with validation
+- [ ] GET /api/users/:id — get user by ID
+- [ ] PUT /api/users/:id — update user
+- [ ] DELETE /api/users/:id — soft-delete user
 - [ ] All endpoints documented in OpenAPI format
-- [ ] Request/response schemas defined
-- [ ] Auth requirements specified per endpoint
-- [ ] Error response format standardized
+- [ ] Error responses standardized
+
+## Evidence Required (MANDATORY)
+- [ ] Unit tests passing (>= 80% coverage) — \`.team/evidence/tests/unit/\`
+- [ ] Integration tests passing — \`.team/evidence/tests/integration/\`
+- [ ] Build log clean (zero warnings) — \`.team/evidence/builds/\`
+- [ ] Health check endpoint responds — \`.team/evidence/runtime/\`
+- [ ] Evidence manifest submitted — \`.team/evidence/manifests/BE_manifest.md\`
 
 ## Artifacts
 - \`.team/api-contracts/API_DESIGN.md\`
+- \`src/api/users/\`
 
-## Assigned Role
-Backend Engineer" \
-  --label "role:backend,P0:critical,wave:2-engineering" \
+## Assigned Agent
+Backend Engineer (Wave 2)
+
+## Atomic Commits Expected
+Each sub-task = 1 commit with \`feat(api): ...\` format referencing this issue." \
+  --label "role:backend,P0:critical,wave:2-engineering,evidence:missing,tests:pending" \
   --milestone "M2: Core Implementation"
 ```
 
-### 5. Update Issue Status
+### 5. Real-Time Issue Status Updates
 
 ```bash
-# When an agent starts work
-gh issue edit {NUMBER} --add-label "status:in-progress" --remove-label "status:blocked"
+# ── AGENT STARTS WORK ──
+gh issue edit {NUMBER} \
+  --add-label "status:in-progress" \
+  --remove-label "status:backlog,status:sprint-ready"
+gh issue comment {NUMBER} --body "## Agent Started — $(date -u +%Y-%m-%dT%H:%M:%SZ)
+**Agent**: Backend Engineer
+**Wave**: 2
+**Action**: Starting implementation"
 
-# When an agent completes work
-gh issue close {NUMBER} --comment "Completed. Artifact: .team/api-contracts/API_DESIGN.md"
+# ── AGENT COMPLETES WORK ──
+gh issue edit {NUMBER} \
+  --add-label "status:in-review,evidence:verified" \
+  --remove-label "status:in-progress,evidence:missing"
+gh issue comment {NUMBER} --body "## Agent Completed — $(date -u +%Y-%m-%dT%H:%M:%SZ)
+**Agent**: Backend Engineer
+**Status**: Implementation complete
 
-# When blocked
-gh issue edit {NUMBER} --add-label "status:blocked" \
-  --body-append "**BLOCKED**: Waiting for {dependency}"
+### Evidence Submitted
+- Build log: \`.team/evidence/builds/be_build.log\` — 0 warnings, 0 errors
+- Unit tests: 42/42 passing, 86% line coverage
+- Integration tests: 12/12 passing
+- Health check: \`curl localhost:3000/health\` → 200 OK
+- Evidence manifest: \`.team/evidence/manifests/BE_manifest.md\`
+
+### Commits
+- \`abc1234\` feat(api): add user model and migrations [#${NUMBER}]
+- \`def5678\` feat(api): add user CRUD endpoints [#${NUMBER}]
+- \`ghi9012\` test(api): add user endpoint unit tests [#${NUMBER}]
+- \`jkl3456\` test(api): add user integration tests [#${NUMBER}]
+
+### Artifacts Produced
+- \`.team/api-contracts/API_DESIGN.md\`
+- \`src/api/users/model.py\`
+- \`src/api/users/routes.py\`
+- \`tests/api/test_users.py\`"
+
+# ── TL REVIEWS AND APPROVES ──
+gh issue edit {NUMBER} \
+  --add-label "status:testing" \
+  --remove-label "status:in-review"
+gh issue comment {NUMBER} --body "## TL Review — $(date -u +%Y-%m-%dT%H:%M:%SZ)
+**Reviewer**: Team Leader
+**Verdict**: APPROVED — forwarding to QA
+**Notes**: Code quality good. Evidence verified."
+
+# ── QA PASSES ──
+gh issue edit {NUMBER} \
+  --add-label "status:done,tests:passing" \
+  --remove-label "status:testing,tests:pending"
+gh issue close {NUMBER} --comment "## QA Verified — $(date -u +%Y-%m-%dT%H:%M:%SZ)
+**Agent**: QA Engineer
+**Verdict**: ALL TESTS PASSING
+- Unit: 42/42 ✓
+- Integration: 12/12 ✓
+- E2E: 3/3 ✓
+- Evidence: Verified ✓"
+
+# ── BLOCKED ──
+gh issue edit {NUMBER} \
+  --add-label "status:blocked" \
+  --remove-label "status:in-progress"
+gh issue comment {NUMBER} --body "## BLOCKED — $(date -u +%Y-%m-%dT%H:%M:%SZ)
+**Agent**: Backend Engineer
+**Reason**: Waiting for database schema from Infra Engineer
+**Blocked by**: #${BLOCKING_ISSUE}
+**Estimated unblock**: When #${BLOCKING_ISSUE} completes"
 ```
 
-### 6. Progress Comments
+### 6. Progress Comments with Evidence Links
 
 ```bash
-# PM adds progress updates to issues
-gh issue comment {NUMBER} --body "## Progress Update — $(date +%Y-%m-%d\ %H:%M)
-- Implementation 60% complete
-- API endpoints 8/12 defined
-- Blocked on auth decision (see Decision #3)
+# PM adds rich progress updates
+gh issue comment {NUMBER} --body "## Progress Update — $(date -u +%Y-%m-%dT%H:%M:%SZ)
+**Wave**: 2 | **Agent**: Backend Engineer | **Progress**: 60%
+
+### Completed
+- [x] Database schema defined
+- [x] User model implemented
+- [x] POST /api/users endpoint
+
+### In Progress
+- [ ] GET /api/users/:id endpoint
+- [ ] PUT /api/users/:id endpoint
+
+### Evidence So Far
+- Build: compiles clean (\`.team/evidence/builds/be_build_partial.log\`)
+- Tests: 28/42 passing (67% — remaining tests need incomplete endpoints)
+
+### Commits This Session
+| Hash | Type | Description |
+|------|------|-------------|
+| abc1234 | feat | user model and migrations |
+| def5678 | feat | POST user endpoint |
+| ghi9012 | test | user model unit tests |
 "
 ```
 
-### 7. Create GitHub Releases
+### 7. Create GitHub Releases (Enhanced)
 
 ```bash
 # After Release Manager signs off
@@ -132,51 +252,109 @@ gh release create v{VERSION} \
   --notes "## Release Notes
 
 ### Features
-- Feature 1
-- Feature 2
+- Feature 1 (#issue)
+- Feature 2 (#issue)
 
 ### Bug Fixes
-- Fix 1
+- Fix 1 (#issue)
+
+### Test Results
+- Unit Tests: {X}/{Y} passing ({Z}% coverage)
+- Integration Tests: {X}/{Y} passing
+- E2E Tests: {X}/{Y} passing
+- Security Scan: 0 CRITICAL, 0 HIGH
+- Performance: P95 < {X}ms
+
+### CI/CD
+- GitHub Actions: All workflows passing
+- Local validation: Passed with \`act push\`
+
+### Evidence
+- Full evidence directory: \`.team/evidence/\`
+- QA sign-off: \`.team/qa/QA_SIGNOFF.md\`
+- Deployment sign-off: \`.team/releases/DEPLOYMENT_SIGNOFF.md\`
 
 ### Known Issues
 - Issue 1
 
 ### Contributors
-Virtual Engineering Team (Claude Code)
+Virtual Engineering Team (Claude Code — Amenthyx AI Teams v3.0)
 
 ---
 Full changelog: .team/releases/CHANGELOG.md
-QA Sign-off: .team/qa/QA_SIGNOFF.md
 " \
   --target main
 ```
 
-## PM Workflow Integration
+## PM Workflow Integration (Enhanced)
+
+### At Wave 0 (Initialization)
+1. PM verifies `gh auth status`
+2. PM verifies `act --version`
+3. PM creates `.team/` directory structure including `evidence/` subdirs
 
 ### At Wave 1 (Planning)
-
 1. PM reads the strategy file
-2. PM creates GitHub Project board
+2. PM creates GitHub Project board with custom fields (Wave, Agent, Evidence, Commit)
 3. PM creates milestones from strategy timeline
-4. PM creates labels (if not already present)
-5. PM creates issues for all known deliverables
+4. PM creates ALL labels (role, priority, status, evidence, wave, test, ci)
+5. PM creates issues for ALL deliverables with evidence requirements
 6. PM assigns milestone + labels to each issue
 7. PM writes `.team/KANBAN.md` mirroring GitHub issues
+8. PM creates `.team/COMMIT_LOG.md` template
+
+### At Each Agent Start (Real-Time)
+1. PM moves issue to "In Progress" on GitHub board
+2. PM updates labels (status:in-progress)
+3. PM adds start comment with timestamp
+4. PM updates `.team/KANBAN.md`
+
+### At Each Agent Complete (Real-Time)
+1. PM moves issue to "In Review" on GitHub board
+2. PM updates labels (status:in-review, evidence:verified/missing)
+3. PM adds completion comment with evidence links and commit hashes
+4. PM logs commits to `.team/COMMIT_LOG.md`
+5. PM updates `.team/KANBAN.md`
 
 ### At Each Wave Transition
-
-1. PM updates issue statuses based on agent outputs
-2. PM closes completed issues with artifact references
+1. PM updates all issue statuses based on agent outputs
+2. PM closes completed issues with evidence references
 3. PM adds progress comments to in-progress issues
 4. PM creates new issues for discovered work items
-5. PM updates `.team/KANBAN.md` to match GitHub state
+5. PM generates PPTX + PDF reports with evidence dashboard
+6. PM reconciles `.team/KANBAN.md` with GitHub board state
+
+### At Wave 3 (QA)
+1. PM adds test result labels (tests:passing/failing)
+2. PM updates evidence labels after QA verifies
+3. PM links QA sign-off to relevant issues
 
 ### At Wave 4 (Release)
-
 1. PM verifies all milestone issues are closed
-2. PM creates a GitHub Release with changelog
-3. PM closes all milestones
-4. PM generates final PPTX + PDF reports
+2. PM verifies all issues have evidence:verified label
+3. PM creates GitHub Release with test results and evidence summary
+4. PM closes all milestones
+5. PM generates final PPTX + PDF reports
+
+### At Wave 5 (Final Reporting)
+1. PM generates comprehensive PPTX with all evidence dashboards
+2. PM generates PDF with complete commit log and test coverage
+3. PM archives `.team/COMMIT_LOG.md` final state
+4. PM verifies kanban board is fully reconciled
+
+## PM Commit Log Management
+
+The PM maintains `.team/COMMIT_LOG.md` tracking every atomic commit:
+
+```markdown
+# Commit Log — {PROJECT_NAME}
+
+| # | Timestamp | Hash | Agent | Type | Scope | Description | Issue | Wave | Evidence |
+|---|-----------|------|-------|------|-------|-------------|-------|------|----------|
+| 1 | 2025-01-10T10:00Z | abc1234 | PM | docs | charter | project charter | #1 | 1 | manifest |
+| 2 | 2025-01-10T14:00Z | def5678 | BE | feat | api | user model | #12 | 2 | be_build.log |
+| 3 | 2025-01-10T14:30Z | ghi9012 | BE | test | api | user tests | #12 | 2 | be_test.xml |
+```
 
 ## Error Handling
 
@@ -187,6 +365,13 @@ if ! command -v gh &> /dev/null || ! gh auth status &> /dev/null; then
     echo "GitHub integration disabled for this session."
     # PM continues with file-based kanban only
 fi
+
+# If act is not available
+if ! command -v act &> /dev/null; then
+    echo "WARNING: act not available. CI local testing disabled."
+    echo "Install: brew install act / scoop install act / choco install act-cli"
+    # DevOps agent skips local CI validation (adds ci:pending label)
+fi
 ```
 
 ## Notes
@@ -195,3 +380,11 @@ fi
 - PM checks for existing milestones/labels before creating
 - Issue numbers are tracked in `.team/GITHUB_ISSUES.md` for cross-reference
 - If the repo is private, ensure the gh token has `repo` scope
+- Every issue MUST have evidence requirements in the body
+- Every closed issue MUST have evidence:verified label
+- COMMIT_LOG.md is the single source of truth for atomic commit tracking
+
+---
+
+*PM GitHub Integration Protocol v3.0 — Amenthyx AI Teams*
+*Real-Time Kanban | Evidence-Linked | Atomic Commits | CI-Validated*
