@@ -322,6 +322,30 @@
 
 ---
 
+## 12.1 Data Preservation & Uncertainty Policy
+
+> **MANDATORY** — These are absolute rules. No agent may override them.
+
+**Data Preservation (No-Delete Rule)**:
+
+All data produced during execution is permanent. Nothing is ever deleted — files, table rows, document sections, log entries, evidence artifacts, git history. The team uses archive patterns instead of deletion.
+
+- **Archive method for files**: [Move to `.team/archive/{date}_{filename}` (default) / Custom path]
+- **Archive method for table rows**: [Add `status: archived` column (default) / Custom]
+- **Archive method for documents**: [Add `[ARCHIVED {date}]` marker (default) / Move to bottom section]
+- **Git history protection**: [Never rebase/squash published commits (default, non-negotiable)]
+
+**Uncertainty Escalation**:
+
+If any agent is unsure about an action's effect, safety, correctness, or scope, it stops and escalates to the Team Leader. If the TL is also unsure, the TL escalates to you (the user).
+
+- **Escalation threshold**: [Default: < 90% confidence → escalate / Custom threshold]
+- **Escalation response time expectation**: [I'll respond within minutes / hours / "whenever I'm available"]
+- **What counts as "unsure"**: Any action that might delete data, cost money, affect external services, be irreversible, or fall outside the stated strategy scope
+- **Preferred escalation format**: [Short question / Detailed context + options / "TL decides what format"]
+
+---
+
 ## 13. GitHub Auto-Sync Policy
 
 > Every meaningful update (wave completion, agent output, evidence submission) triggers an automatic commit + push.
@@ -352,5 +376,5 @@
 ---
 
 *Strategy Brief v3.1 — Amenthyx AI Teams*
-*Cost-First | Auto-Synced | Dynamically Scaled | Evidence-Driven*
+*Cost-First | No-Delete | Ask-When-Unsure | Auto-Synced | Dynamically Scaled | Evidence-Driven*
 *The more specific you are here, the better the team performs.*

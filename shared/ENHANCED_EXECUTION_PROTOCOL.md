@@ -209,10 +209,183 @@ The PM may spawn additional agents beyond the default team roster when the workl
 
 ---
 
-## 0.3 GITHUB AUTO-SYNC PROTOCOL
+## 0.3 DATA PRESERVATION PROTOCOL (NO-DELETE RULE)
 
 ### Mandate
-The GitHub repository MUST be the living source of truth at all times. Every meaningful update triggers an automatic `git add + commit + push` cycle. The team never works in a state where GitHub is stale.
+**Data is NEVER deleted.** No file, no row in a table, no line in a document, no artifact, no evidence, no log entry, no configuration — NOTHING is ever removed, overwritten destructively, or permanently erased. This is an absolute, non-negotiable rule that applies to ALL agents at ALL times.
+
+### What "Never Delete" Means
+
+| Action | FORBIDDEN | ALLOWED Alternative |
+|--------|-----------|---------------------|
+| Remove a file | `rm file.md`, `del file.md`, `os.remove()` | Move to `.team/archive/` with timestamp |
+| Remove rows from a table | Delete rows from markdown table, SQL `DELETE`, Firestore `.delete()` | Add `status: archived` column, set to `archived` |
+| Remove lines from a document | Delete paragraphs, sections, or entries | Strike through with `~~text~~` + add `[ARCHIVED {date}]` note, or move to archive section at bottom |
+| Overwrite a file entirely | `Write` tool replacing all content, `>` redirect | Create versioned copy first (`file_v1.md`), then edit |
+| Clear a log | Truncate, empty, or reset log files | Start new log file with incremented number (`log_002.md`) |
+| Drop a database table | `DROP TABLE`, `deleteCollection()` | Add `is_archived` flag, filter in queries |
+| Remove a git branch | `git branch -D`, `git push --delete` | Tag the branch head before any cleanup |
+| Close + delete GitHub issues | Delete issues | Close with status comment — never delete |
+| Remove entries from KANBAN.md | Delete completed items | Move to "Done" or "Archived" section |
+| Remove entries from COMMIT_LOG.md | Delete log rows | NEVER — commit log is append-only |
+| Remove entries from COST_ESTIMATION.md | Delete line items | Strike through + add "[REVISED]" note |
+| Remove entries from SCALING_LOG.md | Delete scaling records | NEVER — scaling log is append-only |
+| Remove evidence artifacts | Delete screenshots, logs, test results | NEVER — evidence is permanent record |
+
+### Versioning Instead of Overwriting
+
+When a document needs to be substantially rewritten:
+
+```
+1. Copy current version: cp PLAN.md PLAN_v1.md
+2. Edit the new version: edit PLAN.md
+3. Add header to old version: "# [SUPERSEDED by PLAN.md — {date}]"
+4. Both files remain in the repository permanently
+```
+
+### Archive Directory Structure
+
+```
+.team/archive/
+├── {ISO_date}_{original_filename}     # Archived files with timestamp
+├── decisions/                          # Superseded decision records
+├── estimates/                          # Previous cost estimation versions
+└── plans/                              # Previous plan versions
+```
+
+### What Agents MUST Do Instead of Deleting
+
+1. **Outdated content?** → Add `[SUPERSEDED]` or `[OUTDATED as of {date}]` marker. Keep the content.
+2. **Wrong data?** → Add `[CORRECTED]` marker with the correction below the original. Keep the original.
+3. **Completed task?** → Move to "Done" section. Keep the record.
+4. **Deprecated code?** → Comment with `// DEPRECATED: {reason} — {date}`. Keep the code until explicit user approval to archive.
+5. **Failed approach?** → Document in `.team/DECISION_LOG.md` as "Rejected approach: {reason}". Keep the evidence.
+
+### Hard Enforcement
+
+| Gate | When | Check | Action if FAIL |
+|------|------|-------|----------------|
+| **No-Delete Gate** | **Every commit** | **`git diff --stat` shows no file deletions; `git diff` shows no removed table rows or document sections without archive marker** | **HARD STOP — TL reverts the commit, re-does the work using archive pattern** |
+
+### Agent Instructions (Injected into Every Agent Prompt)
+
+```
+DATA PRESERVATION RULE (ABSOLUTE):
+You MUST NEVER delete any data. This includes:
+- Files (use archive instead)
+- Rows in markdown tables (use status:archived instead)
+- Lines or sections in documents (use [ARCHIVED] marker instead)
+- Log entries (logs are append-only)
+- Evidence artifacts (evidence is permanent)
+- Git history (never rebase/squash published commits)
+
+If you need to "remove" something, ask yourself: "How do I preserve this
+while marking it as no longer active?" Then do that instead.
+
+If you are unsure whether an action constitutes deletion, STOP and
+report to the Team Leader. The TL will escalate to the user if needed.
+```
+
+---
+
+## 0.4 UNCERTAINTY ESCALATION PROTOCOL
+
+### Mandate
+If ANY agent is unsure about the functionality, impact, safety, or correctness of an action it is about to take, it MUST NOT proceed. Instead, it escalates to the Team Leader. The Team Leader evaluates and, if still uncertain, escalates to the user. **When in doubt, ask — never guess.**
+
+### What Triggers Escalation
+
+| Situation | Example | Agent Action |
+|-----------|---------|-------------|
+| Unsure if action deletes/overwrites data | "Will this migration drop the old column?" | STOP → report to TL |
+| Unsure if action has side effects | "Will this API call trigger a charge?" | STOP → report to TL |
+| Unsure if action is reversible | "Can I undo this deployment?" | STOP → report to TL |
+| Unsure about correct implementation | "Should this be sync or async?" | STOP → report to TL |
+| Unsure if action matches strategy intent | "The strategy says X, but this feels like Y" | STOP → report to TL |
+| Unsure about security implications | "Is this auth flow safe?" | STOP → report to TL |
+| Unsure about scope | "Is this feature in scope or out of scope?" | STOP → report to TL |
+| Command/tool never used before | "I haven't used this CLI flag before" | STOP → report to TL |
+| External service interaction | "Will this create a resource that costs money?" | STOP → report to TL |
+| Destructive git operations | "Should I force-push / rebase / reset?" | STOP → report to TL |
+
+### Escalation Chain
+
+```
+AGENT is uncertain about action X
+  │
+  ├─→ Agent STOPS work on that action
+  ├─→ Agent documents the uncertainty:
+  │     "I need to do X, but I'm unsure about Y because Z"
+  ├─→ Agent reports to Team Leader
+  │
+  ▼
+TEAM LEADER evaluates
+  │
+  ├─ TL is CONFIDENT the action is safe and correct
+  │   └─→ TL authorizes agent: "Proceed with X. Reason: {explanation}"
+  │   └─→ TL logs decision in .team/DECISION_LOG.md
+  │
+  ├─ TL is UNSURE or the action is HIGH-RISK
+  │   └─→ TL escalates to USER:
+  │        "Agent {ROLE} wants to do X. Impact: Y. Risk: Z.
+  │         Should we proceed? [yes / no / alternative]"
+  │   └─→ TL WAITS for user response (BLOCKING)
+  │   └─→ User responds → TL relays decision to agent
+  │   └─→ TL logs decision in .team/DECISION_LOG.md
+  │
+  └─ TL determines action is DEFINITELY WRONG
+      └─→ TL redirects agent to correct approach
+      └─→ TL logs decision in .team/DECISION_LOG.md
+```
+
+### Decision Log Entry Format
+
+```markdown
+## Decision #{N} — {ISO_date}
+**Raised by**: {AGENT_ROLE}
+**Question**: {What the agent was unsure about}
+**Context**: {Why this came up}
+**Decided by**: TL / User
+**Decision**: {What was decided}
+**Reason**: {Why this decision was made}
+**Action taken**: {What the agent then did}
+```
+
+### Rules
+
+1. **No guessing**: If confidence < 90%, escalate. The cost of asking is near zero. The cost of a wrong action can be catastrophic.
+2. **No assumptions about external services**: Any interaction with a service outside the local codebase (APIs, databases, cloud providers, payment systems) requires certainty about what will happen.
+3. **No assumptions about destructive actions**: If an action might delete, overwrite, or irreversibly modify data, escalate first.
+4. **TL must not guess either**: If the TL is not certain, the TL MUST escalate to the user. The TL does not have authority to approve uncertain high-risk actions.
+5. **Speed is never an excuse**: "It was faster to just do it" is never acceptable for uncertain actions.
+6. **Document all escalations**: Every escalation and its resolution goes into `.team/DECISION_LOG.md` — this creates institutional knowledge for the project.
+
+### Agent Instructions (Injected into Every Agent Prompt)
+
+```
+UNCERTAINTY ESCALATION RULE (ABSOLUTE):
+If you are unsure about ANY action — its effect, its safety, its correctness,
+whether it deletes data, whether it costs money, whether it's in scope —
+you MUST STOP and report to the Team Leader before proceeding.
+
+DO NOT:
+- Guess and hope for the best
+- Assume something is safe because it "probably" is
+- Take a destructive action because it's "easier"
+- Skip escalation because it would slow things down
+
+DO:
+- State clearly what you want to do and what you're unsure about
+- Wait for TL authorization before proceeding
+- Accept that the TL may need to ask the user (this is normal and expected)
+```
+
+---
+
+## 0.5 GITHUB AUTO-SYNC PROTOCOL
+
+### Mandate
+The GitHub repository MUST be the living source of truth at all times. Every meaningful update triggers an automatic `git add + commit + push` cycle. The team never works in a state where GitHub is stale. Auto-sync commits MUST comply with the No-Delete Rule (section 0.3) — no commit may remove data.
 
 ### What Triggers Auto-Sync
 
@@ -969,7 +1142,32 @@ The PM's PPTX and PDF reports now include:
 
 ---
 
-## 7. `.team/evidence/` DIRECTORY STRUCTURE
+## 7. `.team/` ADDITIONAL DIRECTORIES
+
+```
+.team/
+├── archive/                 # Archived files (NO-DELETE: moved here, never deleted)
+│   ├── {date}_{filename}    # Timestamped archived files
+│   ├── decisions/           # Superseded decision records
+│   ├── estimates/           # Previous cost estimation versions
+│   └── plans/               # Previous plan versions
+├── assignments/             # PM task assignments per agent
+│   ├── PM_TASKS.md
+│   ├── BE_TASKS.md
+│   ├── FE_TASKS.md
+│   ├── MOB_TASKS.md
+│   ├── DEVOPS_TASKS.md
+│   ├── INFRA_TASKS.md
+│   ├── QA_TASKS.md
+│   └── RM_TASKS.md
+├── MASTER_TASKS.md          # PM master task board (all tasks, all agents)
+├── SCALING_LOG.md           # Dynamic agent scaling history
+├── DECISION_LOG.md          # Uncertainty escalation decisions
+├── COST_ESTIMATION.md       # TL cost estimate (approved by user)
+└── ...
+```
+
+### `.team/evidence/` DIRECTORY STRUCTURE
 
 ```
 .team/evidence/
@@ -1010,6 +1208,8 @@ All teams now have these ADDITIONAL universal gates on top of their domain-speci
 |------|------|-------|----------------|
 | **Cost Approved** | **Before Wave 1** | **`COST_ESTIMATION.md` exists AND user replied "approved"** | **HARD STOP — no work proceeds** |
 | **Payment Declared** | **Before any paid action** | **Cost appears in `COST_ESTIMATION.md` with user approval** | **HARD STOP — escalate to user** |
+| **No-Delete Gate** | **Every commit** | **No files deleted, no table rows removed, no content erased without archive marker** | **HARD STOP — TL reverts, re-does with archive pattern** |
+| **Uncertainty Gate** | **Before any uncertain action** | **Agent has >= 90% confidence in action correctness and safety** | **STOP — escalate to TL → user if needed** |
 | **GitHub Synced** | **Every agent completion** | **`git push` succeeded, remote is up to date** | **TL resolves push failure** |
 | Evidence Complete | Before QA | Every agent has evidence manifest, all items checked | Re-spawn agent to collect evidence |
 | Local Build Passes | Before QA | `build.log` shows zero errors, zero warnings | Re-spawn engineer |
@@ -1024,4 +1224,4 @@ All teams now have these ADDITIONAL universal gates on top of their domain-speci
 ---
 
 *Enhanced Execution Protocol v3.1 — Amenthyx AI Teams*
-*Cost-First | Auto-Synced | Dynamically-Scaled | Evidence-Driven | Locally-Tested | Atomically-Committed | CI-Validated*
+*Cost-First | No-Delete | Ask-When-Unsure | Auto-Synced | Dynamically-Scaled | Evidence-Driven | Locally-Tested | Atomically-Committed | CI-Validated*

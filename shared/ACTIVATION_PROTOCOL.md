@@ -164,17 +164,25 @@ CRITICAL REQUIREMENTS (v3.1):
    requiring payment (card, subscription, purchase) MUST be declared in
    COST_ESTIMATION.md with exact amounts BEFORE the action is taken. If a new cost
    is discovered mid-execution, PAUSE and get user approval.
-3. Every agent MUST produce evidence (screenshots, logs, test results)
-4. Every change MUST be an atomic git commit with conventional format
-5. **GITHUB AUTO-SYNC**: After every agent completion and wave transition,
+3. **NEVER DELETE DATA**: No file, no table row, no document section, no log entry,
+   no evidence artifact may EVER be deleted. Use archive patterns instead:
+   move files to .team/archive/, mark rows as [ARCHIVED], version documents.
+   This rule is ABSOLUTE and applies to ALL agents at ALL times.
+4. **ASK WHEN UNSURE**: If ANY agent is uncertain about an action's effect, safety,
+   correctness, or scope, it MUST STOP and escalate to you (TL). If YOU are also
+   unsure, you MUST escalate to the user. Never guess. Never assume. The cost of
+   asking is zero. The cost of a wrong action can be catastrophic.
+5. Every agent MUST produce evidence (screenshots, logs, test results)
+6. Every change MUST be an atomic git commit with conventional format
+7. **GITHUB AUTO-SYNC**: After every agent completion and wave transition,
    commit + push to GitHub. The repo must always reflect current state.
-6. PM MUST maintain GitHub kanban board in real-time
-7. **DYNAMIC SCALING**: PM may request additional agents if workload demands it.
+8. PM MUST maintain GitHub kanban board in real-time
+9. **DYNAMIC SCALING**: PM may request additional agents if workload demands it.
    TL approves if within budget; otherwise, update COST_ESTIMATION.md and get
    user re-approval.
-8. All tests MUST pass locally before QA wave
-9. GitHub Actions MUST be validated locally with `act` before pushing
-10. PM MUST produce PPTX + PDF reports with evidence dashboards
+10. All tests MUST pass locally before QA wave
+11. GitHub Actions MUST be validated locally with `act` before pushing
+12. PM MUST produce PPTX + PDF reports with evidence dashboards
 
 EXECUTION SEQUENCE:
   Wave 0: TL reads everything → produces COST_ESTIMATION.md → WAITS for user approval
@@ -235,6 +243,24 @@ Task(
   - If you discover any action that requires payment, STOP and report to TL immediately
   - NEVER initiate any paid service, subscription, or purchase autonomously
 
+  DATA PRESERVATION RULE (ABSOLUTE — NON-NEGOTIABLE):
+  You MUST NEVER delete any data. This includes:
+  - Files (move to .team/archive/ instead of deleting)
+  - Rows in markdown tables (add status:archived column instead of removing rows)
+  - Lines or sections in documents (add [ARCHIVED {date}] marker instead of deleting)
+  - Log entries (logs are append-only — NEVER truncate or clear)
+  - Evidence artifacts (evidence is permanent — NEVER remove)
+  - Git history (NEVER rebase, squash, or force-push published commits)
+  If you think something needs to be "removed", archive it instead.
+  If you are unsure, STOP and report to TL.
+
+  UNCERTAINTY ESCALATION RULE (ABSOLUTE — NON-NEGOTIABLE):
+  If you are unsure about ANY action — its effect, its safety, its correctness,
+  whether it deletes data, whether it costs money, whether it is in scope —
+  you MUST STOP and report to the Team Leader BEFORE proceeding.
+  The TL will decide or escalate to the user. NEVER guess. NEVER assume.
+  State clearly: "I want to do X, but I am unsure about Y because Z."
+
   YOUR TASKS:
   ...
   """
@@ -274,4 +300,4 @@ You can run multiple teams on different projects simultaneously in different ter
 ---
 
 *Activation Protocol v3.1 — Amenthyx AI Teams*
-*59 Teams | Cost-First | Auto-Synced | Dynamically-Scaled | Evidence-Driven | Real-Time Kanban | Atomic Commits | CI-Validated*
+*59 Teams | Cost-First | No-Delete | Ask-When-Unsure | Auto-Synced | Dynamically-Scaled | Evidence-Driven | Real-Time Kanban | Atomic Commits | CI-Validated*

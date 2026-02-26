@@ -13,6 +13,92 @@ Every team's Project Manager agent uses the `gh` CLI to create and manage GitHub
 - GitHub Projects (v2) enabled on the repository
 - `act` installed for local GitHub Actions testing (`act --version`)
 
+## GitHub Kanban Board — First-Class Requirement
+
+> **The GitHub Projects V2 board on the repository website IS the primary kanban.**
+> `.team/KANBAN.md` is a local mirror, but the GitHub board is the source of truth visible to the user.
+> They MUST always be in sync. If they diverge, the PM reconciles immediately.
+
+### Board-KANBAN.md Sync Protocol
+
+Every time `.team/KANBAN.md` is updated, the corresponding GitHub board cards MUST also move. Every time a GitHub issue is updated, `.team/KANBAN.md` MUST reflect the change. The PM is responsible for maintaining this bidirectional sync.
+
+```
+KANBAN.md change → PM updates GitHub board card position
+GitHub issue change → PM updates KANBAN.md
+Drift detected → PM runs full reconciliation (compare all items, fix discrepancies)
+```
+
+### PM Must Create EVERY Task as a GitHub Issue
+
+Every task — no matter how small — MUST exist as a GitHub issue with:
+- Title following conventional format: `type(scope): description`
+- Full body with acceptance criteria, evidence requirements, assigned agent, wave
+- Labels: role, priority, wave, status, evidence
+- Milestone assignment
+- Project board card in the correct column
+
+**No work happens without a corresponding GitHub issue.** If an agent starts work that has no issue, the PM creates one retroactively.
+
+## PM Task Assignment — Full Prioritized Task List Per Agent
+
+> **MANDATORY**: The PM produces a comprehensive, prioritized task list for EVERY team member.
+> Each agent receives their personalized task queue BEFORE they start work.
+
+### Agent Task Manifest
+
+At the start of each wave, the PM creates `.team/assignments/{ROLE}_TASKS.md` for every agent:
+
+```markdown
+# Task Assignments — {AGENT_ROLE}
+## Wave: {N}
+## Date: {ISO_8601_timestamp}
+## Priority Order: Execute tasks in this exact order (P0 first, then P1, then P2)
+
+| # | Priority | GitHub Issue | Task Description | Dependencies | Est. Effort | Status |
+|---|----------|-------------|------------------|-------------|-------------|--------|
+| 1 | P0 | #12 | Implement user CRUD API | DB schema (#8) must be done | L | Not Started |
+| 2 | P0 | #13 | Add authentication middleware | User API (#12) must be done | M | Not Started |
+| 3 | P1 | #18 | Add rate limiting | Auth (#13) must be done | S | Not Started |
+| 4 | P2 | #22 | Add API versioning headers | None | S | Not Started |
+
+### Notes for {AGENT_ROLE}:
+- [Any specific instructions, constraints, or context for this agent]
+- [Cross-references to other agents' work that may affect yours]
+- [Priority P0 = must complete this wave, P1 = should complete, P2 = if time permits]
+```
+
+### Task Assignment Rules
+
+1. **Every agent gets a task manifest** — no agent starts work without knowing exactly what to do and in what order
+2. **Tasks are prioritized P0 > P1 > P2** — agents work top-to-bottom, never skip ahead
+3. **Dependencies are explicit** — if task B depends on task A from another agent, this is stated
+4. **Each task links to a GitHub issue** — no orphan tasks
+5. **PM updates task manifests** when priorities change, new tasks are discovered, or dependencies shift
+6. **Agents report back** to PM on each task completion — PM updates both the manifest and the GitHub board
+7. **Task manifests are auto-synced** to GitHub alongside other `.team/` artifacts
+
+### PM Master Task Board
+
+The PM also maintains `.team/MASTER_TASKS.md` — a single view of ALL tasks across ALL agents:
+
+```markdown
+# Master Task Board — {PROJECT_NAME}
+## Total Tasks: {N} | P0: {N} | P1: {N} | P2: {N}
+## Last Updated: {ISO_8601_timestamp}
+
+| # | Priority | GitHub Issue | Task | Assigned To | Wave | Dependencies | Status |
+|---|----------|-------------|------|-------------|------|-------------|--------|
+| 1 | P0 | #5 | Project charter | PM | 1 | None | Done |
+| 2 | P0 | #8 | Database schema | INFRA | 2 | Charter (#5) | In Progress |
+| 3 | P0 | #12 | User CRUD API | BE | 2 | Schema (#8) | Blocked |
+| 4 | P0 | #15 | Login page | FE | 2 | API contract (#11) | Not Started |
+| ... | ... | ... | ... | ... | ... | ... | ... |
+
+### Dependency Graph (Critical Path)
+#5 (PM) → #8 (INFRA) → #12 (BE) → #15 (FE) → #25 (QA) → #30 (RM)
+```
+
 ## Setup Commands
 
 ### 1. Create GitHub Project Board (V2 with Enhanced Columns)
@@ -370,11 +456,15 @@ git pull --rebase origin HEAD
 2. PM creates GitHub Project board with custom fields (Wave, Agent, Evidence, Commit)
 3. PM creates milestones from strategy timeline
 4. PM creates ALL labels (role, priority, status, evidence, wave, test, ci, cost)
-5. PM creates issues for ALL deliverables with evidence requirements
+5. PM creates a GitHub issue for EVERY task (P0, P1, P2) with full body, labels, milestone
 6. PM assigns milestone + labels to each issue
-7. PM writes `.team/KANBAN.md` mirroring GitHub issues
-8. PM creates `.team/COMMIT_LOG.md` template
-9. **PM commits + pushes all planning artifacts to GitHub (auto-sync)**
+7. PM adds ALL issues to the GitHub Project board in the correct column (Backlog/Sprint Ready)
+8. PM writes `.team/KANBAN.md` mirroring the GitHub board exactly
+9. PM creates `.team/MASTER_TASKS.md` — full prioritized task list across all agents
+10. PM creates `.team/assignments/{ROLE}_TASKS.md` for EVERY agent — personalized prioritized queue
+11. PM creates `.team/COMMIT_LOG.md` template
+12. **PM commits + pushes all planning artifacts to GitHub (auto-sync)**
+13. **PM verifies GitHub board matches KANBAN.md — zero drift**
 
 ### At Each Agent Start (Real-Time)
 1. PM moves issue to "In Progress" on GitHub board
@@ -480,6 +570,47 @@ gh label create "payment:approved" --color "0e8a16" --description "Payment appro
 gh label create "scaling:active" --color "d1bcf9" --description "Additional agents spawned"
 ```
 
+## Data Preservation in GitHub Operations
+
+> **NO-DELETE RULE applies to all GitHub operations.** Nothing is ever deleted.
+
+| GitHub Object | FORBIDDEN Action | ALLOWED Alternative |
+|---------------|-----------------|---------------------|
+| Issues | `gh issue delete` | Close with status comment. Never delete. |
+| Labels | `gh label delete` | Rename with `[DEPRECATED]` prefix if no longer needed |
+| Milestones | Delete milestone | Close milestone. Never delete. |
+| Branches | `git push --delete`, `git branch -D` | Tag the branch head, then leave or let auto-cleanup handle it |
+| Releases | Delete release | Mark as pre-release or add `[SUPERSEDED]` to title |
+| Comments | Delete comment | Edit comment to add `[RETRACTED — {reason}]` at top. Keep original text. |
+| Project board cards | Remove from board | Move to "Archived" column. Never remove. |
+| Repository | Delete repository | NEVER. Under no circumstances. |
+
+### KANBAN.md: Append-Only
+
+`.team/KANBAN.md` is append-only. Completed items move to a "Done" section. They are NEVER removed from the file.
+
+### COMMIT_LOG.md: Append-Only
+
+`.team/COMMIT_LOG.md` is append-only. Rows are NEVER deleted. If a commit is reverted, add a new row with type `revert` — do NOT delete the original row.
+
+### Evidence: Permanent
+
+All files in `.team/evidence/` are permanent. They are NEVER deleted, overwritten, or truncated.
+
+---
+
+## Uncertainty Escalation in PM/TL Workflow
+
+If the PM or any agent is unsure about a GitHub operation (e.g., "Should I close this milestone?", "Is this the right label?", "Should I create this issue?"), the agent MUST:
+
+1. STOP the operation
+2. Report to TL: "I want to do X on GitHub, but I'm unsure about Y"
+3. TL evaluates — if TL is also unsure, TL asks the user
+4. Only proceed after receiving clear authorization
+5. Log the decision in `.team/DECISION_LOG.md`
+
+---
+
 ## Notes
 
 - All GitHub operations are idempotent — re-running won't duplicate issues
@@ -488,13 +619,15 @@ gh label create "scaling:active" --color "d1bcf9" --description "Additional agen
 - If the repo is private, ensure the gh token has `repo` scope
 - Every issue MUST have evidence requirements in the body
 - Every closed issue MUST have evidence:verified label
-- COMMIT_LOG.md is the single source of truth for atomic commit tracking
+- COMMIT_LOG.md is the single source of truth for atomic commit tracking — **append-only, never delete rows**
 - **Auto-sync**: Every update = commit + push. GitHub is always the living source of truth
 - **Cost gate**: COST_ESTIMATION.md must exist and be approved before Wave 1 starts
 - **Payment governance**: No agent may initiate a paid action without TL + user approval
 - **Scaling log**: `.team/SCALING_LOG.md` tracks all dynamic agent additions
+- **No-Delete**: GitHub issues, milestones, labels, releases, and comments are NEVER deleted. Use close/archive patterns.
+- **Ask when unsure**: Any uncertain GitHub operation must be escalated to TL → user before execution
 
 ---
 
 *PM GitHub Integration Protocol v3.1 — Amenthyx AI Teams*
-*Auto-Synced | Cost-First | Dynamically-Scaled | Real-Time Kanban | Evidence-Linked | Atomic Commits | CI-Validated*
+*No-Delete | Ask-When-Unsure | Auto-Synced | Cost-First | Dynamically-Scaled | Real-Time Kanban | Evidence-Linked | Atomic Commits | CI-Validated*
