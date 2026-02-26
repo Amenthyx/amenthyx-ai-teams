@@ -1,8 +1,271 @@
-# Enhanced Execution Protocol v3.0
+# Enhanced Execution Protocol v3.1
 
 > **This protocol is MANDATORY for ALL teams.** Every agent reads this file alongside their TEAM.md.
-> It defines production-grade execution standards: evidence collection, local testing, atomic commits,
-> comprehensive testing, and GitHub Actions validation.
+> It defines production-grade execution standards: cost estimation & approval, evidence collection,
+> local testing, atomic commits, comprehensive testing, GitHub Actions validation, auto-sync to GitHub,
+> dynamic agent scaling, and payment governance.
+
+---
+
+## 0. COST ESTIMATION & APPROVAL GATE (BLOCKING — BEFORE ALL WORK)
+
+### Mandate
+The Team Leader MUST produce `COST_ESTIMATION.md` BEFORE the PM begins any orchestration, spawning of sub-agents, or decision-making. **No work proceeds until the user explicitly approves the cost estimate.** This is a hard gate — not advisory, not skippable.
+
+### When This Runs
+Immediately after the Team Leader reads the strategy file and TEAM.md, BEFORE Wave 1 begins:
+
+```
+WAVE 0: INITIALIZATION
+├── TL reads strategy + TEAM.md + Enhanced Execution Protocol
+├── TL produces COST_ESTIMATION.md        ← THIS STEP
+├── TL presents cost estimate to user     ← BLOCKING WAIT
+├── User approves / requests changes      ← GATE
+└── Only then: TL spawns PM → Wave 1 begins
+```
+
+### COST_ESTIMATION.md Template
+
+The Team Leader writes this to `.team/COST_ESTIMATION.md`:
+
+```markdown
+# Cost Estimation — {PROJECT_NAME}
+## Date: {ISO_8601_timestamp}
+## Team: {TEAM_NAME}
+## Strategy: {strategy_file_path}
+
+---
+
+### 1. Token & AI Cost Estimate
+
+| Wave | Agents | Est. Input Tokens | Est. Output Tokens | Est. Cost (USD) |
+|------|--------|-------------------|--------------------|--------------------|
+| Wave 0 | TL | ~2K | ~3K | $0.XX |
+| Wave 1 | PM | ~10K | ~15K | $X.XX |
+| Wave 1.5 | MKT + LEGAL | ~8K | ~12K | $X.XX |
+| Wave 2 | BE + FE + MOB + DEVOPS + INFRA | ~25K | ~40K | $X.XX |
+| Wave 2.5 | PM (reporting) | ~5K | ~8K | $X.XX |
+| Wave 3 | QA | ~8K | ~12K | $X.XX |
+| Wave 3.5 | Bug Fix (conditional) | ~0-15K | ~0-20K | $0-X.XX |
+| Wave 4 | RM | ~5K | ~8K | $X.XX |
+| Wave 5 | PM (final reporting) | ~5K | ~10K | $X.XX |
+| **TOTAL** | **{N} agents** | **~{N}K** | **~{N}K** | **$X.XX** |
+
+**Model used for estimation**: {model_id}
+**Pricing basis**: {input_price}/MTok input, {output_price}/MTok output
+
+### 2. External Service Costs
+
+| Service | Action | One-Time Cost | Recurring Cost | Payment Method | Requires Card? |
+|---------|--------|---------------|----------------|----------------|----------------|
+| [e.g., Domain] | [Purchase] | [$X] | [$X/year] | [Card] | [YES] |
+| [e.g., API] | [Subscribe] | [$0] | [$X/month] | [Card/Free tier] | [YES/NO] |
+| [e.g., Hosting] | [Deploy] | [$0] | [$X/month] | [Card] | [YES] |
+| **TOTAL** | | **$X** | **$X/month** | | |
+
+> **PAYMENT RULE**: Any action requiring a card payment MUST be declared here.
+> The Team Leader will NOT proceed with any payment-requiring action without explicit user approval.
+> If a new cost is discovered mid-execution, the TL MUST pause, update this document, and re-request approval.
+
+### 3. Risk Factors That May Increase Cost
+
+| Risk | Probability | Cost Impact | Mitigation |
+|------|------------|-------------|------------|
+| Bug Fix Loop (Wave 3.5) | Medium | +30-50% token cost | Thorough engineering in Wave 2 |
+| PM spawns extra agents | Low-Medium | +$X per agent | Bounded by scaling policy |
+| Complex integrations | [H/M/L] | +[X]% | [mitigation] |
+
+### 4. Cost Summary
+
+| Category | Estimated Cost |
+|----------|---------------|
+| AI/Token costs | $X.XX |
+| External services (one-time) | $X.XX |
+| External services (monthly) | $X.XX/month |
+| **Total to start** | **$X.XX** |
+| **Total (worst case)** | **$X.XX** |
+
+---
+
+### APPROVAL
+
+> **USER ACTION REQUIRED**: Review the above costs and reply with one of:
+> - **"approved"** — proceed with execution as estimated
+> - **"approved with cap of $X"** — proceed but hard-stop if costs exceed $X
+> - **"too expensive, tailor it"** — TL will propose a reduced scope/strategy
+> - **"change X"** — TL will revise specific items and re-estimate
+```
+
+### TL Behavior After User Response
+
+| User Response | TL Action |
+|---------------|-----------|
+| "approved" | Proceed to Wave 1. PM begins. |
+| "approved with cap of $X" | Proceed. Set hard cost ceiling. TL monitors and halts if approaching cap. |
+| "too expensive, tailor it" | TL proposes scope reductions (fewer agents, skip waves, reduce features). Produces revised `COST_ESTIMATION_v2.md`. Waits for re-approval. |
+| "change X" | TL revises the specific item. Updates estimate. Waits for re-approval. |
+
+### Mid-Execution Cost Changes
+
+If at ANY point during execution a new cost is discovered (unexpected API fee, agent scaling, service upgrade needed):
+
+1. TL **pauses execution** immediately
+2. TL updates `COST_ESTIMATION.md` with the new line item
+3. TL presents the delta to the user: "New cost discovered: {description} = ${amount}. Updated total: ${new_total}. Approve?"
+4. Execution resumes ONLY after user approves the updated estimate
+
+---
+
+## 0.1 PAYMENT GOVERNANCE PROTOCOL
+
+### Mandate
+The Team Leader is the **sole authority** on payment-related decisions. No agent may initiate, commit to, or execute any action that involves spending money (card payments, subscriptions, purchases, tier upgrades) without:
+
+1. The cost being declared in `COST_ESTIMATION.md`
+2. Explicit user approval for that specific cost
+
+### Rules
+
+1. **Declare before act**: Every payment must appear in `COST_ESTIMATION.md` BEFORE the action is taken
+2. **Exact amounts**: No vague estimates for payments — "approximately $10-15" is not acceptable; "$12.99" is
+3. **No implicit subscriptions**: If a service has a free trial that converts to paid, this MUST be flagged
+4. **Card-required actions**: Any action requiring a credit/debit card number, payment method, or billing info is HARD BLOCKED until user approves
+5. **Recurring vs one-time**: Always distinguish between one-time and recurring costs
+6. **Currency**: All costs in USD unless user specifies otherwise
+
+### Agent Payment Behavior
+
+| Agent | Can Spend Money? | Rule |
+|-------|-----------------|------|
+| Team Leader | NO (but declares costs) | Produces estimates, requests approval, monitors budget |
+| PM | NO | Plans work, never initiates payments |
+| Engineering agents | NO | If they need a paid service, they report to TL who escalates to user |
+| DevOps / Infra | NO directly | Must declare infra costs to TL. TL adds to COST_ESTIMATION.md |
+| Release Manager | NO directly | If deployment has costs, TL must pre-approve with user |
+| ALL agents | NEVER | No agent may autonomously spend money. Period. |
+
+### Payment Escalation Flow
+
+```
+Agent discovers payment needed
+  → Agent reports to TL: "Service X requires $Y payment"
+  → TL updates COST_ESTIMATION.md
+  → TL pauses execution
+  → TL asks user: "New cost: {service} = ${amount}. Approve?"
+  → User approves → TL authorizes agent to proceed
+  → User declines → TL finds alternative (free tier, different service, skip feature)
+```
+
+---
+
+## 0.2 DYNAMIC AGENT SCALING PROTOCOL
+
+### Mandate
+The PM may spawn additional agents beyond the default team roster when the workload demands it. This ensures large or complex projects get adequate parallelism without being constrained by the fixed team size.
+
+### When the PM May Scale
+
+| Trigger | Action | Approval |
+|---------|--------|----------|
+| Feature estimated as XL and splittable | PM proposes splitting across 2+ engineers | TL approves |
+| Wave falling behind timeline | PM proposes extra agent for bottleneck area | TL approves |
+| QA finds >= 5 blocking bugs | PM spawns parallel fix agents | TL approves |
+| Strategy explicitly requests parallel streams | PM spawns as defined in strategy | Pre-approved |
+
+### Scaling Process
+
+```
+1. PM identifies scaling need
+2. PM proposes to TL: "Need {N} additional {ROLE} agents. Reason: {reason}"
+3. TL evaluates:
+   a. Does the strategy allow scaling? (check Section 11.1)
+   b. Will this increase cost beyond the approved estimate?
+4. IF cost increases:
+   a. TL updates COST_ESTIMATION.md with revised token estimate
+   b. TL asks user for re-approval
+   c. Only proceeds after user approves
+5. IF cost stays within approved estimate:
+   a. TL approves the scaling
+   b. PM spawns extra agents
+6. PM logs scaling decision in .team/SCALING_LOG.md
+```
+
+### Scaling Log Template
+
+```markdown
+# Scaling Log — {PROJECT_NAME}
+
+| # | Timestamp | Requested By | Extra Agents | Reason | Cost Delta | Approved By |
+|---|-----------|-------------|-------------|--------|------------|-------------|
+| 1 | {ISO} | PM | +1 BE | API endpoints exceeds single-agent capacity | +$X.XX | TL / User |
+```
+
+### Constraints
+
+- Extra agents MUST follow all execution protocols (evidence, atomic commits, testing)
+- Extra agents MUST appear in the commit log with their specific role suffix (e.g., `BE-2`, `FE-2`)
+- PM MUST NOT spawn more concurrent agents than the strategy's `Max concurrent agents` setting
+- If no scaling policy is set in the strategy, default: TL may approve up to +3 agents without user re-approval, beyond that requires user approval
+
+---
+
+## 0.3 GITHUB AUTO-SYNC PROTOCOL
+
+### Mandate
+The GitHub repository MUST be the living source of truth at all times. Every meaningful update triggers an automatic `git add + commit + push` cycle. The team never works in a state where GitHub is stale.
+
+### What Triggers Auto-Sync
+
+| Event | What Gets Committed | Commit Message Format |
+|-------|--------------------|-----------------------|
+| PM completes planning artifacts | `.team/` planning files | `docs(team): PM planning artifacts [Wave 1]` |
+| Agent completes work | Source code + evidence | `feat/fix/test(scope): description [#issue]` |
+| Evidence submitted | `.team/evidence/` files | `evidence(agent): {role} evidence manifest` |
+| Cost estimation produced | `.team/COST_ESTIMATION.md` | `docs(cost): initial cost estimation` |
+| Cost estimation revised | `.team/COST_ESTIMATION.md` | `docs(cost): revised estimate v{N} — {reason}` |
+| Wave transition | `.team/KANBAN.md`, status files | `docs(team): wave {N} → wave {N+1} transition` |
+| Scaling decision | `.team/SCALING_LOG.md` | `docs(team): scaling — +{N} {role} agents` |
+| QA results | `.team/qa/` files | `test(qa): QA results — {PASS/FAIL}` |
+| Release artifacts | `.team/releases/` | `release(v{X}): release artifacts` |
+| PPTX/PDF reports | `.team/reports/` | `docs(report): status report #{N}` |
+
+### Auto-Sync Execution
+
+Every agent (via TL orchestration) follows this after completing meaningful work:
+
+```bash
+# 1. Stage specific files (NEVER git add -A)
+git add .team/COST_ESTIMATION.md
+git add src/api/users.py tests/test_users.py
+git add .team/evidence/manifests/BE_manifest.md
+
+# 2. Commit with conventional format
+git commit -m "feat(api): add user CRUD endpoints [#12]
+
+Evidence: .team/evidence/manifests/BE_manifest.md
+Agent: Backend Engineer
+Wave: 2"
+
+# 3. Push to remote (auto-sync)
+git push origin HEAD
+```
+
+### Push Frequency
+
+The TL ensures `git push` happens:
+- After EVERY agent completes their work
+- After EVERY wave transition
+- After EVERY PM reporting cycle
+- After cost estimation approval
+- After any scaling decision
+
+### Conflict Resolution
+
+If `git push` fails due to remote changes:
+1. `git pull --rebase origin HEAD`
+2. Resolve conflicts (TL decides if manual intervention needed)
+3. `git push origin HEAD`
+4. If repeated failures, TL pauses and alerts user
 
 ---
 
@@ -745,6 +1008,9 @@ All teams now have these ADDITIONAL universal gates on top of their domain-speci
 
 | Gate | When | Check | Action if FAIL |
 |------|------|-------|----------------|
+| **Cost Approved** | **Before Wave 1** | **`COST_ESTIMATION.md` exists AND user replied "approved"** | **HARD STOP — no work proceeds** |
+| **Payment Declared** | **Before any paid action** | **Cost appears in `COST_ESTIMATION.md` with user approval** | **HARD STOP — escalate to user** |
+| **GitHub Synced** | **Every agent completion** | **`git push` succeeded, remote is up to date** | **TL resolves push failure** |
 | Evidence Complete | Before QA | Every agent has evidence manifest, all items checked | Re-spawn agent to collect evidence |
 | Local Build Passes | Before QA | `build.log` shows zero errors, zero warnings | Re-spawn engineer |
 | Tests Pass Locally | Before QA | All test layers pass with required coverage | Enter Bug Fix Loop |
@@ -753,8 +1019,9 @@ All teams now have these ADDITIONAL universal gates on top of their domain-speci
 | Dependency Audit Clean | Before release | Zero CRITICAL/HIGH vulnerabilities | Fix or document exceptions |
 | Kanban Current | Every wave | All GitHub issues reflect actual state | PM reconciles board |
 | Commit Trail Complete | Before release | Every feature has atomic commits with issue refs | PM creates missing commits |
+| **Scaling Within Budget** | **On agent scaling** | **Revised cost estimate approved if delta > threshold** | **TL requests user re-approval** |
 
 ---
 
-*Enhanced Execution Protocol v3.0 — Amenthyx AI Teams*
-*Evidence-Driven | Locally-Tested | Atomically-Committed | Comprehensively-Tested | CI-Validated*
+*Enhanced Execution Protocol v3.1 — Amenthyx AI Teams*
+*Cost-First | Auto-Synced | Dynamically-Scaled | Evidence-Driven | Locally-Tested | Atomically-Committed | CI-Validated*

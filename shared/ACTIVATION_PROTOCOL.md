@@ -1,4 +1,4 @@
-# Activation Protocol v3.0
+# Activation Protocol v3.1
 
 ## How `--team` and `--strategy` Work
 
@@ -104,6 +104,14 @@ No team found matching "<name>". Available teams:
   --team realtimeSystems    Real-Time Systems Team (WebSockets, MQTT)
   --team accessibility      Accessibility Team (WCAG 2.2, screen readers)
   --team openSource         Open Source Team (community, governance)
+  --team afterEffectsMotion After Effects Motion Graphics Team (ExtendScript, expressions)
+  --team videoProduction    Video Production Team (FFmpeg, color grading, encoding)
+  --team 3dVfx              3D / VFX Team (Blender bpy, Houdini, compositing)
+  --team audioEngineering   Audio Engineering Team (mixing, mastering, spatial audio)
+  --team 2dAnimation        2D Animation Team (Lottie, Rive, GSAP, SVG)
+  --team creativeAI         Creative AI Team (Stable Diffusion, ComfyUI, AI video)
+  --team streamingBroadcast Streaming & Broadcast Team (OBS, NDI, RTMP/SRT)
+  --team mediaPipeline      Media Pipeline Team (render farms, transcoding, CDN)
 
 Pick a team or check your spelling.
 ```
@@ -148,15 +156,54 @@ SHARED RESOURCES:
 - PPTX Generator: shared/PPTX_GENERATOR.py
 - PDF Generator: shared/PDF_GENERATOR.py
 
-CRITICAL REQUIREMENTS:
-1. Every agent MUST produce evidence (screenshots, logs, test results)
-2. Every change MUST be an atomic git commit with conventional format
-3. PM MUST maintain GitHub kanban board in real-time
-4. All tests MUST pass locally before QA wave
-5. GitHub Actions MUST be validated locally with `act` before pushing
-6. PM MUST produce PPTX + PDF reports with evidence dashboards
+CRITICAL REQUIREMENTS (v3.1):
+1. **COST ESTIMATION FIRST**: Before ANY work begins, produce COST_ESTIMATION.md
+   and WAIT for user approval. This is a HARD GATE — no PM spawning, no agent work,
+   no decisions until the user says "approved".
+2. **PAYMENT GOVERNANCE**: You are the sole authority on cost decisions. Any action
+   requiring payment (card, subscription, purchase) MUST be declared in
+   COST_ESTIMATION.md with exact amounts BEFORE the action is taken. If a new cost
+   is discovered mid-execution, PAUSE and get user approval.
+3. Every agent MUST produce evidence (screenshots, logs, test results)
+4. Every change MUST be an atomic git commit with conventional format
+5. **GITHUB AUTO-SYNC**: After every agent completion and wave transition,
+   commit + push to GitHub. The repo must always reflect current state.
+6. PM MUST maintain GitHub kanban board in real-time
+7. **DYNAMIC SCALING**: PM may request additional agents if workload demands it.
+   TL approves if within budget; otherwise, update COST_ESTIMATION.md and get
+   user re-approval.
+8. All tests MUST pass locally before QA wave
+9. GitHub Actions MUST be validated locally with `act` before pushing
+10. PM MUST produce PPTX + PDF reports with evidence dashboards
 
-Begin execution at Wave 0.
+EXECUTION SEQUENCE:
+  Wave 0: TL reads everything → produces COST_ESTIMATION.md → WAITS for user approval
+  Wave 1+: Only after approval → PM begins → normal wave execution with auto-sync
+```
+
+#### 6.1 Cost Estimation Gate (BLOCKING)
+
+After the Team Leader reads all inputs but BEFORE spawning the PM or any agents:
+
+```
+TL COST ESTIMATION SEQUENCE:
+1. TL analyzes the strategy: features, complexity, team size, waves
+2. TL estimates token usage per wave and per agent
+3. TL identifies any external services that require payment
+4. TL writes .team/COST_ESTIMATION.md (see Enhanced Execution Protocol §0)
+5. TL commits + pushes COST_ESTIMATION.md to GitHub
+6. TL presents the cost summary to the user in chat
+7. TL WAITS for user response — this is a BLOCKING gate
+
+USER RESPONSES:
+- "approved" → TL proceeds to Wave 1 (spawn PM)
+- "approved with cap of $X" → TL proceeds with hard cost ceiling
+- "too expensive, tailor it" → TL proposes reductions, re-estimates
+- "change X" → TL revises specific item, re-estimates
+- Anything else → TL asks for clarification
+
+CRITICAL: The TL must NOT spawn the PM or any other agent until
+approval is received. This gate cannot be skipped or timed out.
 ```
 
 ### Execution Context Injection
@@ -175,12 +222,18 @@ Task(
   PROJECT CHARTER:
   {read .team/PROJECT_CHARTER.md}
 
+  APPROVED COST ESTIMATE:
+  {read .team/COST_ESTIMATION.md}
+
   ENHANCED EXECUTION PROTOCOL:
   You MUST follow the Evidence & Proof Protocol:
   - Produce evidence manifest at .team/evidence/manifests/{ROLE}_manifest.md
   - Save all build/test/runtime output to .team/evidence/
   - Every change = 1 atomic commit with conventional format
   - Reference issue number in every commit
+  - After completing work, TL will commit + push your outputs to GitHub (auto-sync)
+  - If you discover any action that requires payment, STOP and report to TL immediately
+  - NEVER initiate any paid service, subscription, or purchase autonomously
 
   YOUR TASKS:
   ...
@@ -194,13 +247,15 @@ Task(
 |---------|--------|
 | `--team <name> --strategy <path>` | Activate a new team session |
 | `team status` | Show current KANBAN + evidence dashboard + test status |
+| `team cost` | Show current cost estimate vs actual spend |
 | `team report` | Force PM to generate PPTX + PDF now |
 | `team evidence` | Show evidence collection status per agent |
 | `team commits` | Show atomic commit log |
 | `team tests` | Show test coverage status across all layers |
 | `team ci` | Show GitHub Actions local validation status |
+| `team scaling` | Show agent scaling log and current agent count |
 | `team decide <topic>` | Trigger decision aggregation |
-| `team gate check` | Run all quality gate checks (including evidence gates) |
+| `team gate check` | Run all quality gate checks (including cost + payment gates) |
 | `pause team` | Save state to `.team/TEAM_STATUS.md` |
 | `resume team` | Resume from `.team/` saved state |
 
@@ -218,5 +273,5 @@ You can run multiple teams on different projects simultaneously in different ter
 
 ---
 
-*Activation Protocol v3.0 — Amenthyx AI Teams*
-*51 Teams | Evidence-Driven | Real-Time Kanban | Atomic Commits | CI-Validated*
+*Activation Protocol v3.1 — Amenthyx AI Teams*
+*59 Teams | Cost-First | Auto-Synced | Dynamically-Scaled | Evidence-Driven | Real-Time Kanban | Atomic Commits | CI-Validated*

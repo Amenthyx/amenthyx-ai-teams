@@ -1,10 +1,10 @@
-# PM GitHub Integration Protocol v3.0
+# PM GitHub Integration Protocol v3.1
 
 ## Overview
 
 Every team's Project Manager agent uses the `gh` CLI to create and manage GitHub Projects, milestones, issues, and releases. This integrates the team's kanban board, deliverables, and milestones directly into GitHub for real-time visibility and tracking.
 
-**v3.0 Enhancements**: Real-time kanban board updates, evidence-linked issues, atomic commit tracking, CI/CD status integration.
+**v3.1 Enhancements**: Auto-sync (commit + push on every update), cost estimation tracking, dynamic agent scaling log, payment governance integration, plus all v3.0 features (real-time kanban, evidence-linked issues, atomic commits, CI/CD).
 
 ## Prerequisites
 
@@ -286,22 +286,95 @@ Full changelog: .team/releases/CHANGELOG.md
   --target main
 ```
 
+## Auto-Sync Protocol (MANDATORY)
+
+Every meaningful update MUST be committed and pushed to GitHub immediately. The PM coordinates this with the TL.
+
+### Auto-Sync Triggers & Actions
+
+```bash
+# After PM completes planning
+git add .team/PROJECT_CHARTER.md .team/MILESTONES.md .team/KANBAN.md .team/TIMELINE.md .team/RISK_REGISTER.md
+git commit -m "docs(team): PM planning artifacts [Wave 1]
+
+Agent: Project Manager
+Wave: 1"
+git push origin HEAD
+
+# After any agent completes work
+git add <agent's source files> <agent's evidence files>
+git commit -m "<type>(<scope>): <description> [#issue]
+
+Evidence: .team/evidence/manifests/{ROLE}_manifest.md
+Agent: {ROLE}
+Wave: {N}"
+git push origin HEAD
+
+# After wave transition
+git add .team/KANBAN.md .team/COMMIT_LOG.md .team/TEAM_STATUS.md
+git commit -m "docs(team): wave {N} → wave {N+1} transition
+
+Agent: Team Leader
+Wave: {N}"
+git push origin HEAD
+
+# After cost estimation or revision
+git add .team/COST_ESTIMATION.md
+git commit -m "docs(cost): cost estimation v{N}
+
+Agent: Team Leader
+Wave: 0"
+git push origin HEAD
+
+# After scaling decision
+git add .team/SCALING_LOG.md
+git commit -m "docs(team): scaling — +{N} {role} agents
+
+Agent: Team Leader
+Wave: {N}"
+git push origin HEAD
+
+# After PM reports
+git add .team/reports/
+git commit -m "docs(report): status report #{N}
+
+Agent: Project Manager
+Wave: {N}"
+git push origin HEAD
+```
+
+### Push Failure Recovery
+
+```bash
+# If push fails (remote has new commits)
+git pull --rebase origin HEAD
+# If rebase conflicts:
+#   1. TL resolves conflicts
+#   2. git rebase --continue
+#   3. git push origin HEAD
+# If repeated failures: TL pauses and alerts user
+```
+
+---
+
 ## PM Workflow Integration (Enhanced)
 
 ### At Wave 0 (Initialization)
 1. PM verifies `gh auth status`
 2. PM verifies `act --version`
 3. PM creates `.team/` directory structure including `evidence/` subdirs
+4. **TL has already produced and committed COST_ESTIMATION.md (user approved)**
 
 ### At Wave 1 (Planning)
 1. PM reads the strategy file
 2. PM creates GitHub Project board with custom fields (Wave, Agent, Evidence, Commit)
 3. PM creates milestones from strategy timeline
-4. PM creates ALL labels (role, priority, status, evidence, wave, test, ci)
+4. PM creates ALL labels (role, priority, status, evidence, wave, test, ci, cost)
 5. PM creates issues for ALL deliverables with evidence requirements
 6. PM assigns milestone + labels to each issue
 7. PM writes `.team/KANBAN.md` mirroring GitHub issues
 8. PM creates `.team/COMMIT_LOG.md` template
+9. **PM commits + pushes all planning artifacts to GitHub (auto-sync)**
 
 ### At Each Agent Start (Real-Time)
 1. PM moves issue to "In Progress" on GitHub board
@@ -315,6 +388,7 @@ Full changelog: .team/releases/CHANGELOG.md
 3. PM adds completion comment with evidence links and commit hashes
 4. PM logs commits to `.team/COMMIT_LOG.md`
 5. PM updates `.team/KANBAN.md`
+6. **TL commits + pushes agent outputs to GitHub (auto-sync)**
 
 ### At Each Wave Transition
 1. PM updates all issue statuses based on agent outputs
@@ -323,11 +397,29 @@ Full changelog: .team/releases/CHANGELOG.md
 4. PM creates new issues for discovered work items
 5. PM generates PPTX + PDF reports with evidence dashboard
 6. PM reconciles `.team/KANBAN.md` with GitHub board state
+7. **TL commits + pushes wave transition state to GitHub (auto-sync)**
+
+### On Dynamic Agent Scaling
+1. PM proposes scaling to TL with justification
+2. TL evaluates cost impact
+3. If cost increases beyond approved estimate: TL updates `COST_ESTIMATION.md`, asks user
+4. PM logs decision in `.team/SCALING_LOG.md`
+5. PM creates GitHub issues for new agent tasks
+6. **TL commits + pushes scaling artifacts to GitHub (auto-sync)**
+
+### On Payment Discovery
+1. Agent reports payment need to TL
+2. TL updates `COST_ESTIMATION.md` with exact amount
+3. TL pauses execution and asks user for approval
+4. **TL commits updated COST_ESTIMATION.md to GitHub (auto-sync)**
+5. User approves → TL authorizes agent → execution resumes
+6. User declines → TL finds alternative, updates estimate
 
 ### At Wave 3 (QA)
 1. PM adds test result labels (tests:passing/failing)
 2. PM updates evidence labels after QA verifies
 3. PM links QA sign-off to relevant issues
+4. **TL commits + pushes QA results to GitHub (auto-sync)**
 
 ### At Wave 4 (Release)
 1. PM verifies all milestone issues are closed
@@ -335,12 +427,14 @@ Full changelog: .team/releases/CHANGELOG.md
 3. PM creates GitHub Release with test results and evidence summary
 4. PM closes all milestones
 5. PM generates final PPTX + PDF reports
+6. **TL commits + pushes release artifacts to GitHub (auto-sync)**
 
 ### At Wave 5 (Final Reporting)
 1. PM generates comprehensive PPTX with all evidence dashboards
 2. PM generates PDF with complete commit log and test coverage
 3. PM archives `.team/COMMIT_LOG.md` final state
 4. PM verifies kanban board is fully reconciled
+5. **TL performs final commit + push — GitHub fully reflects project state**
 
 ## PM Commit Log Management
 
@@ -374,6 +468,18 @@ if ! command -v act &> /dev/null; then
 fi
 ```
 
+## Cost Tracking Labels
+
+```bash
+# Cost/payment labels
+gh label create "cost:estimated" --color "0075ca" --description "Cost estimation complete"
+gh label create "cost:approved" --color "0e8a16" --description "User approved cost estimate"
+gh label create "cost:over-budget" --color "b60205" --description "Exceeding approved budget"
+gh label create "payment:required" --color "FF1744" --description "Action requires payment — needs user approval"
+gh label create "payment:approved" --color "0e8a16" --description "Payment approved by user"
+gh label create "scaling:active" --color "d1bcf9" --description "Additional agents spawned"
+```
+
 ## Notes
 
 - All GitHub operations are idempotent — re-running won't duplicate issues
@@ -383,8 +489,12 @@ fi
 - Every issue MUST have evidence requirements in the body
 - Every closed issue MUST have evidence:verified label
 - COMMIT_LOG.md is the single source of truth for atomic commit tracking
+- **Auto-sync**: Every update = commit + push. GitHub is always the living source of truth
+- **Cost gate**: COST_ESTIMATION.md must exist and be approved before Wave 1 starts
+- **Payment governance**: No agent may initiate a paid action without TL + user approval
+- **Scaling log**: `.team/SCALING_LOG.md` tracks all dynamic agent additions
 
 ---
 
-*PM GitHub Integration Protocol v3.0 — Amenthyx AI Teams*
-*Real-Time Kanban | Evidence-Linked | Atomic Commits | CI-Validated*
+*PM GitHub Integration Protocol v3.1 — Amenthyx AI Teams*
+*Auto-Synced | Cost-First | Dynamically-Scaled | Real-Time Kanban | Evidence-Linked | Atomic Commits | CI-Validated*

@@ -1,8 +1,11 @@
-# Project Strategy Brief v3.0
+# Project Strategy Brief v3.1
 
 > Fill out this template and pass it to your team with `--strategy path/to/this-file.md`
 > This is your single source of truth. The team reads this as gospel.
 > **Be specific. Vague strategies produce vague results.**
+>
+> **v3.1**: Cost-first execution — the Team Leader produces `COST_ESTIMATION.md` BEFORE any work begins.
+> You must approve the cost estimate before the PM starts orchestrating sub-agents.
 
 ---
 
@@ -174,6 +177,32 @@
 
 ---
 
+## 7.1 Cost Approval & Payment Governance
+
+> **MANDATORY** — The Team Leader produces `COST_ESTIMATION.md` BEFORE any execution begins.
+> No sub-agents are spawned, no PM decisions are made, until the user explicitly approves the cost estimate.
+
+**Token Budget Tolerance**: [e.g., "< $5 per run" / "< $20 total" / "no hard limit, but inform me" / "$X max"]
+
+**Payment Authorization Rules**:
+- **Auto-approve threshold**: [$X — any payment below this can proceed without asking, e.g., "$0" means always ask]
+- **Requires explicit approval**: [All card payments / Payments above $X / Domain purchases / API subscriptions]
+- **Forbidden without user present**: [e.g., "Any payment over $50", "Any recurring subscription", "Any production deployment cost"]
+
+**External Service Payments** (the TL must declare these in COST_ESTIMATION.md before proceeding):
+
+| Service | Expected Cost | Payment Method | Pre-Approved? |
+|---------|--------------|----------------|---------------|
+| [e.g., Domain registration] | [$X] | [Card / existing credits] | [Yes / No — ask first] |
+| [e.g., API tier upgrade] | [$X/month] | [Card] | [Yes / No — ask first] |
+| [e.g., Cloud hosting] | [$X/month] | [Card / free tier] | [Yes / No — ask first] |
+
+**Cost Estimation Detail Level**: [Summary only / Detailed per-wave breakdown / Full per-agent breakdown]
+
+**What happens if actual costs exceed estimate?**: [Stop and ask / Continue with warning / Hard stop at X% over]
+
+---
+
 ## 8. Success Criteria
 
 **Launch Criteria** (ALL must be true before v1.0):
@@ -244,6 +273,35 @@
 
 ---
 
+## 11.1 Dynamic Agent Scaling
+
+> The PM may spawn additional agents beyond the default roster if the workload requires it.
+> Fill this section to set boundaries on agent scaling.
+
+**Allow PM to spawn extra agents?**: [Yes / No / "Yes, with TL approval"]
+
+**Max concurrent agents**: [e.g., 15 / "no limit" / "default roster only"]
+
+**Scaling triggers** (PM spawns extra agents when):
+- A single feature has estimated complexity XL and can be split
+- A wave is falling behind its timeline target
+- QA finds >= [N] blocking bugs requiring parallel fix agents
+- The strategy explicitly requests parallel streams
+
+**Agent types the PM may add**:
+- [ ] Additional Backend Engineers (for API-heavy projects)
+- [ ] Additional Frontend Engineers (for UI-heavy projects)
+- [ ] Additional QA Engineers (for large test suites)
+- [ ] Specialist agents (e.g., DB migration, perf tuning — PM must name the specialty)
+- [ ] Any role from the team roster
+
+**Scaling constraints**:
+- Extra agents MUST appear in `COST_ESTIMATION.md` revision (user re-approves if cost increases > [X]%)
+- Extra agents inherit the same execution protocol, evidence requirements, and atomic commit rules
+- PM documents scaling decisions in `.team/SCALING_LOG.md`
+
+---
+
 ## 12. Evidence & Proof Requirements
 
 **What proof do you need from the team?**
@@ -264,11 +322,35 @@
 
 ---
 
-## 13. Additional Context
+## 13. GitHub Auto-Sync Policy
+
+> Every meaningful update (wave completion, agent output, evidence submission) triggers an automatic commit + push.
+> This ensures the GitHub repository is always the living source of truth.
+
+**Auto-sync frequency**: [Every wave / Every agent completion / Every commit (default) / Manual only]
+
+**Auto-push enabled?**: [Yes (default) / No — commit only, I push manually]
+
+**Branch strategy for auto-sync**:
+- Working branch: [e.g., `team/{team-name}/execution` / `develop` / "team's choice"]
+- Merge to main: [After release sign-off only / After QA pass / Manual]
+
+**What gets auto-synced**:
+- [ ] `.team/` planning artifacts (charter, kanban, milestones)
+- [ ] `.team/evidence/` proof artifacts
+- [ ] Source code changes (engineering agents)
+- [ ] `.team/COMMIT_LOG.md` updates
+- [ ] `.team/reports/` PPTX + PDF
+- [ ] `COST_ESTIMATION.md` and revisions
+
+---
+
+## 14. Additional Context
 
 [Anything else the team should know — organizational context, political constraints, historical decisions, previous failed attempts, team culture, communication preferences, timezone constraints, etc.]
 
 ---
 
-*Strategy Brief v3.0 — Amenthyx AI Teams*
+*Strategy Brief v3.1 — Amenthyx AI Teams*
+*Cost-First | Auto-Synced | Dynamically Scaled | Evidence-Driven*
 *The more specific you are here, the better the team performs.*
