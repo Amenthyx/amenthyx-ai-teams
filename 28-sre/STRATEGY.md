@@ -329,8 +329,8 @@
 
 **Auto-sync frequency**: Every agent completion
 **Auto-push enabled?**: Yes
-**Branch**: `team/sre/execution`
-**Merge to main**: After release sign-off only
+**Branch**: `ai-team` (MANDATORY — all teams use this branch)
+**Merge to main**: ONLY after Team Leader receives explicit user approval (hard gate)
 
 **What gets auto-synced**:
 - [x] `.team/` planning artifacts
@@ -350,4 +350,4 @@
 
 *SRE Team Strategy v3.1 — Amenthyx AI Teams*
 *Pre-configured for Prometheus + Grafana + Terraform + Kubernetes site reliability engineering*
-*Cost-First | No-Delete | Ask-When-Unsure | Auto-Synced | Dynamically Scaled | Evidence-Driven*
+*Cost-First | No-Delete | Ask-When-Unsure | ai-team Branch | Merge-Gated | Auto-Synced | Dynamically Scaled | Evidence-Driven*

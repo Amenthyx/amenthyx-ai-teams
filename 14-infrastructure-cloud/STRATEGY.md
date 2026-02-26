@@ -373,8 +373,8 @@ If any agent is unsure about an action's effect, safety, correctness, or scope, 
 **Auto-push enabled?**: Yes
 
 **Branch strategy for auto-sync**:
-- Working branch: `team/infraCloud/execution`
-- Merge to main: After release sign-off only
+- Working branch: `ai-team` (MANDATORY — all teams use this branch)
+- Merge to main: ONLY after Team Leader receives explicit user approval (hard gate)
 
 **What gets auto-synced**:
 - [x] `.team/` planning artifacts (charter, kanban, milestones)
@@ -394,4 +394,4 @@ If any agent is unsure about an action's effect, safety, correctness, or scope, 
 
 *Infrastructure & Cloud Team Strategy v3.1 — Amenthyx AI Teams*
 *Pre-configured for cloud infrastructure (AWS/GCP/Azure), networking, and IaC*
-*Cost-First | No-Delete | Ask-When-Unsure | Auto-Synced | Dynamically Scaled | Evidence-Driven*
+*Cost-First | No-Delete | Ask-When-Unsure | ai-team Branch | Merge-Gated | Auto-Synced | Dynamically Scaled | Evidence-Driven*

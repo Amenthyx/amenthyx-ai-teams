@@ -372,9 +372,11 @@ Full changelog: .team/releases/CHANGELOG.md
   --target main
 ```
 
+> **IMPORTANT**: GitHub Releases target `main`, so this command is ONLY run AFTER the user has approved the `ai-team` → `main` merge. The TL must merge first, then create the release.
+
 ## Auto-Sync Protocol (MANDATORY)
 
-Every meaningful update MUST be committed and pushed to GitHub immediately. The PM coordinates this with the TL.
+Every meaningful update MUST be committed and pushed to the `ai-team` branch immediately. The PM coordinates this with the TL. **ALL pushes go to `ai-team` — NEVER to `main`.** The `ai-team` branch can only be merged to `main` after the TL receives explicit user approval.
 
 ### Auto-Sync Triggers & Actions
 
@@ -385,7 +387,7 @@ git commit -m "docs(team): PM planning artifacts [Wave 1]
 
 Agent: Project Manager
 Wave: 1"
-git push origin HEAD
+git push origin ai-team
 
 # After any agent completes work
 git add <agent's source files> <agent's evidence files>
@@ -394,7 +396,7 @@ git commit -m "<type>(<scope>): <description> [#issue]
 Evidence: .team/evidence/manifests/{ROLE}_manifest.md
 Agent: {ROLE}
 Wave: {N}"
-git push origin HEAD
+git push origin ai-team
 
 # After wave transition
 git add .team/KANBAN.md .team/COMMIT_LOG.md .team/TEAM_STATUS.md
@@ -402,7 +404,7 @@ git commit -m "docs(team): wave {N} → wave {N+1} transition
 
 Agent: Team Leader
 Wave: {N}"
-git push origin HEAD
+git push origin ai-team
 
 # After cost estimation or revision
 git add .team/COST_ESTIMATION.md
@@ -410,7 +412,7 @@ git commit -m "docs(cost): cost estimation v{N}
 
 Agent: Team Leader
 Wave: 0"
-git push origin HEAD
+git push origin ai-team
 
 # After scaling decision
 git add .team/SCALING_LOG.md
@@ -418,7 +420,7 @@ git commit -m "docs(team): scaling — +{N} {role} agents
 
 Agent: Team Leader
 Wave: {N}"
-git push origin HEAD
+git push origin ai-team
 
 # After PM reports
 git add .team/reports/
@@ -426,7 +428,7 @@ git commit -m "docs(report): status report #{N}
 
 Agent: Project Manager
 Wave: {N}"
-git push origin HEAD
+git push origin ai-team
 ```
 
 ### Push Failure Recovery
@@ -437,7 +439,7 @@ git pull --rebase origin HEAD
 # If rebase conflicts:
 #   1. TL resolves conflicts
 #   2. git rebase --continue
-#   3. git push origin HEAD
+#   3. git push origin ai-team
 # If repeated failures: TL pauses and alerts user
 ```
 
@@ -463,7 +465,7 @@ git pull --rebase origin HEAD
 9. PM creates `.team/MASTER_TASKS.md` — full prioritized task list across all agents
 10. PM creates `.team/assignments/{ROLE}_TASKS.md` for EVERY agent — personalized prioritized queue
 11. PM creates `.team/COMMIT_LOG.md` template
-12. **PM commits + pushes all planning artifacts to GitHub (auto-sync)**
+12. **PM commits + pushes to `ai-team` all planning artifacts to GitHub (auto-sync)**
 13. **PM verifies GitHub board matches KANBAN.md — zero drift**
 
 ### At Each Agent Start (Real-Time)
@@ -478,7 +480,7 @@ git pull --rebase origin HEAD
 3. PM adds completion comment with evidence links and commit hashes
 4. PM logs commits to `.team/COMMIT_LOG.md`
 5. PM updates `.team/KANBAN.md`
-6. **TL commits + pushes agent outputs to GitHub (auto-sync)**
+6. **TL commits + pushes to `ai-team` agent outputs to GitHub (auto-sync)**
 
 ### At Each Wave Transition
 1. PM updates all issue statuses based on agent outputs
@@ -487,7 +489,7 @@ git pull --rebase origin HEAD
 4. PM creates new issues for discovered work items
 5. PM generates PPTX + PDF reports with evidence dashboard
 6. PM reconciles `.team/KANBAN.md` with GitHub board state
-7. **TL commits + pushes wave transition state to GitHub (auto-sync)**
+7. **TL commits + pushes to `ai-team` wave transition state to GitHub (auto-sync)**
 
 ### On Dynamic Agent Scaling
 1. PM proposes scaling to TL with justification
@@ -495,7 +497,7 @@ git pull --rebase origin HEAD
 3. If cost increases beyond approved estimate: TL updates `COST_ESTIMATION.md`, asks user
 4. PM logs decision in `.team/SCALING_LOG.md`
 5. PM creates GitHub issues for new agent tasks
-6. **TL commits + pushes scaling artifacts to GitHub (auto-sync)**
+6. **TL commits + pushes to `ai-team` scaling artifacts to GitHub (auto-sync)**
 
 ### On Payment Discovery
 1. Agent reports payment need to TL
@@ -509,7 +511,7 @@ git pull --rebase origin HEAD
 1. PM adds test result labels (tests:passing/failing)
 2. PM updates evidence labels after QA verifies
 3. PM links QA sign-off to relevant issues
-4. **TL commits + pushes QA results to GitHub (auto-sync)**
+4. **TL commits + pushes to `ai-team` QA results to GitHub (auto-sync)**
 
 ### At Wave 4 (Release)
 1. PM verifies all milestone issues are closed
@@ -517,7 +519,7 @@ git pull --rebase origin HEAD
 3. PM creates GitHub Release with test results and evidence summary
 4. PM closes all milestones
 5. PM generates final PPTX + PDF reports
-6. **TL commits + pushes release artifacts to GitHub (auto-sync)**
+6. **TL commits + pushes to `ai-team` release artifacts to GitHub (auto-sync)**
 
 ### At Wave 5 (Final Reporting)
 1. PM generates comprehensive PPTX with all evidence dashboards
@@ -630,4 +632,4 @@ If the PM or any agent is unsure about a GitHub operation (e.g., "Should I close
 ---
 
 *PM GitHub Integration Protocol v3.1 — Amenthyx AI Teams*
-*No-Delete | Ask-When-Unsure | Auto-Synced | Cost-First | Dynamically-Scaled | Real-Time Kanban | Evidence-Linked | Atomic Commits | CI-Validated*
+*No-Delete | Ask-When-Unsure | ai-team Branch | Merge-Gated | Auto-Synced | Cost-First | Dynamically-Scaled | Real-Time Kanban | Evidence-Linked | Atomic Commits | CI-Validated*

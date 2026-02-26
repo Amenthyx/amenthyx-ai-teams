@@ -356,8 +356,9 @@ If any agent is unsure about an action's effect, safety, correctness, or scope, 
 **Auto-push enabled?**: [Yes (default) / No — commit only, I push manually]
 
 **Branch strategy for auto-sync**:
-- Working branch: [e.g., `team/{team-name}/execution` / `develop` / "team's choice"]
-- Merge to main: [After release sign-off only / After QA pass / Manual]
+- Working branch: `ai-team` **(MANDATORY — all teams use this branch, non-negotiable)**
+- Merge to main: **ONLY after Team Leader receives explicit user approval** (this is a hard gate — no automation, no skip, no timeout)
+- No agent, PM, or automated process may merge `ai-team` → `main` without user saying "approved"
 
 **What gets auto-synced**:
 - [ ] `.team/` planning artifacts (charter, kanban, milestones)
@@ -376,5 +377,5 @@ If any agent is unsure about an action's effect, safety, correctness, or scope, 
 ---
 
 *Strategy Brief v3.1 — Amenthyx AI Teams*
-*Cost-First | No-Delete | Ask-When-Unsure | Auto-Synced | Dynamically Scaled | Evidence-Driven*
+*Cost-First | No-Delete | Ask-When-Unsure | ai-team Branch | Merge-Gated | Auto-Synced | Dynamically Scaled | Evidence-Driven*
 *The more specific you are here, the better the team performs.*

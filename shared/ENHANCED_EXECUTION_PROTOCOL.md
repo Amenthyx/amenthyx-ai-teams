@@ -384,8 +384,43 @@ DO:
 
 ## 0.5 GITHUB AUTO-SYNC PROTOCOL
 
+### Branch Strategy (MANDATORY — NON-NEGOTIABLE)
+
+**ALL team development happens on the `ai-team` branch.** This is absolute and applies to every project, every team, every agent.
+
+```
+BRANCH RULES:
+1. At project start, TL creates branch `ai-team` from `main` (if it doesn't exist)
+2. ALL commits from ALL agents go to `ai-team` — NEVER directly to `main`
+3. ALL auto-sync pushes target `ai-team` — NEVER `main`
+4. The `ai-team` branch CANNOT be merged to `main` without explicit user approval
+5. Only the Team Leader may initiate a merge request from `ai-team` → `main`
+6. The TL MUST ask the user: "All work is complete on `ai-team`. May I merge to main?"
+7. The user MUST explicitly say "approved" or "merge" — no implicit approval
+8. If the user says no, the TL asks what needs to change before merge
+9. This gate CANNOT be skipped, automated, or timed out
+
+SETUP (Wave 0 — TL does this BEFORE any work):
+  git checkout -b ai-team main    # Create ai-team from main
+  git push -u origin ai-team      # Push and track remote
+
+ALL AGENTS WORK ON ai-team:
+  git checkout ai-team             # Always be on ai-team
+  git add <files>
+  git commit -m "<message>"
+  git push origin ai-team          # Push to ai-team, NEVER main
+
+MERGE TO MAIN (ONLY after user approval):
+  TL: "Work complete. Requesting merge approval for ai-team → main."
+  User: "approved"
+  git checkout main
+  git merge ai-team --no-ff -m "merge: ai-team → main — user-approved"
+  git push origin main
+  git checkout ai-team             # Return to working branch
+```
+
 ### Mandate
-The GitHub repository MUST be the living source of truth at all times. Every meaningful update triggers an automatic `git add + commit + push` cycle. The team never works in a state where GitHub is stale. Auto-sync commits MUST comply with the No-Delete Rule (section 0.3) — no commit may remove data.
+The GitHub repository MUST be the living source of truth at all times. Every meaningful update triggers an automatic `git add + commit + push` cycle to the `ai-team` branch. The team never works in a state where GitHub is stale. Auto-sync commits MUST comply with the No-Delete Rule (section 0.3) — no commit may remove data.
 
 ### What Triggers Auto-Sync
 
@@ -419,8 +454,8 @@ Evidence: .team/evidence/manifests/BE_manifest.md
 Agent: Backend Engineer
 Wave: 2"
 
-# 3. Push to remote (auto-sync)
-git push origin HEAD
+# 3. Push to ai-team branch (auto-sync) — NEVER push to main
+git push origin ai-team
 ```
 
 ### Push Frequency
@@ -435,10 +470,28 @@ The TL ensures `git push` happens:
 ### Conflict Resolution
 
 If `git push` fails due to remote changes:
-1. `git pull --rebase origin HEAD`
+1. `git pull --rebase origin ai-team`
 2. Resolve conflicts (TL decides if manual intervention needed)
-3. `git push origin HEAD`
+3. `git push origin ai-team`
 4. If repeated failures, TL pauses and alerts user
+
+### Merge to Main Gate (BLOCKING — USER APPROVAL REQUIRED)
+
+The `ai-team` branch is NEVER merged to `main` without explicit user approval. This is a hard gate.
+
+```
+MERGE GATE SEQUENCE:
+1. TL verifies all work is complete, all tests pass, all evidence collected
+2. TL presents summary to user: "All work on ai-team is complete. Requesting merge approval."
+3. TL lists: features completed, test results, evidence artifacts, QA status
+4. User responds:
+   - "approved" / "merge" → TL merges ai-team → main (--no-ff) and pushes
+   - "not yet, fix X" → TL addresses feedback, asks again later
+   - "rejected" → TL documents reason, work stays on ai-team
+5. After successful merge, TL continues working on ai-team for any follow-up
+```
+
+**CRITICAL**: No agent, no PM, no automated process may merge to `main`. Only the TL, and only after explicit user approval.
 
 ---
 
@@ -920,7 +973,7 @@ name: CI Pipeline
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main, ai-team]
   pull_request:
     branches: [main]
 
@@ -1224,4 +1277,4 @@ All teams now have these ADDITIONAL universal gates on top of their domain-speci
 ---
 
 *Enhanced Execution Protocol v3.1 — Amenthyx AI Teams*
-*Cost-First | No-Delete | Ask-When-Unsure | Auto-Synced | Dynamically-Scaled | Evidence-Driven | Locally-Tested | Atomically-Committed | CI-Validated*
+*Cost-First | No-Delete | Ask-When-Unsure | ai-team Branch | Merge-Gated | Auto-Synced | Dynamically-Scaled | Evidence-Driven | Locally-Tested | Atomically-Committed | CI-Validated*

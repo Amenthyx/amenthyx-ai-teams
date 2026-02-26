@@ -174,19 +174,26 @@ CRITICAL REQUIREMENTS (v3.1):
    asking is zero. The cost of a wrong action can be catastrophic.
 5. Every agent MUST produce evidence (screenshots, logs, test results)
 6. Every change MUST be an atomic git commit with conventional format
-7. **GITHUB AUTO-SYNC**: After every agent completion and wave transition,
-   commit + push to GitHub. The repo must always reflect current state.
-8. PM MUST maintain GitHub kanban board in real-time
-9. **DYNAMIC SCALING**: PM may request additional agents if workload demands it.
+7. **BRANCH RULE (ABSOLUTE)**: ALL work happens on the `ai-team` branch.
+   NEVER commit or push directly to `main`. At project start, create
+   `ai-team` from `main` and push all work there.
+8. **MERGE GATE (ABSOLUTE)**: The `ai-team` branch CANNOT be merged to `main`
+   without explicit user approval. Only the TL may request merge. The user
+   MUST say "approved" or "merge". This gate cannot be skipped or automated.
+9. **GITHUB AUTO-SYNC**: After every agent completion and wave transition,
+   commit + push to `ai-team`. The repo must always reflect current state.
+10. PM MUST maintain GitHub kanban board in real-time
+11. **DYNAMIC SCALING**: PM may request additional agents if workload demands it.
    TL approves if within budget; otherwise, update COST_ESTIMATION.md and get
    user re-approval.
-10. All tests MUST pass locally before QA wave
-11. GitHub Actions MUST be validated locally with `act` before pushing
-12. PM MUST produce PPTX + PDF reports with evidence dashboards
+12. All tests MUST pass locally before QA wave
+13. GitHub Actions MUST be validated locally with `act` before pushing
+14. PM MUST produce PPTX + PDF reports with evidence dashboards
 
 EXECUTION SEQUENCE:
-  Wave 0: TL reads everything → produces COST_ESTIMATION.md → WAITS for user approval
-  Wave 1+: Only after approval → PM begins → normal wave execution with auto-sync
+  Wave 0: TL reads everything → creates `ai-team` branch → produces COST_ESTIMATION.md → WAITS for user approval
+  Wave 1+: Only after approval → PM begins → normal wave execution on `ai-team` with auto-sync
+  Final: TL requests user approval to merge `ai-team` → `main`
 ```
 
 #### 6.1 Cost Estimation Gate (BLOCKING)
@@ -239,7 +246,9 @@ Task(
   - Save all build/test/runtime output to .team/evidence/
   - Every change = 1 atomic commit with conventional format
   - Reference issue number in every commit
-  - After completing work, TL will commit + push your outputs to GitHub (auto-sync)
+  - After completing work, TL will commit + push your outputs to the `ai-team` branch (auto-sync)
+  - NEVER commit or push to `main` — ALL work goes to `ai-team`
+  - The `ai-team` → `main` merge requires explicit user approval through TL
   - If you discover any action that requires payment, STOP and report to TL immediately
   - NEVER initiate any paid service, subscription, or purchase autonomously
 
@@ -300,4 +309,4 @@ You can run multiple teams on different projects simultaneously in different ter
 ---
 
 *Activation Protocol v3.1 — Amenthyx AI Teams*
-*59 Teams | Cost-First | No-Delete | Ask-When-Unsure | Auto-Synced | Dynamically-Scaled | Evidence-Driven | Real-Time Kanban | Atomic Commits | CI-Validated*
+*59 Teams | Cost-First | No-Delete | Ask-When-Unsure | ai-team Branch | Merge-Gated | Auto-Synced | Dynamically-Scaled | Evidence-Driven | Real-Time Kanban | Atomic Commits | CI-Validated*
