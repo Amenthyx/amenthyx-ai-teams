@@ -407,8 +407,8 @@ export async function getDashboardStatus(mcDir: string): Promise<DashboardStatus
       const healthData = await getHealthData(ports.backend);
       if (healthData) {
         healthy = true;
-        uptime = healthData.uptime ?? null;
-        sessionId = healthData.sessionId ?? sessionId;
+        uptime = (healthData.uptime as number) ?? null;
+        sessionId = (healthData.sessionId as string) ?? sessionId;
       }
     } catch {
       // Not healthy

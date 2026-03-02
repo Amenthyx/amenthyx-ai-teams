@@ -310,7 +310,7 @@ async function cmdHealth(parsed: ParsedArgs): Promise<void> {
 
   console.log(`[>] Checking health at http://localhost:${backendPort}/api/health...`);
 
-  const healthy = await healthCheck(backendPort, 5000, 1000);
+  const healthy = await healthCheck(backendPort!, 5000, 1000);
 
   if (healthy) {
     console.log('[OK] Dashboard is healthy');

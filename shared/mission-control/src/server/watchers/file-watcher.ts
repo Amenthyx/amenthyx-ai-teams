@@ -259,13 +259,13 @@ export class FileWatcherService {
 /**
  * Group an array of objects by a string key.
  */
-function groupBy<T extends Record<string, unknown>>(
+function groupBy<T>(
   items: T[],
-  key: string
+  key: keyof T & string
 ): Record<string, number> {
   const result: Record<string, number> = {};
   for (const item of items) {
-    const value = String(item[key] || 'unknown');
+    const value = String((item as Record<string, unknown>)[key] || 'unknown');
     result[value] = (result[value] || 0) + 1;
   }
   return result;
