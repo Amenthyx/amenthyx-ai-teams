@@ -192,7 +192,8 @@ CRITICAL REQUIREMENTS (v3.1):
 
 EXECUTION SEQUENCE:
   Wave 0: TL reads everything → creates `ai-team` branch → produces COST_ESTIMATION.md → WAITS for user approval
-  Wave 1+: Only after approval → PM begins → normal wave execution on `ai-team` with auto-sync
+  Wave 0.5: MISSION CONTROL AUTO-DEPLOY (after cost approval, before Wave 1)
+  Wave 1+: Only after approval + dashboard running → PM begins → normal wave execution on `ai-team` with auto-sync
   Final: TL requests user approval to merge `ai-team` → `main`
 ```
 
@@ -211,7 +212,7 @@ TL COST ESTIMATION SEQUENCE:
 7. TL WAITS for user response — this is a BLOCKING gate
 
 USER RESPONSES:
-- "approved" → TL proceeds to Wave 1 (spawn PM)
+- "approved" → TL proceeds to Wave 0.5 (Mission Control deploy)
 - "approved with cap of $X" → TL proceeds with hard cost ceiling
 - "too expensive, tailor it" → TL proposes reductions, re-estimates
 - "change X" → TL revises specific item, re-estimates
@@ -219,6 +220,39 @@ USER RESPONSES:
 
 CRITICAL: The TL must NOT spawn the PM or any other agent until
 approval is received. This gate cannot be skipped or timed out.
+```
+
+#### 6.2 Mission Control Auto-Deploy (AUTOMATIC — after cost approval)
+
+After cost approval but BEFORE Wave 1 (PM spawn), the TL MUST deploy Mission Control:
+
+```
+MISSION CONTROL DEPLOY SEQUENCE (Wave 0.5):
+1. Copy $HOME/.amenthyx-ai-teams/shared/mission-control/ → .mission-control/
+2. Add .mission-control/ and .mission-control/node_modules/ to .gitignore
+3. Run: cd .mission-control && npm install
+4. Generate mission-control.config.json with:
+   - sessionId (UUID v4), projectName, teamName, agents roster, budget info
+   - AI tool detection (Claude Code, Cursor, Aider, or unknown)
+   - File watcher paths (.team/, .github/workflows/, coverage/)
+5. If Claude Code detected: configure hooks in .claude/settings.local.json
+   to POST events to http://localhost:4201/api/events/claude-code
+6. Start dashboard: cd .mission-control && npm run dashboard &
+7. Wait for health check (GET http://localhost:4201/api/health — max 30s)
+8. Print: "✓ Mission Control running at http://localhost:4200"
+9. POST initial state (agents, budget, waves) to dashboard API
+
+IMPORTANT:
+- Dashboard failure is NON-BLOCKING — if install/start fails, warn and continue
+- Dashboard is local-only — NEVER committed to the project repo
+- Every agent's events flow to the dashboard automatically via hooks or file watchers
+- The user sees the dashboard URL in chat and can open it immediately
+- All subsequent waves (1-5) will have their events captured by Mission Control
+
+LIFECYCLE:
+- pause team → dashboard keeps running
+- resume team → reconnect or restart dashboard
+- session end → dashboard stays up for review; stop with: npx mission-control stop
 ```
 
 ### Execution Context Injection
@@ -280,7 +314,7 @@ Task(
 
 | Command | Action |
 |---------|--------|
-| `--team <name> --strategy <path>` | Activate a new team session |
+| `--team <name> --strategy <path>` | Activate a new team session (auto-deploys Mission Control) |
 | `team status` | Show current KANBAN + evidence dashboard + test status |
 | `team cost` | Show current cost estimate vs actual spend |
 | `team report` | Force PM to generate PPTX + PDF now |
@@ -289,10 +323,13 @@ Task(
 | `team tests` | Show test coverage status across all layers |
 | `team ci` | Show GitHub Actions local validation status |
 | `team scaling` | Show agent scaling log and current agent count |
+| `team dashboard` | Show Mission Control dashboard URL and status |
+| `team dashboard restart` | Restart Mission Control dashboard if stopped |
+| `team dashboard stop` | Stop Mission Control dashboard |
 | `team decide <topic>` | Trigger decision aggregation |
 | `team gate check` | Run all quality gate checks (including cost + payment gates) |
-| `pause team` | Save state to `.team/TEAM_STATUS.md` |
-| `resume team` | Resume from `.team/` saved state |
+| `pause team` | Save state to `.team/TEAM_STATUS.md` (dashboard keeps running) |
+| `resume team` | Resume from `.team/` saved state (dashboard reconnects) |
 
 ### Multiple Teams
 
@@ -308,5 +345,5 @@ You can run multiple teams on different projects simultaneously in different ter
 
 ---
 
-*Activation Protocol v3.1 — Amenthyx AI Teams*
-*59 Teams | Cost-First | No-Delete | Ask-When-Unsure | ai-team Branch | Merge-Gated | Auto-Synced | Dynamically-Scaled | Evidence-Driven | Real-Time Kanban | Atomic Commits | CI-Validated*
+*Activation Protocol v3.2 — Amenthyx AI Teams*
+*59 Teams | Mission Control Dashboard | Cost-First | No-Delete | Ask-When-Unsure | ai-team Branch | Merge-Gated | Auto-Synced | Dynamically-Scaled | Evidence-Driven | Real-Time Kanban | Atomic Commits | CI-Validated*

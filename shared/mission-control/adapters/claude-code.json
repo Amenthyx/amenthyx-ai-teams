@@ -1,0 +1,22 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "type": "command",
+        "command": "curl -s -X POST http://localhost:4201/api/events/claude-code -H 'Content-Type: application/json' -d @-"
+      }
+    ],
+    "SubagentStart": [
+      {
+        "type": "command",
+        "command": "curl -s -X POST http://localhost:4201/api/events/claude-code -H 'Content-Type: application/json' -d @-"
+      }
+    ],
+    "SubagentStop": [
+      {
+        "type": "command",
+        "command": "curl -s -X POST http://localhost:4201/api/events/claude-code -H 'Content-Type: application/json' -d @-"
+      }
+    ]
+  }
+}
