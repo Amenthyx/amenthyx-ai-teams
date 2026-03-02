@@ -71,7 +71,7 @@ export const AgentFilterBar: React.FC = () => {
                     backgroundColor: `${color}20`,
                     color: color,
                     borderColor: `${color}40`,
-                    ringColor: `${color}40`,
+                    boxShadow: `0 0 0 1px ${color}40`,
                   }
                 : undefined
             }

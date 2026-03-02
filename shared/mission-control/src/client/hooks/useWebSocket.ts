@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { MissionControlEvent, EventCategory } from '../types/events';
+import { MissionControlEvent, EventCategory, BudgetInfo, KanbanCard, CommitEntry } from '../types/events';
 import { useAgentStore } from '../stores/agentStore';
 import { useBudgetStore } from '../stores/budgetStore';
 import { useWaveStore } from '../stores/waveStore';
@@ -59,9 +59,7 @@ export function useWebSocket(): UseWebSocketResult {
           useBudgetStore.getState().addCost(event.meta.cost_usd, event.agent?.role);
         }
         if (event.payload.budget) {
-          useBudgetStore.getState().setBudget(
-            event.payload.budget as Parameters<typeof useBudgetStore.getState>['0']['budget']
-          );
+          useBudgetStore.getState().setBudget(event.payload.budget as BudgetInfo);
         }
         break;
 
@@ -74,26 +72,21 @@ export function useWebSocket(): UseWebSocketResult {
           });
         }
         if (event.payload.card) {
-          useKanbanStore.getState().addCard(
-            event.payload.card as Parameters<typeof useKanbanStore.getState>['0']['cards'][0]
-          );
+          useKanbanStore.getState().addCard(event.payload.card as KanbanCard);
         }
         break;
 
       case EventCategory.GIT:
         if (event.payload.commit) {
-          useCommitStore.getState().addCommit(
-            event.payload.commit as Parameters<typeof useCommitStore.getState>['0']['commits'][0]
-          );
+          useCommitStore.getState().addCommit(event.payload.commit as CommitEntry);
         }
         break;
 
       case EventCategory.TEST:
-        if (event.payload.layer && event.payload.results) {
-          const layer = event.payload.layer as Parameters<typeof useTestStore.getState>['0']['results'][keyof Parameters<typeof useTestStore.getState>['0']['results']];
+        if (event.payload.layer) {
           useTestStore.getState().updateLayer(
             event.payload.layer as 'static' | 'unit_be' | 'unit_fe' | 'integration' | 'e2e' | 'performance' | 'security' | 'accessibility',
-            event.payload.results as Record<string, unknown>
+            (event.payload.results || {}) as Record<string, unknown>
           );
         }
         break;
