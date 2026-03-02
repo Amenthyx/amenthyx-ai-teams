@@ -1,6 +1,7 @@
 import React from 'react';
-import { Sun, Moon, Wifi, WifiOff } from 'lucide-react';
+import { Sun, Moon, Wifi, WifiOff, Bell } from 'lucide-react';
 import { useThemeStore } from '../../stores/themeStore';
+import { useGateStore } from '../../stores/gateStore';
 
 interface HeaderProps {
   connectionStatus: 'connected' | 'connecting' | 'disconnected';
@@ -9,6 +10,8 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ connectionStatus, reconnectCount }) => {
   const { theme, toggleTheme } = useThemeStore();
+  const pendingCount = useGateStore((s) => s.pendingGates.length);
+  const openDialog = useGateStore((s) => s.openDialog);
 
   return (
     <header className="h-14 flex items-center justify-between px-4 border-b dark:border-gray-700 border-gray-200 dark:bg-gray-900 bg-white shrink-0">
@@ -43,6 +46,20 @@ export const Header: React.FC<HeaderProps> = ({ connectionStatus, reconnectCount
             </>
           )}
         </div>
+
+        {/* Gate notifications */}
+        <button
+          onClick={openDialog}
+          className="relative p-2 rounded-lg transition-colors duration-200 dark:hover:bg-gray-700 hover:bg-gray-100"
+          title={pendingCount > 0 ? `${pendingCount} pending approval${pendingCount > 1 ? 's' : ''}` : 'No pending approvals'}
+        >
+          <Bell size={18} className={pendingCount > 0 ? 'text-amber-400' : 'dark:text-gray-400 text-gray-500'} />
+          {pendingCount > 0 && (
+            <span className="absolute -top-0.5 -right-0.5 flex items-center justify-center min-w-[18px] h-[18px] text-[10px] font-bold text-white bg-red-500 rounded-full px-1 animate-pulse">
+              {pendingCount}
+            </span>
+          )}
+        </button>
 
         {/* Theme toggle */}
         <button

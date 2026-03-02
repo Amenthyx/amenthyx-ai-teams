@@ -7,6 +7,8 @@ import { useKanbanStore } from '../stores/kanbanStore';
 import { useCommitStore } from '../stores/commitStore';
 import { useEventStore } from '../stores/eventStore';
 import { useTestStore } from '../stores/testStore';
+import { useGateStore } from '../stores/gateStore';
+import type { GateEvent } from '../types/events';
 
 type ConnectionStatus = 'connected' | 'connecting' | 'disconnected';
 
@@ -139,6 +141,20 @@ export function useWebSocket(): UseWebSocketResult {
         }
         break;
 
+      case EventCategory.GATE:
+        if (event.payload.gate) {
+          const gateData = event.payload.gate as GateEvent;
+          if (gateData.status === 'pending') {
+            useGateStore.getState().addGate(gateData);
+          } else {
+            useGateStore.getState().resolveGate(
+              gateData.id,
+              (gateData.decision || 'acknowledged') as GateEvent['decision'] & string
+            );
+          }
+        }
+        break;
+
       default:
         break;
     }
@@ -179,6 +195,18 @@ export function useWebSocket(): UseWebSocketResult {
         } else if (data.id && data.category) {
           dispatchEvent(data as MissionControlEvent);
         }
+        // Handle gate broadcasts from server
+        else if (data.type === 'gate' && data.data) {
+          const gateData = data.data as GateEvent;
+          if (data.action === 'created' && gateData.status === 'pending') {
+            useGateStore.getState().addGate(gateData);
+          } else if (data.action === 'resolved') {
+            useGateStore.getState().resolveGate(
+              gateData.id,
+              (gateData.decision || 'acknowledged') as GateEvent['decision'] & string
+            );
+          }
+        }
         // Handle snapshot messages from server
         else if (data.type === 'snapshot') {
           if (data.agents && data.agents.length > 0) {
@@ -198,6 +226,12 @@ export function useWebSocket(): UseWebSocketResult {
           }
           if (data.tests) {
             useTestStore.getState().setResults(data.tests);
+          }
+          if (data.gates && Array.isArray(data.gates)) {
+            const pendingGates = (data.gates as GateEvent[]).filter((g) => g.status === 'pending');
+            if (pendingGates.length > 0) {
+              useGateStore.getState().setPendingGates(pendingGates);
+            }
           }
           // Replay recent events into the event store
           if (data.events && Array.isArray(data.events)) {

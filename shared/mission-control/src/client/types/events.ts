@@ -44,6 +44,23 @@ export type WaveStatus = 'pending' | 'active' | 'done';
 
 export type GateStatus = 'pending' | 'pass' | 'fail';
 
+export type GateType = 'cost_estimation' | 'merge' | 'payment' | 'scaling' | 'uncertainty';
+
+export type GateDecision = 'approved' | 'approved_with_cap' | 'rejected' | 'too_expensive' | 'change' | 'not_yet' | 'yes' | 'no' | 'alternative' | 'acknowledged' | 'dismissed';
+
+export interface GateEvent {
+  id: string;
+  gate_type: GateType;
+  status: 'pending' | 'approved' | 'rejected' | 'dismissed';
+  message: string;
+  payload: Record<string, unknown>;
+  source?: string;
+  created_at: string;
+  resolved_at?: string;
+  decision?: GateDecision;
+  blocking?: boolean;
+}
+
 export interface EventMeta {
   duration_ms?: number;
   tokens_input?: number;

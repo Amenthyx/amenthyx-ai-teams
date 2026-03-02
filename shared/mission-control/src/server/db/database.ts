@@ -70,11 +70,25 @@ export function initDatabase(dbPath: string): Database.Database {
       gate TEXT NOT NULL DEFAULT 'pending'
     );
 
+    CREATE TABLE IF NOT EXISTS gates (
+      id TEXT PRIMARY KEY,
+      gate_type TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending',
+      message TEXT NOT NULL DEFAULT '',
+      payload TEXT NOT NULL DEFAULT '{}',
+      source TEXT,
+      blocking INTEGER NOT NULL DEFAULT 1,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      resolved_at TEXT,
+      decision TEXT
+    );
+
     CREATE INDEX IF NOT EXISTS idx_events_session ON events(session_id);
     CREATE INDEX IF NOT EXISTS idx_events_category ON events(category);
     CREATE INDEX IF NOT EXISTS idx_events_severity ON events(severity);
     CREATE INDEX IF NOT EXISTS idx_events_agent_role ON events(agent_role);
     CREATE INDEX IF NOT EXISTS idx_events_timestamp ON events(timestamp);
+    CREATE INDEX IF NOT EXISTS idx_gates_status ON gates(status);
   `);
 
   log('info', `Database initialized at ${dbPath}`);
@@ -467,4 +481,94 @@ function rowToWave(row: Record<string, unknown>): WaveInfo {
     status: row.status as WaveInfo['status'],
     gate: row.gate as WaveInfo['gate'],
   };
+}
+
+// ---------------------------------------------------------------------------
+// Gate Operations
+// ---------------------------------------------------------------------------
+
+export interface GateRow {
+  id: string;
+  gate_type: string;
+  status: string;
+  message: string;
+  payload: Record<string, unknown>;
+  source?: string;
+  blocking: boolean;
+  created_at: string;
+  resolved_at?: string;
+  decision?: string;
+}
+
+function rowToGate(row: Record<string, unknown>): GateRow {
+  return {
+    id: row.id as string,
+    gate_type: row.gate_type as string,
+    status: row.status as string,
+    message: row.message as string,
+    payload: JSON.parse((row.payload as string) || '{}'),
+    source: (row.source as string) || undefined,
+    blocking: (row.blocking as number) === 1,
+    created_at: row.created_at as string,
+    resolved_at: (row.resolved_at as string) || undefined,
+    decision: (row.decision as string) || undefined,
+  };
+}
+
+/**
+ * Insert a new gate into the database.
+ */
+export function insertGate(gate: {
+  id: string;
+  gate_type: string;
+  message: string;
+  payload?: Record<string, unknown>;
+  source?: string;
+  blocking?: boolean;
+}): GateRow {
+  const d = getDatabase();
+  const now = new Date().toISOString();
+  d.prepare(`
+    INSERT INTO gates (id, gate_type, status, message, payload, source, blocking, created_at)
+    VALUES (?, ?, 'pending', ?, ?, ?, ?, ?)
+  `).run(
+    gate.id,
+    gate.gate_type,
+    gate.message,
+    JSON.stringify(gate.payload || {}),
+    gate.source ?? null,
+    gate.blocking !== false ? 1 : 0,
+    now
+  );
+
+  return rowToGate(
+    d.prepare('SELECT * FROM gates WHERE id = ?').get(gate.id) as Record<string, unknown>
+  );
+}
+
+/**
+ * Get gates filtered by status.
+ */
+export function getGates(status?: string): GateRow[] {
+  const d = getDatabase();
+  if (status) {
+    const rows = d.prepare('SELECT * FROM gates WHERE status = ? ORDER BY created_at DESC').all(status) as Array<Record<string, unknown>>;
+    return rows.map(rowToGate);
+  }
+  const rows = d.prepare('SELECT * FROM gates ORDER BY created_at DESC').all() as Array<Record<string, unknown>>;
+  return rows.map(rowToGate);
+}
+
+/**
+ * Resolve a gate with a user decision.
+ */
+export function resolveGate(id: string, decision: string): GateRow | null {
+  const d = getDatabase();
+  const now = new Date().toISOString();
+  const status = (decision === 'rejected' || decision === 'too_expensive') ? 'rejected' : 'approved';
+  d.prepare('UPDATE gates SET status = ?, decision = ?, resolved_at = ? WHERE id = ?')
+    .run(status, decision, now, id);
+
+  const row = d.prepare('SELECT * FROM gates WHERE id = ?').get(id) as Record<string, unknown> | undefined;
+  return row ? rowToGate(row) : null;
 }

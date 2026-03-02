@@ -9,6 +9,7 @@ import { GitPage } from './pages/GitPage';
 import { TestsPage } from './pages/TestsPage';
 import { EventsPage } from './pages/EventsPage';
 import { SecretsPage } from './pages/SecretsPage';
+import { ApprovalDialog } from './components/ApprovalDialog';
 
 const App: React.FC = () => {
   const { status, reconnectCount } = useWebSocket();
@@ -16,6 +17,7 @@ const App: React.FC = () => {
   return (
     <div className="flex flex-col h-screen dark:bg-gray-900 bg-gray-50">
       <Header connectionStatus={status} reconnectCount={reconnectCount} />
+      <ApprovalDialog />
       <Routes>
         <Route element={<DashboardShell />}>
           <Route index element={<OverviewPage />} />

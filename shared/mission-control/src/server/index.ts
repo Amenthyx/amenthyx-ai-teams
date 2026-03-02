@@ -9,13 +9,14 @@ import { WebSocketServer, WebSocket } from 'ws';
 import {
   initDatabase, closeDatabase, insertEvent,
   getAgents, upsertAgent, getBudget, updateBudget,
-  getWaves, upsertWave, getEvents,
+  getWaves, upsertWave, getEvents, getGates,
 } from './db/database';
 import { createHealthRouter } from './routes/health';
 import { createEventsRouter } from './routes/events';
 import { createAgentsRouter } from './routes/agents';
 import { createBudgetRouter } from './routes/budget';
 import { createWavesRouter } from './routes/waves';
+import { createGatesRouter } from './routes/gates';
 import { FileWatcherService } from './watchers/file-watcher';
 import { GitWatcherService } from './watchers/git-watcher';
 import { EventCategory, type MissionControlEvent, type AgentInfo } from './types/events';
@@ -163,6 +164,7 @@ function sendSnapshot(ws: WebSocket): void {
     const budget = getBudget();
     const waves = getWaves();
     const recentEvents = getEvents({ limit: 50 });
+    const pendingGates = getGates('pending');
 
     const snapshot: Record<string, unknown> = {
       type: 'snapshot',
@@ -172,6 +174,7 @@ function sendSnapshot(ws: WebSocket): void {
       budget: budget || undefined,
       waves: waves.length > 0 ? waves : undefined,
       events: recentEvents.events,
+      gates: pendingGates.length > 0 ? pendingGates : undefined,
       timestamp: new Date().toISOString(),
     };
 
@@ -209,6 +212,7 @@ app.use('/api', createEventsRouter(wsClients, broadcast, SESSION_ID));
 app.use('/api', createAgentsRouter(wsClients, broadcast));
 app.use('/api', createBudgetRouter(wsClients, broadcast));
 app.use('/api', createWavesRouter(wsClients, broadcast));
+app.use('/api', createGatesRouter(broadcast));
 
 // Config endpoint — frontend can fetch dynamic project settings
 app.get('/api/config', (_req, res) => {
