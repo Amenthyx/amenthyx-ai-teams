@@ -10,14 +10,8 @@ interface WaveState {
 }
 
 export const useWaveStore = create<WaveState>((set, get) => ({
-  waves: new Map<number, WaveInfo>([
-    [0, { number: 0, name: 'Planning', status: 'done', gate: 'pass' }],
-    [1, { number: 1, name: 'Foundation', status: 'active', gate: 'pending' }],
-    [2, { number: 2, name: 'Core Features', status: 'pending', gate: 'pending' }],
-    [3, { number: 3, name: 'Integration', status: 'pending', gate: 'pending' }],
-    [4, { number: 4, name: 'QA & Polish', status: 'pending', gate: 'pending' }],
-    [5, { number: 5, name: 'Release', status: 'pending', gate: 'pending' }],
-  ]),
+  // Start empty — populated dynamically from server snapshot/config
+  waves: new Map<number, WaveInfo>(),
 
   setWaves: (waves: WaveInfo[]) => {
     const map = new Map<number, WaveInfo>();
@@ -32,6 +26,15 @@ export const useWaveStore = create<WaveState>((set, get) => ({
     const existing = waves.get(number);
     if (existing) {
       waves.set(number, { ...existing, ...update });
+    } else {
+      // Auto-create wave if it doesn't exist yet
+      waves.set(number, {
+        number,
+        name: update.name || `Wave ${number}`,
+        status: update.status || 'pending',
+        gate: update.gate || 'pending',
+        ...update,
+      } as WaveInfo);
     }
     set({ waves });
   },

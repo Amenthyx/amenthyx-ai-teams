@@ -22,8 +22,37 @@ function getWsUrl(): string {
   if (typeof window === 'undefined') return 'ws://localhost:4201/ws';
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
   const host = window.location.host;
-  // In dev, Vite proxies /ws to the backend
   return `${protocol}//${host}/ws`;
+}
+
+function getApiUrl(path: string): string {
+  if (typeof window === 'undefined') return `http://localhost:4201${path}`;
+  return `${window.location.origin}${path}`;
+}
+
+/**
+ * Fetch initial state from REST API. This ensures the dashboard has data
+ * even before the WebSocket connection is established or if the snapshot
+ * message is missed.
+ */
+async function fetchInitialState(): Promise<void> {
+  try {
+    const res = await fetch(getApiUrl('/api/config'));
+    if (!res.ok) return;
+    const config = await res.json();
+
+    if (config.agents && config.agents.length > 0) {
+      useAgentStore.getState().setAgents(config.agents);
+    }
+    if (config.budget) {
+      useBudgetStore.getState().setBudget(config.budget);
+    }
+    if (config.waves && config.waves.length > 0) {
+      useWaveStore.getState().setWaves(config.waves);
+    }
+  } catch {
+    // Server may not be ready yet — WebSocket snapshot will handle it
+  }
 }
 
 export function useWebSocket(): UseWebSocketResult {
@@ -71,13 +100,32 @@ export function useWebSocket(): UseWebSocketResult {
             gate: waveData.gate as 'pending' | 'pass' | 'fail',
           });
         }
-        if (event.payload.card) {
+        if (event.payload.cards) {
+          const cards = event.payload.cards as KanbanCard[];
+          useKanbanStore.getState().setCards(cards);
+        } else if (event.payload.card) {
           useKanbanStore.getState().addCard(event.payload.card as KanbanCard);
+        }
+        if (event.payload.milestones) {
+          // Milestones parsed from MILESTONES.md — update wave store
+          const milestones = event.payload.milestones as Array<{ name: string; status: string }>;
+          const waves = milestones.map((m, i) => ({
+            number: i,
+            name: m.name,
+            status: (m.status === 'done' || m.status === 'DONE') ? 'done' as const
+              : (m.status === 'active' || m.status === 'IN PROGRESS') ? 'active' as const
+              : 'pending' as const,
+            gate: (m.status === 'done' || m.status === 'DONE') ? 'pass' as const : 'pending' as const,
+          }));
+          useWaveStore.getState().setWaves(waves);
         }
         break;
 
       case EventCategory.GIT:
-        if (event.payload.commit) {
+        if (event.payload.commits) {
+          const commits = event.payload.commits as CommitEntry[];
+          useCommitStore.getState().setCommits(commits);
+        } else if (event.payload.commit) {
           useCommitStore.getState().addCommit(event.payload.commit as CommitEntry);
         }
         break;
@@ -92,7 +140,6 @@ export function useWebSocket(): UseWebSocketResult {
         break;
 
       default:
-        // Other categories are captured in the event store already
         break;
     }
   }, []);
@@ -118,8 +165,12 @@ export function useWebSocket(): UseWebSocketResult {
       try {
         const data = JSON.parse(messageEvent.data);
 
+        // Handle event wrapper: { type: 'event', data: MissionControlEvent }
+        if (data.type === 'event' && data.data?.id && data.data?.category) {
+          dispatchEvent(data.data as MissionControlEvent);
+        }
         // Handle batch messages
-        if (Array.isArray(data)) {
+        else if (Array.isArray(data)) {
           for (const item of data) {
             if (item.id && item.category) {
               dispatchEvent(item as MissionControlEvent);
@@ -128,15 +179,15 @@ export function useWebSocket(): UseWebSocketResult {
         } else if (data.id && data.category) {
           dispatchEvent(data as MissionControlEvent);
         }
-        // Handle snapshot/init messages
+        // Handle snapshot messages from server
         else if (data.type === 'snapshot') {
-          if (data.agents) {
+          if (data.agents && data.agents.length > 0) {
             useAgentStore.getState().setAgents(data.agents);
           }
           if (data.budget) {
             useBudgetStore.getState().setBudget(data.budget);
           }
-          if (data.waves) {
+          if (data.waves && data.waves.length > 0) {
             useWaveStore.getState().setWaves(data.waves);
           }
           if (data.cards) {
@@ -147,6 +198,16 @@ export function useWebSocket(): UseWebSocketResult {
           }
           if (data.tests) {
             useTestStore.getState().setResults(data.tests);
+          }
+          // Replay recent events into the event store
+          if (data.events && Array.isArray(data.events)) {
+            for (const event of data.events) {
+              if (event.id && event.category) {
+                useEventStore.getState().addEvent(event as MissionControlEvent);
+                // Also dispatch to category stores so kanban/commits/waves populate
+                dispatchEvent(event as MissionControlEvent);
+              }
+            }
           }
         }
       } catch {
@@ -159,7 +220,6 @@ export function useWebSocket(): UseWebSocketResult {
       setStatus('disconnected');
       wsRef.current = null;
 
-      // Schedule reconnect with exponential backoff
       const delay = backoffRef.current;
       backoffRef.current = Math.min(backoffRef.current * 2, MAX_BACKOFF);
       setReconnectCount((c) => c + 1);
@@ -170,13 +230,14 @@ export function useWebSocket(): UseWebSocketResult {
     };
 
     ws.onerror = () => {
-      // onclose will fire after onerror, triggering reconnect
       ws.close();
     };
   }, [dispatchEvent]);
 
   useEffect(() => {
     mountedRef.current = true;
+    // Fetch initial state via REST before WebSocket connects
+    fetchInitialState();
     connect();
 
     return () => {

@@ -19,8 +19,9 @@ interface BudgetState {
 }
 
 export const useBudgetStore = create<BudgetState>((set, get) => ({
+  // Start with zeros — populated dynamically from server config/snapshot
   budget: {
-    total: 50,
+    total: 0,
     spent: 0,
     currency: 'USD',
     alertThreshold: 0.8,

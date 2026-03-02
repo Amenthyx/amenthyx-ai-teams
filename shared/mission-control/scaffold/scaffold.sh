@@ -195,6 +195,14 @@ cat > "$MC_DIR/mission-control.config.json" << CONFIGEOF
     "tool": "$AI_TOOL",
     "adapter": "$ADAPTER_TYPE"
   },
+  "waves": [
+    { "number": 0, "name": "Initialization", "status": "pending", "gate": "pending" },
+    { "number": 1, "name": "Planning", "status": "pending", "gate": "pending" },
+    { "number": 2, "name": "Engineering", "status": "pending", "gate": "pending" },
+    { "number": 3, "name": "QA", "status": "pending", "gate": "pending" },
+    { "number": 4, "name": "Release", "status": "pending", "gate": "pending" },
+    { "number": 5, "name": "Final Report", "status": "pending", "gate": "pending" }
+  ],
   "fileWatcher": {
     "watchPaths": [".team/", ".github/workflows/", "coverage/"],
     "debounceMs": 500
@@ -272,12 +280,21 @@ fi
 echo "[>] Starting Mission Control dashboard..."
 cd "$MC_DIR"
 
+# Detect current git branch
+GIT_BRANCH="main"
+if command -v git &>/dev/null; then
+    DETECTED_BRANCH=$(cd "$PROJECT_DIR" && git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "main")
+    GIT_BRANCH="$DETECTED_BRANCH"
+fi
+echo "[>] Git branch: $GIT_BRANCH"
+
 # Use nohup on Unix-like systems, start on Windows
+# Pass project-aware env vars so the server watches the right directories
 if command -v nohup &>/dev/null; then
-    MC_PORT=$BACKEND_PORT VITE_PORT=$FRONTEND_PORT nohup npm run dashboard > "$MC_DIR/dashboard.log" 2>&1 &
+    MC_PORT=$BACKEND_PORT MC_PROJECT_DIR="$PROJECT_DIR" MC_WATCH_DIR="$PROJECT_DIR/.team" MC_GIT_CWD="$PROJECT_DIR" MC_GIT_BRANCH="$GIT_BRANCH" nohup npm run dashboard > "$MC_DIR/dashboard.log" 2>&1 &
     DASHBOARD_PID=$!
 else
-    MC_PORT=$BACKEND_PORT VITE_PORT=$FRONTEND_PORT npm run dashboard > "$MC_DIR/dashboard.log" 2>&1 &
+    MC_PORT=$BACKEND_PORT MC_PROJECT_DIR="$PROJECT_DIR" MC_WATCH_DIR="$PROJECT_DIR/.team" MC_GIT_CWD="$PROJECT_DIR" MC_GIT_BRANCH="$GIT_BRANCH" npm run dashboard > "$MC_DIR/dashboard.log" 2>&1 &
     DASHBOARD_PID=$!
 fi
 

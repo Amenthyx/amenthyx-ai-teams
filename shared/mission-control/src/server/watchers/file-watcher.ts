@@ -63,6 +63,9 @@ export class FileWatcherService {
       fs.mkdirSync(watchPath, { recursive: true });
     }
 
+    // Scan existing files immediately so the dashboard has data on first load
+    this.scanExisting();
+
     this.watcher = chokidar.watch(watchPath, {
       persistent: true,
       ignoreInitial: true,
@@ -82,6 +85,44 @@ export class FileWatcherService {
     });
 
     log('info', `File watcher started on ${watchPath}`);
+  }
+
+  /**
+   * Scan all existing .team/ files and emit events for each known file type.
+   * This ensures the dashboard has data immediately on startup, even if the
+   * team has already been working before the dashboard was launched.
+   */
+  scanExisting(): void {
+    const watchPath = this.config.watchDir;
+    if (!fs.existsSync(watchPath)) return;
+
+    const knownFiles = ['KANBAN.MD', 'COMMIT_LOG.MD', 'MILESTONES.MD', 'COST_ESTIMATION.MD'];
+    let scannedCount = 0;
+
+    const scanDir = (dir: string, depth: number): void => {
+      if (depth > 5) return;
+      let entries: fs.Dirent[];
+      try {
+        entries = fs.readdirSync(dir, { withFileTypes: true });
+      } catch {
+        return;
+      }
+      for (const entry of entries) {
+        const fullPath = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+          scanDir(fullPath, depth + 1);
+        } else if (entry.isFile()) {
+          const upperName = entry.name.toUpperCase();
+          if (knownFiles.includes(upperName) || entry.name.toLowerCase().includes('evidence')) {
+            this.processFile(fullPath, 'add');
+            scannedCount++;
+          }
+        }
+      }
+    };
+
+    scanDir(watchPath, 0);
+    log('info', `Initial scan complete: processed ${scannedCount} existing files in ${watchPath}`);
   }
 
   /**

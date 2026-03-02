@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { AgentInfo, AGENT_COLORS, AGENT_NAMES, ALL_AGENT_ROLES } from '../types/events';
+import { AgentInfo, AGENT_COLORS, AGENT_NAMES } from '../types/events';
 
 interface AgentState {
   agents: Map<string, AgentInfo>;
@@ -7,20 +7,6 @@ interface AgentState {
   updateAgent: (role: string, update: Partial<AgentInfo>) => void;
   getAgent: (role: string) => AgentInfo | undefined;
   getAllAgents: () => AgentInfo[];
-}
-
-function createDefaultAgents(): Map<string, AgentInfo> {
-  const map = new Map<string, AgentInfo>();
-  for (const role of ALL_AGENT_ROLES) {
-    map.set(role, {
-      role,
-      name: AGENT_NAMES[role] || role,
-      color: AGENT_COLORS[role] || '#6B7280',
-      category: getCategory(role),
-      status: 'idle',
-    });
-  }
-  return map;
 }
 
 function getCategory(role: string): AgentInfo['category'] {
@@ -31,7 +17,8 @@ function getCategory(role: string): AgentInfo['category'] {
 }
 
 export const useAgentStore = create<AgentState>((set, get) => ({
-  agents: createDefaultAgents(),
+  // Start empty — populated dynamically from server config/snapshot
+  agents: new Map<string, AgentInfo>(),
 
   setAgents: (agents: AgentInfo[]) => {
     const map = new Map<string, AgentInfo>();
@@ -47,6 +34,7 @@ export const useAgentStore = create<AgentState>((set, get) => ({
     if (existing) {
       agents.set(role, { ...existing, ...update });
     } else {
+      // Auto-create agent if we see it for the first time
       agents.set(role, {
         role,
         name: update.name || AGENT_NAMES[role] || role,
