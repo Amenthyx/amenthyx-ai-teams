@@ -1,4 +1,4 @@
-# Project Strategy Brief v3.1
+# Project Strategy Brief v3.3
 
 ---
 
@@ -55,6 +55,11 @@
 | 11 | **Secrets Health Panel** | Scans project for secret management: detects `.env` files, checks for leaked secrets in code (via gitleaks patterns), shows which services have configured credentials, warns about missing/expired secrets. Does NOT display secret values. | Shows secret health score (0-100); lists all detected secret references; warns on hardcoded secrets; shows `.env` vs env var vs vault status; never displays actual values | M |
 | 12 | **AI Tool Adapters** | Pre-built adapters for: (a) Claude Code (hooks → HTTP), (b) Generic CLI wrapper (captures stdout/stderr from any command), (c) File-based (watches output files from any tool). Each adapter translates to the universal event schema. | Claude Code adapter configures hooks automatically; CLI wrapper works with `npx mission-control wrap "aider ..."` ; file adapter watches configurable paths; all produce valid events | L |
 | 13 | **Auto-Download & Auto-Start at Team Activation** | When any team is activated with `--team X --strategy Y`, Mission Control is automatically downloaded (from the amenthyx-ai-teams repo's `shared/mission-control/`), installed (`npm install`), configured for the project, and started — all without ANY user action. The dashboard is fully running at `http://localhost:4200` BEFORE Wave 1 begins. This is a hard requirement embedded in the activation protocol. The user should see "Mission Control running at http://localhost:4200" in their terminal before any agent starts working. | Dashboard auto-scaffolds on every `--team` activation; `npm install` runs automatically; dashboard starts in background; health check confirms it's running; if already running from a previous session, it reconnects; no manual setup ever required | L |
+
+| 14 | **Comprehensive PDF Report Generator** | Mission Control MUST generate a downloadable PDF that covers the ENTIRE project: executive summary, discovery interview (20+ Q&A), complete decision log, task execution timeline, git commit history with agent attribution, quality reports, agent performance metrics, embedded screenshots, cost analysis, and deliverables checklist. Available via `GET /api/report/pdf` and a "Download Full Report (PDF)" button on the Overview page. Auto-generated at end of every wave and on-demand. | PDF downloads from Overview page; contains all 14 sections (executive summary, interview, decisions, tasks, commits, quality, agents, risks, screenshots, architecture, deliverables, appendix); screenshots embedded as images not links; previous reports never overwritten (timestamped); saved to `.team/reports/PROJECT_REPORT_{date}.pdf` | XL |
+| 15 | **Screenshots Gallery Page** | New `/screenshots` page that displays all visual evidence from `.team/screenshots/` organized by category (setup, features, testing, deployment, final). Grid view with lightbox preview. Shows before/after comparisons side-by-side. Badge counts per category. Timeline view option showing screenshots in chronological order. Respects agent filter. | New route `/screenshots`; grid + lightbox views; before/after comparison mode; category badges with counts; agent filter; auto-refreshes when new screenshots added; chronological timeline toggle | M |
+| 16 | **Decision Tracking Panel** | New `/decisions` page showing every decision made during project execution. Parsed from `.team/DECISION_LOG.md`. Shows: decision #, timestamp, who raised it, who decided, rationale, impact. Filterable by category (Architecture, Feature, Security, Cost, Scaling). Searchable. Respects agent filter. | New route `/decisions`; table + card views; category filter chips; search; agent filter; auto-updates from DECISION_LOG.md; links to related commits/tasks | M |
+| 17 | **Discovery Interview Page** | New `/interview` page showing the full 20+ question discovery interview. Parsed from `.team/DISCOVERY_INTERVIEW.md`. Shows questions, answers, and PM's implications analysis. Highlights key discoveries and strategy adjustments. | New route `/interview`; renders all Q&A with implications; key discoveries highlighted; strategy adjustments section; read-only but searchable | S |
 
 ### P1 — Should-Have (Important but not blocking)
 
@@ -756,5 +761,5 @@ Every issue, kanban card, and commit carries an `agent` field. This enables:
 
 ---
 
-*Strategy Brief v3.1 — Amenthyx AI Teams*
-*Cost-First | No-Delete | Ask-When-Unsure | ai-team Branch | Merge-Gated | Auto-Synced | Dynamically Scaled | Evidence-Driven*
+*Strategy Brief v3.3 — Amenthyx AI Teams*
+*Cost-First | No-Delete | Ask-When-Unsure | ai-team Branch | Merge-Gated | Auto-Synced | Dynamically Scaled | Evidence-Driven | Deliverable Products | 20-Question Discovery | Screenshots | Docs Website | PDF Reports*

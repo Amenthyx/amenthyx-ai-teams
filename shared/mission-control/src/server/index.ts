@@ -10,6 +10,7 @@ import {
   initDatabase, closeDatabase, insertEvent,
   getAgents, upsertAgent, getBudget, updateBudget,
   getWaves, upsertWave, getEvents, getGates,
+  getUATSuites, getUATCases, getUATSummary,
 } from './db/database';
 import { createHealthRouter } from './routes/health';
 import { createEventsRouter } from './routes/events';
@@ -17,6 +18,7 @@ import { createAgentsRouter } from './routes/agents';
 import { createBudgetRouter } from './routes/budget';
 import { createWavesRouter } from './routes/waves';
 import { createGatesRouter } from './routes/gates';
+import { createUATRouter } from './routes/uat';
 import { FileWatcherService } from './watchers/file-watcher';
 import { GitWatcherService } from './watchers/git-watcher';
 import { EventCategory, type MissionControlEvent, type AgentInfo } from './types/events';
@@ -165,6 +167,8 @@ function sendSnapshot(ws: WebSocket): void {
     const waves = getWaves();
     const recentEvents = getEvents({ limit: 50 });
     const pendingGates = getGates('pending');
+    const uatSuites = getUATSuites();
+    const uatSummary = getUATSummary();
 
     const snapshot: Record<string, unknown> = {
       type: 'snapshot',
@@ -175,6 +179,8 @@ function sendSnapshot(ws: WebSocket): void {
       waves: waves.length > 0 ? waves : undefined,
       events: recentEvents.events,
       gates: pendingGates.length > 0 ? pendingGates : undefined,
+      uatSuites: uatSuites.length > 0 ? uatSuites : undefined,
+      uatSummary: uatSummary.totalCases > 0 ? uatSummary : undefined,
       timestamp: new Date().toISOString(),
     };
 
@@ -213,6 +219,7 @@ app.use('/api', createAgentsRouter(wsClients, broadcast));
 app.use('/api', createBudgetRouter(wsClients, broadcast));
 app.use('/api', createWavesRouter(wsClients, broadcast));
 app.use('/api', createGatesRouter(broadcast));
+app.use('/api', createUATRouter(wsClients, broadcast));
 
 // Config endpoint — frontend can fetch dynamic project settings
 app.get('/api/config', (_req, res) => {

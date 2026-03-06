@@ -9,6 +9,7 @@ import { GitPage } from './pages/GitPage';
 import { TestsPage } from './pages/TestsPage';
 import { EventsPage } from './pages/EventsPage';
 import { SecretsPage } from './pages/SecretsPage';
+import { UATPage } from './pages/UATPage';
 import { ApprovalDialog } from './components/ApprovalDialog';
 
 const App: React.FC = () => {
@@ -26,6 +27,7 @@ const App: React.FC = () => {
           <Route path="/tests" element={<TestsPage />} />
           <Route path="/events" element={<EventsPage />} />
           <Route path="/secrets" element={<SecretsPage />} />
+          <Route path="/uat" element={<UATPage />} />
         </Route>
       </Routes>
     </div>

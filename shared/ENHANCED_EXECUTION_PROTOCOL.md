@@ -116,6 +116,126 @@ If at ANY point during execution a new cost is discovered (unexpected API fee, a
 
 ---
 
+## 0.05 MANDATORY PROJECT DISCOVERY INTERVIEW (BLOCKING — BEFORE COST ESTIMATION)
+
+### Mandate
+The Project Manager MUST conduct a **minimum 20-question discovery interview** with the Team Leader BEFORE the cost estimation is produced. This interview ensures deep project understanding, eliminates assumptions, and guarantees every project receives tailored, unique execution. **This is a HARD GATE — no cost estimation, no agent work, no decisions until the interview is complete.**
+
+### When This Runs
+Immediately after the Team Leader reads the strategy and BEFORE producing COST_ESTIMATION.md:
+
+```
+WAVE 0: INITIALIZATION (UPDATED)
+├── TL reads strategy + TEAM.md + Enhanced Execution Protocol
+├── PM DISCOVERY INTERVIEW (20+ questions)          ← THIS STEP (NEW)
+├── TL produces COST_ESTIMATION.md                   ← Uses interview answers
+├── TL presents cost estimate to user               ← BLOCKING WAIT
+├── User approves / requests changes                ← GATE
+└── Only then: TL spawns PM → Wave 1 begins
+```
+
+### Interview Protocol
+
+The PM asks the Team Leader a MINIMUM of 20 questions across these categories. The TL must answer every question thoroughly. If a question reveals ambiguity, the PM asks follow-up questions (total may exceed 20).
+
+#### Category 1: Vision & Scope (Questions 1-5)
+
+| # | Question | Purpose |
+|---|----------|---------|
+| 1 | "What is the ONE metric that defines success for this project?" | Forces clarity on the primary KPI |
+| 2 | "Describe the first 60 seconds of a new user's experience with this product." | Reveals UX priorities and onboarding flow |
+| 3 | "What existing product comes closest to what you want — and where does it fall short?" | Establishes competitive positioning |
+| 4 | "If you had to cut 50% of the features, which half survives?" | Forces ruthless prioritization |
+| 5 | "What would make you consider this project a failure even if all features are delivered?" | Uncovers hidden success criteria beyond features |
+
+#### Category 2: Technical Depth (Questions 6-10)
+
+| # | Question | Purpose |
+|---|----------|---------|
+| 6 | "What is the hardest technical problem in this project?" | Identifies risk areas early |
+| 7 | "Are there any third-party APIs or services that are non-negotiable? What happens if they go down?" | Reveals hard dependencies and resilience needs |
+| 8 | "What data is most sensitive in this system and who absolutely must NOT see it?" | Defines security perimeter |
+| 9 | "What is the expected data volume at launch vs. 12 months in?" | Shapes database and scaling architecture |
+| 10 | "Are there any legacy systems, existing databases, or migration requirements?" | Uncovers integration complexity |
+
+#### Category 3: User & Business Context (Questions 11-15)
+
+| # | Question | Purpose |
+|---|----------|---------|
+| 11 | "Who is the actual decision-maker for feature sign-off — and are they available during development?" | Prevents bottlenecks |
+| 12 | "What does the monetization model look like (free/freemium/paid/enterprise)?" | Shapes pricing UI, payment integration, access control |
+| 13 | "Are there regulatory or compliance requirements that could block deployment?" | Prevents late-stage legal surprises |
+| 14 | "What devices, browsers, and network conditions must be supported on day one?" | Defines the compatibility matrix |
+| 15 | "Is there a brand guide, design system, or UI kit — or are we starting from scratch?" | Determines design phase scope |
+
+#### Category 4: Delivery & Quality (Questions 16-20)
+
+| # | Question | Purpose |
+|---|----------|---------|
+| 16 | "What does 'deployment-ready' mean for this project — cloud, on-prem, app store, or something else?" | Defines the release target |
+| 17 | "Is this an MVP that needs to be visually demonstrable, or a production system ready for real users?" | Determines quality bar and polish level |
+| 18 | "What are the absolute dealbreaker bugs — things that would prevent you from showing this to anyone?" | Defines the minimum quality bar |
+| 19 | "What documentation does the end-user need? Admin guide? API docs? In-app help?" | Scopes documentation requirements |
+| 20 | "After delivery, who maintains this — your team, another team, or do you need us to plan for handover?" | Shapes code quality and documentation depth |
+
+#### Bonus Deep-Dive Questions (PM asks if any answer above is vague)
+
+| # | Question | Purpose |
+|---|----------|---------|
+| 21 | "Walk me through the critical user journey — what are the 5-7 screens they see?" | Forces concrete UX thinking |
+| 22 | "What happens when the system is under 10x expected load?" | Reveals scalability expectations |
+| 23 | "Is there an existing user base that needs to be migrated?" | Uncovers migration complexity |
+| 24 | "What analytics or tracking must be in place for launch?" | Defines observability scope |
+| 25 | "If we could only ship by [deadline], what gets cut first?" | Forces timeline-aware prioritization |
+
+### Interview Output
+
+The PM produces `.team/DISCOVERY_INTERVIEW.md` with:
+
+```markdown
+# Project Discovery Interview — {PROJECT_NAME}
+## Date: {ISO_8601_timestamp}
+## Interviewer: Project Manager
+## Interviewee: Team Leader
+
+---
+
+### Question 1: {question}
+**Answer**: {TL's detailed answer}
+**Implications for execution**: {PM's analysis of how this affects the plan}
+
+### Question 2: {question}
+**Answer**: {TL's detailed answer}
+**Implications for execution**: {PM's analysis of how this affects the plan}
+
+[... minimum 20 questions ...]
+
+---
+
+## Key Discoveries
+| # | Discovery | Impact on Strategy | Action Required |
+|---|-----------|-------------------|-----------------|
+| 1 | {finding} | {how it changes the plan} | {what to do} |
+
+## Risk Items Identified During Interview
+| # | Risk | Severity | Mitigation |
+|---|------|----------|------------|
+| 1 | {risk} | [H/M/L] | {mitigation} |
+
+## Strategy Adjustments (Based on Interview)
+{List of changes to the strategy that the interview revealed are necessary}
+```
+
+### Rules
+
+1. **Minimum 20 questions — no exceptions**: The PM MUST ask at least 20 questions. If the strategy is very clear, the PM asks deeper follow-up questions on complex areas.
+2. **Every answer must have implications**: The PM doesn't just record answers — they analyze how each answer impacts execution.
+3. **Interview feeds cost estimation**: The COST_ESTIMATION.md MUST reference interview findings. If the interview reveals hidden complexity, the cost estimate reflects it.
+4. **Interview is version-controlled**: `.team/DISCOVERY_INTERVIEW.md` is committed to the `ai-team` branch via auto-sync.
+5. **Interview can trigger strategy revision**: If the interview reveals that the strategy is incomplete or contradictory, the TL may request the user to revise the strategy before proceeding.
+
+---
+
 ## 0.1 PAYMENT GOVERNANCE PROTOCOL
 
 ### Mandate
@@ -1253,6 +1373,159 @@ The PM's PPTX and PDF reports now include:
 
 ---
 
+## 7.5 SCREENSHOTS & VISUAL EVIDENCE PROTOCOL
+
+### Mandate
+Every project MUST maintain a `.team/screenshots/` directory that captures visual evidence of the entire project lifecycle. Screenshots are MANDATORY — not optional documentation. They serve as proof of work, regression baselines, and project history.
+
+### Directory Structure
+
+```
+.team/screenshots/
+├── setup/                    # Environment setup, initial repo state
+├── architecture/             # System diagrams, component relationships
+├── features/                 # Feature implementation evidence
+│   ├── {feature-name}/       # One folder per P0/P1 feature
+│   │   ├── before.png        # State before implementation
+│   │   ├── during.png        # Work in progress (optional)
+│   │   └── after.png         # Completed feature
+├── testing/                  # Test results, coverage reports
+│   ├── unit/                 # Unit test results
+│   ├── integration/          # Integration test results
+│   ├── e2e/                  # E2E test screenshots
+│   └── uat/                  # UAT evidence screenshots
+├── deployment/               # Deployment evidence
+│   ├── staging/              # Staging environment
+│   └── production/           # Production environment
+├── mission-control/          # Mission Control dashboard captures
+├── errors/                   # Bug evidence, error states
+│   └── {bug-id}/             # One folder per significant bug
+└── final/                    # Final product screenshots for report
+    ├── desktop/              # Desktop viewport
+    ├── tablet/               # Tablet viewport
+    └── mobile/               # Mobile viewport
+```
+
+### When Screenshots Are Required
+
+| Event | What to Capture | Who Captures | Directory |
+|-------|----------------|-------------|-----------|
+| Project setup complete | Repo structure, initial build | TL | `setup/` |
+| Feature started | Current state before changes | Engineering agent | `features/{name}/before.png` |
+| Feature completed | Working feature demo | Engineering agent | `features/{name}/after.png` |
+| Tests pass | Test runner output, coverage | QA agent | `testing/` |
+| Bug found | Error state, console, logs | QA agent | `errors/{id}/` |
+| Bug fixed | Fixed state comparison | Engineering agent | `errors/{id}/fixed.png` |
+| Deployment done | Health check, running app | DevOps/RM | `deployment/` |
+| Wave completed | Mission Control dashboard | PM | `mission-control/` |
+| Project complete | Full product walkthrough | TL | `final/` |
+
+### Screenshot Naming Convention
+
+```
+{ISO_date}_{agent-role}_{description}.png
+Example: 2025-03-15_BE_user-api-crud-working.png
+Example: 2025-03-15_QA_unit-tests-98-percent-coverage.png
+```
+
+### Final Product Screenshots (MANDATORY)
+
+Before the project is considered complete, the `.team/screenshots/final/` directory MUST contain:
+1. **Every P0 feature** — at least one screenshot per feature showing it working
+2. **Every P1 feature** — at least one screenshot per feature
+3. **Responsive views** — desktop, tablet, mobile (if applicable)
+4. **Login/auth flow** — complete flow from start to dashboard
+5. **Error states** — at least 3 key error states handled gracefully
+6. **Empty states** — what the app looks like with no data
+
+### Rules
+
+1. Screenshots are PERMANENT — they follow the No-Delete Rule (section 0.3)
+2. Every engineering agent MUST capture before/after for their work
+3. QA agent MUST capture all test results as screenshots
+4. PM includes screenshot count in every status report
+5. PPTX/PDF final reports MUST embed key screenshots from `.team/screenshots/final/`
+
+---
+
+## 7.6 DOCUMENTATION WEBSITE AGENT
+
+### Mandate
+Every project MUST include a **documentation agent** that generates a complete, browsable React-based documentation website. This website serves as the single source of truth for the project's technical documentation, API references, architecture decisions, and user guides.
+
+### When This Runs
+- **Wave 2 (Engineering)**: Documentation agent works in parallel with engineering agents
+- **Wave 3 (QA)**: Documentation agent updates docs based on test results
+- **Wave 4 (Release)**: Documentation agent finalizes and builds the production docs site
+
+### Documentation Website Scope
+
+The documentation site MUST include:
+
+| Section | Content | Source |
+|---------|---------|--------|
+| **Overview** | Project vision, architecture diagram, tech stack | Strategy file + interview |
+| **Getting Started** | Prerequisites, installation, first run | Engineering output |
+| **Architecture** | System design, component relationships, data flow | TL + engineering agents |
+| **API Reference** | All endpoints/methods with examples | Auto-generated from code |
+| **User Guide** | Feature walkthroughs with screenshots | `.team/screenshots/` |
+| **Configuration** | Environment variables, config files | Engineering output |
+| **Deployment** | Deployment guide, infrastructure requirements | DevOps agent output |
+| **Testing** | How to run tests, coverage expectations | QA agent output |
+| **Decision Log** | Key technical decisions and rationale | `.team/DECISION_LOG.md` |
+| **Changelog** | Version history, breaking changes | Git history |
+
+### Tech Stack for Documentation Site
+
+```
+docs/
+├── package.json              # React + Vite + MDX
+├── src/
+│   ├── App.tsx               # Main app with sidebar navigation
+│   ├── components/
+│   │   ├── Sidebar.tsx       # Navigation sidebar
+│   │   ├── CodeBlock.tsx     # Syntax-highlighted code
+│   │   ├── ApiEndpoint.tsx   # API endpoint display
+│   │   └── Screenshot.tsx    # Screenshot gallery component
+│   ├── pages/
+│   │   ├── Overview.mdx
+│   │   ├── GettingStarted.mdx
+│   │   ├── Architecture.mdx
+│   │   ├── ApiReference.mdx
+│   │   ├── UserGuide.mdx
+│   │   ├── Configuration.mdx
+│   │   ├── Deployment.mdx
+│   │   ├── Testing.mdx
+│   │   ├── DecisionLog.mdx
+│   │   └── Changelog.mdx
+│   └── styles/
+│       └── docs.css
+├── public/
+│   └── screenshots/          # Copied from .team/screenshots/
+└── vite.config.ts
+```
+
+### Documentation Agent Role
+
+The Documentation Agent is a **dedicated agent** spawned alongside engineering agents in Wave 2:
+
+- **Role**: Documentation Engineer (DOCS)
+- **Reports to**: PM (for content) and TL (for accuracy)
+- **Input**: Strategy file, interview, engineering output, code, test results
+- **Output**: Complete `docs/` directory with buildable React documentation site
+- **Evidence**: Running docs site screenshot in `.team/screenshots/`
+
+### Rules
+
+1. Documentation site MUST be buildable with `npm run build` and servable with `npm run dev`
+2. Documentation MUST include embedded screenshots from `.team/screenshots/`
+3. Documentation MUST be committed to the `ai-team` branch alongside the project code
+4. Documentation is a P1 deliverable — project is NOT complete without it
+5. The docs site MUST have dark mode support and be mobile-responsive
+6. API documentation MUST be auto-generated where possible (OpenAPI/Swagger for REST, GraphQL schema for GraphQL)
+
+---
+
 ## 8. QUALITY GATE ENHANCEMENTS
 
 All teams now have these ADDITIONAL universal gates on top of their domain-specific gates:
@@ -1273,6 +1546,233 @@ All teams now have these ADDITIONAL universal gates on top of their domain-speci
 | Kanban Current | Every wave | All GitHub issues reflect actual state | PM reconciles board |
 | Commit Trail Complete | Before release | Every feature has atomic commits with issue refs | PM creates missing commits |
 | **Scaling Within Budget** | **On agent scaling** | **Revised cost estimate approved if delta > threshold** | **TL requests user re-approval** |
+
+---
+
+## 8.5 MISSION CONTROL — COMPREHENSIVE PROJECT REPORT & PDF EXPORT
+
+### Mandate
+Mission Control MUST track **every single decision, task, technical operation, and commit** made during project execution. The dashboard MUST provide a downloadable PDF that serves as a **complete project snapshot** — a full X-ray of the entire project from inception to delivery.
+
+### What Mission Control Tracks (EXHAUSTIVE)
+
+| Category | Data Points | Storage |
+|----------|------------|---------|
+| **Decisions** | Every TL/PM/User decision with rationale, timestamp, impact | `.team/DECISION_LOG.md` + MC database |
+| **Tasks** | Every task created, assigned, started, completed, blocked | `.team/KANBAN.md` + MC database |
+| **Technical Operations** | Every build, test run, deployment, API call, migration | MC event stream |
+| **Commits** | Every git commit with diff stats, files changed, author agent | `.team/COMMIT_LOG.md` + MC database |
+| **Cost Tracking** | Token usage per agent, running cost total, budget remaining | MC database |
+| **Agent Activity** | Time active, tasks completed, evidence produced per agent | MC database |
+| **Escalations** | Every uncertainty escalation with resolution | `.team/DECISION_LOG.md` |
+| **Scaling Events** | Agent scaling decisions with triggers and costs | `.team/SCALING_LOG.md` |
+| **Quality Gates** | Every gate check (cost, QA, UAT, merge) with pass/fail | MC database |
+| **Screenshots** | Every screenshot captured with metadata | `.team/screenshots/` index |
+| **Interview** | Full discovery interview Q&A | `.team/DISCOVERY_INTERVIEW.md` |
+| **Risk Registry** | All identified risks with status updates | `.team/RISK_REGISTER.md` |
+| **Timeline** | Planned vs actual timeline per wave/milestone | `.team/TIMELINE.md` + MC database |
+
+### PDF Report Structure
+
+The downloadable PDF MUST contain ALL of the following sections:
+
+```
+AMENTHYX AI TEAMS — PROJECT REPORT
+═══════════════════════════════════
+
+1. EXECUTIVE SUMMARY
+   - Project name, team, duration
+   - Final status (delivered/in-progress/blocked)
+   - Key metrics: features delivered, test coverage, budget used
+
+2. PROJECT DISCOVERY INTERVIEW
+   - All 20+ questions and answers
+   - Key discoveries and their impact
+
+3. COST ANALYSIS
+   - Approved budget vs actual spend
+   - Per-agent cost breakdown
+   - Per-wave cost breakdown
+   - External service costs
+
+4. DECISION LOG (COMPLETE)
+   - Every decision with timestamp, decider, rationale
+   - Categorized: Architecture, Feature, Security, Cost, Scaling
+
+5. TASK EXECUTION TIMELINE
+   - Gantt-style visual of all tasks
+   - Planned vs actual completion
+   - Blocked tasks and resolution
+
+6. TECHNICAL OPERATIONS LOG
+   - Every build with result
+   - Every test run with coverage
+   - Every deployment with status
+   - Database migrations
+   - API integrations
+
+7. GIT HISTORY & COMMIT LOG
+   - Every commit with agent, wave, files changed
+   - Branch activity visualization
+   - Code churn analysis
+
+8. QUALITY REPORT
+   - Test coverage per module
+   - Bug count: found, fixed, open
+   - Security scan results
+   - Performance benchmark results
+   - UAT results and sign-off chain
+
+9. AGENT PERFORMANCE
+   - Per-agent: tasks completed, time active, evidence count
+   - Scaling events and triggers
+   - Escalation frequency per agent
+
+10. RISK MANAGEMENT
+    - Initial risks vs final status
+    - Risks that materialized and how they were handled
+    - New risks discovered during execution
+
+11. SCREENSHOTS & VISUAL EVIDENCE
+    - Key screenshots embedded (setup, features, testing, final)
+    - Before/after comparisons for major features
+    - Responsive design evidence (desktop/tablet/mobile)
+
+12. ARCHITECTURE & DESIGN
+    - System architecture diagrams
+    - Database schema
+    - API endpoint map
+    - Component dependency graph
+
+13. DELIVERABLES CHECKLIST
+    - Every P0 feature: status, evidence, test results
+    - Every P1 feature: status, evidence, test results
+    - Documentation status
+    - Deployment status
+
+14. APPENDIX
+    - Full KANBAN board state
+    - Full COMMIT_LOG.md
+    - Full COST_ESTIMATION.md (all versions)
+    - Full DECISION_LOG.md
+    - Full DISCOVERY_INTERVIEW.md
+```
+
+### PDF Generation
+
+Mission Control generates the PDF via:
+
+1. **Server-side**: Express endpoint `GET /api/report/pdf` collects all data from MC database + `.team/` files
+2. **PDF Engine**: Uses `puppeteer` or `@react-pdf/renderer` to produce a professional PDF
+3. **Dashboard UI**: "Download Full Report (PDF)" button on the Overview page
+4. **Auto-generation**: PDF is automatically generated at:
+   - End of every wave
+   - End of project (final report)
+   - On-demand via `team report pdf` command
+
+### Rules
+
+1. The PDF MUST be comprehensive — nothing is omitted
+2. The PDF MUST include embedded screenshots (not just links)
+3. The PDF MUST be downloadable from the Mission Control dashboard
+4. The PDF is saved to `.team/reports/PROJECT_REPORT_{date}.pdf`
+5. The PDF follows the No-Delete Rule — previous reports are never overwritten
+6. Every decision made by any agent MUST appear in the Decision Log section
+
+---
+
+## Section 12: UAT — User Acceptance Testing Protocol (BLOCKING)
+
+> **Reference**: Full protocol defined in `shared/UAT_PROTOCOL.md`
+> **Mandate**: Every project MUST complete UAT before Release wave.
+> **Coverage target**: >= 95% of all user-facing CTAs tested and passing.
+
+### 12.1 UAT Wave
+
+UAT executes as **Wave 3.7** — between QA automated testing (Wave 3) and Release (Wave 4):
+
+```
+Wave 3:   QA — Automated Testing (unit, integration, E2E, security, performance)
+Wave 3.5: Bug Fix Loop (conditional)
+Wave 3.7: UAT — User Acceptance Testing (BLOCKING GATE)   <<<< MANDATORY
+Wave 4:   Release
+```
+
+### 12.2 UAT Execution Steps
+
+1. **CTA Discovery** — QA agent enumerates all pages, routes, interactive elements
+2. **Test Case Authoring** — QA writes test cases per UAT_PROTOCOL.md format (>= 95% CTA coverage)
+3. **Test Data Preparation** — QA + BE seed test users, entities, files for all roles
+4. **Round 1 Execution** — Execute ALL test cases, capture screenshots, log defects
+5. **Defect Triage** — TL + QA classify defects (Critical/High MUST be fixed)
+6. **Bug Fix** — Engineers fix Critical + High defects (atomic commits)
+7. **Round 2 Regression** — Re-execute failed cases, verify fixes, regression-test
+8. **Coverage Verification** — Confirm >= 95% CTA coverage
+9. **Report Generation** — Produce UAT_REPORT_FINAL.md + PDF + PPTX + JSON/CSV exports
+10. **Sign-Off** — QA submits, TL reviews, user approves (BLOCKING)
+
+### 12.3 UAT Blocking Gate
+
+```
+GATE: UAT_PASS
+  TRIGGER: After Wave 3.7 complete
+  CRITERIA:
+    □ All P0 test cases PASS (zero failures)
+    □ All P1 test cases PASS (zero failures)
+    □ P2 test cases: <= 3 failures (none Critical/High)
+    □ CTA coverage >= 95%
+    □ Compliance mapping 100% for applicable regulations
+    □ All Critical/High defects resolved
+    □ UAT_REPORT_FINAL.md exists with complete data
+    □ UAT_SIGNOFF.md approved by TL + user
+  BLOCKING: YES — Release (Wave 4) CANNOT proceed without UAT_PASS
+```
+
+### 12.4 UAT Evidence Requirements
+
+Every UAT test case MUST capture:
+
+| Evidence Type | When | File Pattern |
+|--------------|------|--------------|
+| Screenshot (before) | Before CTA action | `.team/uat/evidence/screenshots/{ID}_before.png` |
+| Screenshot (after) | After successful CTA | `.team/uat/evidence/screenshots/{ID}_after.png` |
+| Screenshot (error) | On CTA failure | `.team/uat/evidence/screenshots/{ID}_error.png` |
+| Console log | On FAIL result | `.team/uat/evidence/logs/{ID}_console.log` |
+| Network HAR | On FAIL result | `.team/uat/evidence/logs/{ID}_network.har` |
+| API response | For API-driven CTAs | `.team/uat/evidence/logs/{ID}_api.json` |
+
+### 12.5 UAT Compliance Mapping
+
+Every test case MUST be linked to at least one compliance framework:
+
+- ISO 25010 (all projects)
+- GDPR (if handling EU personal data)
+- SOC 2 Type II (if security audit required)
+- WCAG 2.1 AA (if accessibility requirements)
+- PCI DSS v4.0 (if payment processing)
+- HIPAA (if health data)
+
+### 12.6 Mission Control UAT Dashboard
+
+During UAT execution, events stream to Mission Control in real time:
+
+- Category: `UAT`
+- Types: `case_pass`, `case_fail`, `case_blocked`, `defect_found`, `defect_resolved`, `round_complete`, `coverage_verified`, `signoff_complete`
+- Dashboard: `http://localhost:4200/uat`
+- Features: Suite browser, case detail with screenshots, download (individual + bulk), compliance summary
+
+### 12.7 UAT Artifacts
+
+```
+.team/uat/
+├── UAT_MASTER_INDEX.md            # Master index of all suites and cases
+├── UAT_COVERAGE_MATRIX.md         # CTA → Test Case traceability
+├── UAT_COMPLIANCE_MAP.md          # Regulation → Test Case mapping
+├── UAT_SIGNOFF.md                 # Sign-off document
+├── suites/                        # Test suite files by category
+├── evidence/                      # Screenshots, videos, logs
+└── reports/                       # Final reports (MD, PDF, PPTX, JSON, CSV)
+```
 
 ---
 

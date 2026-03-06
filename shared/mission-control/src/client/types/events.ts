@@ -18,6 +18,7 @@ export enum EventCategory {
   EVIDENCE = 'EVIDENCE',
   GATE = 'GATE',
   CUSTOM = 'CUSTOM',
+  UAT = 'UAT',
 }
 
 export type AgentRole =
@@ -45,6 +46,8 @@ export type WaveStatus = 'pending' | 'active' | 'done';
 export type GateStatus = 'pending' | 'pass' | 'fail';
 
 export type GateType = 'cost_estimation' | 'merge' | 'payment' | 'scaling' | 'uncertainty';
+
+export type UATGateType = 'uat_acceptance';
 
 export type GateDecision = 'approved' | 'approved_with_cap' | 'rejected' | 'too_expensive' | 'change' | 'not_yet' | 'yes' | 'no' | 'alternative' | 'acknowledged' | 'dismissed';
 

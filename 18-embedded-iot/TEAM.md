@@ -860,3 +860,115 @@ CYCLE END
 *Embedded IoT Team v3.0 -- Amenthyx AI Teams*
 *12 Roles | 5 Waves | 14 Gates | Strategy-Driven | GitHub-Integrated | Evidence-Based*
 *See shared/ENHANCED_EXECUTION_PROTOCOL.md for cross-team protocol details*
+
+
+---
+
+## Section 19: UAT — User Acceptance Testing (MANDATORY)
+
+> **Protocol Reference**: `shared/UAT_PROTOCOL.md`
+> **Wave**: 3.7 (between QA automated testing and Release)
+> **Coverage Mandate**: >= 95% of all user-facing CTAs tested and passing
+> **Blocking Gate**: Release wave CANNOT proceed without UAT_PASS
+
+### 19.1 UAT Wave Integration
+
+```
+Wave 3:   QA — Automated Testing (unit, integration, E2E, security, performance)
+Wave 3.5: Bug Fix Loop (conditional)
+Wave 3.7: UAT — User Acceptance Testing (BLOCKING GATE)
+Wave 4:   Release
+```
+
+### 19.2 Domain-Specific UAT Focus Areas
+
+| Category | What to Test |
+|----------|-------------|
+| Device Provisioning | Registration, certificate install, factory reset |
+| Firmware OTA | Update delivery, verification, rollback |
+| Sensor Data | Read accuracy, calibration, sampling rate |
+| Connectivity | WiFi, BLE, LoRa, cellular - connect, reconnect |
+| Offline Queue | Data buffering, sync priority, conflict resolution |
+| Power Management | Sleep modes, wake triggers, battery reporting |
+| Security | Secure boot, encrypted storage, tamper detection |
+| Fleet Management | Batch update, group config, health monitoring |
+
+### 19.3 UAT Execution Steps
+
+1. **CTA Discovery** — QA enumerates ALL pages, routes, interactive elements. Produces `UAT_COVERAGE_MATRIX.md`
+2. **Test Case Authoring** — QA writes test cases per `shared/UAT_PROTOCOL.md` format. Minimum >= 95% CTA coverage
+3. **Test Data Preparation** — QA + BE seed test users, entities, files for ALL user roles
+4. **Round 1 Execution** — Execute ALL test cases. Capture before/after screenshots. Log defects as GitHub issues
+5. **Defect Triage** — TL + QA classify: Critical/High MUST be fixed. Medium/Low documented
+6. **Bug Fix** — Engineers fix Critical + High defects. Each fix = atomic commit with issue reference
+7. **Round 2 Regression** — Re-execute failed cases. Verify fixes. Regression-test related passing cases
+8. **Coverage Verification** — Confirm >= 95% CTA coverage. If below, write additional cases and re-execute
+9. **Report Generation** — Produce `UAT_REPORT_FINAL.md` + PDF + PPTX + JSON/CSV exports
+10. **Sign-Off** — QA submits `UAT_SIGNOFF.md`, TL reviews, user approves (BLOCKING)
+
+### 19.4 UAT Blocking Gate
+
+```
+GATE: UAT_PASS
+  TRIGGER: After Wave 3.7 complete
+  CRITERIA:
+    [ ] All P0 test cases PASS (zero failures)
+    [ ] All P1 test cases PASS (zero failures)
+    [ ] P2 test cases: <= 3 failures (none Critical/High)
+    [ ] CTA coverage >= 95%
+    [ ] Compliance mapping 100% for applicable regulations
+    [ ] All Critical/High defects resolved
+    [ ] UAT_REPORT_FINAL.md exists with complete data
+    [ ] UAT_SIGNOFF.md approved by TL + user
+  BLOCKING: YES — Release (Wave 4) CANNOT proceed without UAT_PASS
+```
+
+### 19.5 UAT Evidence Requirements
+
+| Evidence Type | When | File Pattern |
+|--------------|------|--------------|
+| Screenshot (before) | Before CTA action | `.team/uat/evidence/screenshots/{ID}_before.png` |
+| Screenshot (after) | After successful CTA | `.team/uat/evidence/screenshots/{ID}_after.png` |
+| Screenshot (error) | On CTA failure | `.team/uat/evidence/screenshots/{ID}_error.png` |
+| Console log | On FAIL result | `.team/uat/evidence/logs/{ID}_console.log` |
+| Network HAR | On FAIL result | `.team/uat/evidence/logs/{ID}_network.har` |
+| API response | For API-driven CTAs | `.team/uat/evidence/logs/{ID}_api.json` |
+
+### 19.6 UAT Compliance Mapping
+
+Every UAT test case MUST be linked to at least one compliance framework:
+- **ISO 25010** — Software quality (always applicable)
+- **GDPR** — If handling EU personal data
+- **SOC 2 Type II** — If security audit required
+- **WCAG 2.1 AA** — If accessibility requirements
+- **PCI DSS v4.0** — If payment processing
+- **HIPAA** — If health data
+
+### 19.7 Mission Control Integration
+
+- **Dashboard**: `http://localhost:4200/uat`
+- **Event category**: `UAT`
+- **Event types**: `case_pass`, `case_fail`, `case_blocked`, `defect_found`, `defect_resolved`, `round_complete`, `coverage_verified`, `signoff_complete`
+- **Downloads**: Individual test case, suite, or full export (JSON/CSV)
+- **Real-time**: Live event stream shows last 2000 events
+
+### 19.8 UAT Artifacts
+
+```
+.team/uat/
+├── UAT_MASTER_INDEX.md
+├── UAT_COVERAGE_MATRIX.md
+├── UAT_COMPLIANCE_MAP.md
+├── UAT_SIGNOFF.md
+├── suites/
+├── scenarios/
+├── evidence/
+│   ├── screenshots/
+│   ├── videos/
+│   └── logs/
+└── reports/
+    ├── UAT_REPORT_FINAL.md
+    ├── UAT_REPORT_FINAL.pdf
+    ├── UAT_REPORT_FINAL.pptx
+    └── exports/ (JSON + CSV)
+```

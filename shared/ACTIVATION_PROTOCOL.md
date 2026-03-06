@@ -112,6 +112,7 @@ No team found matching "<name>". Available teams:
   --team creativeAI         Creative AI Team (Stable Diffusion, ComfyUI, AI video)
   --team streamingBroadcast Streaming & Broadcast Team (OBS, NDI, RTMP/SRT)
   --team mediaPipeline      Media Pipeline Team (render farms, transcoding, CDN)
+  --team socialMedia        Social Media Team (analytics, automation, content, paid media, SEO)
 
 Pick a team or check your spelling.
 ```
@@ -189,9 +190,27 @@ CRITICAL REQUIREMENTS (v3.1):
 12. All tests MUST pass locally before QA wave
 13. GitHub Actions MUST be validated locally with `act` before pushing
 14. PM MUST produce PPTX + PDF reports with evidence dashboards
+15. **MANDATORY DISCOVERY INTERVIEW**: PM MUST conduct a minimum 20-question
+    discovery interview with the TL BEFORE cost estimation. This interview
+    is a HARD GATE — no cost estimation begins until the PM has asked and
+    recorded answers to at least 20 questions about the project.
+16. **SCREENSHOTS MANDATORY**: Every project MUST maintain `.team/screenshots/`
+    with visual evidence for every feature, test, and deployment.
+17. **DOCUMENTATION WEBSITE**: Every project MUST include a `docs/` directory
+    with a React-based documentation website covering architecture, API,
+    user guide, and decision log. Documentation Agent works in Wave 2-4.
+18. **MISSION CONTROL PDF REPORT**: Mission Control MUST generate a
+    comprehensive downloadable PDF report tracking every decision, task,
+    commit, and technical operation. Available at end of every wave.
+19. **DELIVERABLE PRODUCT**: Every team MUST deliver either a working MVP
+    (visually demonstrable) or a production-ready enterprise application.
+    The Team Leader MUST communicate this expectation clearly during the
+    discovery interview and ensure all agents understand the delivery target.
 
 EXECUTION SEQUENCE:
-  Wave 0: TL reads everything → creates `ai-team` branch → produces COST_ESTIMATION.md → WAITS for user approval
+  Wave 0: TL reads everything → creates `ai-team` branch
+  Wave 0.1: PM DISCOVERY INTERVIEW → 20+ mandatory questions to TL → produces DISCOVERY_INTERVIEW.md
+  Wave 0.2: TL produces COST_ESTIMATION.md (informed by interview findings) → WAITS for user approval
   Wave 0.5: MISSION CONTROL AUTO-DEPLOY (after cost approval, before Wave 1)
   Wave 1+: Only after approval + dashboard running → PM begins → normal wave execution on `ai-team` with auto-sync
   Final: TL requests user approval to merge `ai-team` → `main`
@@ -241,6 +260,9 @@ MISSION CONTROL DEPLOY SEQUENCE (Wave 0.5):
 7. Wait for health check (GET http://localhost:4201/api/health — max 30s)
 8. Print: "✓ Mission Control running at http://localhost:4200"
 9. POST initial state (agents, budget, waves) to dashboard API
+10. Initialize `.team/screenshots/` directory structure
+11. Initialize `.team/DISCOVERY_INTERVIEW.md` placeholder
+12. Initialize `.team/DECISION_LOG.md` for tracking all decisions
 
 IMPORTANT:
 - Dashboard failure is NON-BLOCKING — if install/start fails, warn and continue
@@ -345,5 +367,27 @@ You can run multiple teams on different projects simultaneously in different ter
 
 ---
 
-*Activation Protocol v3.2 — Amenthyx AI Teams*
-*59 Teams | Mission Control Dashboard | Cost-First | No-Delete | Ask-When-Unsure | ai-team Branch | Merge-Gated | Auto-Synced | Dynamically-Scaled | Evidence-Driven | Real-Time Kanban | Atomic Commits | CI-Validated*
+## UAT Wave Integration (Wave 3.7)
+
+**All team activations include UAT as a mandatory wave:**
+
+```
+Wave 3:   QA — Automated Testing
+Wave 3.5: Bug Fix Loop (conditional)
+Wave 3.7: UAT — User Acceptance Testing (BLOCKING)
+Wave 4:   Release
+```
+
+- UAT protocol: `shared/UAT_PROTOCOL.md`
+- UAT blocking gate: Release wave CANNOT proceed without UAT_PASS
+- Coverage target: >= 95% CTA coverage
+- Compliance: every test case mapped to applicable regulation
+- Mission Control: real-time UAT dashboard at `/uat`
+- Evidence: screenshots + logs captured for every test case
+- Downloads: individual case, suite, or full export (JSON/CSV)
+- Sign-off: QA → TL → User (all three required)
+
+---
+
+*Activation Protocol v3.3 — Amenthyx AI Teams*
+*60 Teams | Mission Control Dashboard | 20-Question Discovery | Screenshots Mandatory | Docs Website | PDF Reports | Deliverable Products | Cost-First | No-Delete | Ask-When-Unsure | ai-team Branch | Merge-Gated | Auto-Synced | Dynamically-Scaled | Evidence-Driven | Real-Time Kanban | Atomic Commits | CI-Validated*

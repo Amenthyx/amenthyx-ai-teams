@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { MissionControlEvent } from '../types/events';
 import { useFilterStore } from './filterStore';
 
-const MAX_EVENTS = 1000;
+const MAX_EVENTS = 2000;
 
 interface EventState {
   events: MissionControlEvent[];

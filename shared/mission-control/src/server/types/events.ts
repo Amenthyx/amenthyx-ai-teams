@@ -20,6 +20,7 @@ export enum EventCategory {
   EVIDENCE = 'EVIDENCE',
   GATE = 'GATE',
   CUSTOM = 'CUSTOM',
+  UAT = 'UAT',
 }
 
 export type AgentRole =

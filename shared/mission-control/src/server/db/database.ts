@@ -83,6 +83,61 @@ export function initDatabase(dbPath: string): Database.Database {
       decision TEXT
     );
 
+    CREATE TABLE IF NOT EXISTS uat_suites (
+      id TEXT PRIMARY KEY,
+      code TEXT NOT NULL UNIQUE,
+      name TEXT NOT NULL,
+      total_cases INTEGER DEFAULT 0,
+      passed INTEGER DEFAULT 0,
+      failed INTEGER DEFAULT 0,
+      blocked INTEGER DEFAULT 0,
+      skipped INTEGER DEFAULT 0,
+      coverage REAL DEFAULT 0,
+      status TEXT NOT NULL DEFAULT 'pending',
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS uat_cases (
+      id TEXT PRIMARY KEY,
+      suite_id TEXT NOT NULL,
+      title TEXT NOT NULL,
+      feature TEXT,
+      priority TEXT NOT NULL DEFAULT 'P2',
+      cta_element TEXT,
+      cta_selector TEXT,
+      user_role TEXT,
+      device TEXT,
+      browser TEXT,
+      compliance TEXT DEFAULT '[]',
+      preconditions TEXT DEFAULT '[]',
+      steps TEXT DEFAULT '[]',
+      expected_result TEXT,
+      actual_result TEXT,
+      status TEXT NOT NULL DEFAULT 'pending',
+      screenshot_before TEXT,
+      screenshot_after TEXT,
+      screenshot_error TEXT,
+      console_log TEXT,
+      network_log TEXT,
+      defect_id TEXT,
+      defect_severity TEXT,
+      executed_by TEXT,
+      executed_at TEXT,
+      duration_ms INTEGER DEFAULT 0,
+      environment TEXT,
+      build TEXT,
+      round INTEGER DEFAULT 0,
+      retry_count INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (suite_id) REFERENCES uat_suites(id)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_uat_cases_suite ON uat_cases(suite_id);
+    CREATE INDEX IF NOT EXISTS idx_uat_cases_status ON uat_cases(status);
+    CREATE INDEX IF NOT EXISTS idx_uat_cases_priority ON uat_cases(priority);
+
     CREATE INDEX IF NOT EXISTS idx_events_session ON events(session_id);
     CREATE INDEX IF NOT EXISTS idx_events_category ON events(category);
     CREATE INDEX IF NOT EXISTS idx_events_severity ON events(severity);
@@ -571,4 +626,248 @@ export function resolveGate(id: string, decision: string): GateRow | null {
 
   const row = d.prepare('SELECT * FROM gates WHERE id = ?').get(id) as Record<string, unknown> | undefined;
   return row ? rowToGate(row) : null;
+}
+
+// ---------------------------------------------------------------------------
+// UAT Suite Operations
+// ---------------------------------------------------------------------------
+
+export interface UATSuite {
+  id: string;
+  code: string;
+  name: string;
+  totalCases: number;
+  passed: number;
+  failed: number;
+  blocked: number;
+  skipped: number;
+  coverage: number;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UATCase {
+  id: string;
+  suiteId: string;
+  title: string;
+  feature?: string;
+  priority: string;
+  ctaElement?: string;
+  ctaSelector?: string;
+  userRole?: string;
+  device?: string;
+  browser?: string;
+  compliance: string[];
+  preconditions: string[];
+  steps: Array<{ number: number; action: string; element: string; inputData?: string }>;
+  expectedResult?: string;
+  actualResult?: string;
+  status: string;
+  screenshotBefore?: string;
+  screenshotAfter?: string;
+  screenshotError?: string;
+  consoleLog?: string;
+  networkLog?: string;
+  defectId?: string;
+  defectSeverity?: string;
+  executedBy?: string;
+  executedAt?: string;
+  durationMs: number;
+  environment?: string;
+  build?: string;
+  round: number;
+  retryCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+function rowToUATSuite(row: Record<string, unknown>): UATSuite {
+  return {
+    id: row.id as string,
+    code: row.code as string,
+    name: row.name as string,
+    totalCases: row.total_cases as number,
+    passed: row.passed as number,
+    failed: row.failed as number,
+    blocked: row.blocked as number,
+    skipped: row.skipped as number,
+    coverage: row.coverage as number,
+    status: row.status as string,
+    createdAt: row.created_at as string,
+    updatedAt: row.updated_at as string,
+  };
+}
+
+function rowToUATCase(row: Record<string, unknown>): UATCase {
+  return {
+    id: row.id as string,
+    suiteId: row.suite_id as string,
+    title: row.title as string,
+    feature: (row.feature as string) || undefined,
+    priority: row.priority as string,
+    ctaElement: (row.cta_element as string) || undefined,
+    ctaSelector: (row.cta_selector as string) || undefined,
+    userRole: (row.user_role as string) || undefined,
+    device: (row.device as string) || undefined,
+    browser: (row.browser as string) || undefined,
+    compliance: JSON.parse((row.compliance as string) || '[]'),
+    preconditions: JSON.parse((row.preconditions as string) || '[]'),
+    steps: JSON.parse((row.steps as string) || '[]'),
+    expectedResult: (row.expected_result as string) || undefined,
+    actualResult: (row.actual_result as string) || undefined,
+    status: row.status as string,
+    screenshotBefore: (row.screenshot_before as string) || undefined,
+    screenshotAfter: (row.screenshot_after as string) || undefined,
+    screenshotError: (row.screenshot_error as string) || undefined,
+    consoleLog: (row.console_log as string) || undefined,
+    networkLog: (row.network_log as string) || undefined,
+    defectId: (row.defect_id as string) || undefined,
+    defectSeverity: (row.defect_severity as string) || undefined,
+    executedBy: (row.executed_by as string) || undefined,
+    executedAt: (row.executed_at as string) || undefined,
+    durationMs: row.duration_ms as number,
+    environment: (row.environment as string) || undefined,
+    build: (row.build as string) || undefined,
+    round: row.round as number,
+    retryCount: row.retry_count as number,
+    createdAt: row.created_at as string,
+    updatedAt: row.updated_at as string,
+  };
+}
+
+export function getUATSuites(): UATSuite[] {
+  const d = getDatabase();
+  const rows = d.prepare('SELECT * FROM uat_suites ORDER BY code').all() as Array<Record<string, unknown>>;
+  return rows.map(rowToUATSuite);
+}
+
+export function upsertUATSuite(suite: Partial<UATSuite> & { id: string; code: string; name: string }): UATSuite {
+  const d = getDatabase();
+  const now = new Date().toISOString();
+  d.prepare(`
+    INSERT INTO uat_suites (id, code, name, total_cases, passed, failed, blocked, skipped, coverage, status, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(id) DO UPDATE SET
+      code = excluded.code,
+      name = excluded.name,
+      total_cases = excluded.total_cases,
+      passed = excluded.passed,
+      failed = excluded.failed,
+      blocked = excluded.blocked,
+      skipped = excluded.skipped,
+      coverage = excluded.coverage,
+      status = excluded.status,
+      updated_at = excluded.updated_at
+  `).run(
+    suite.id, suite.code, suite.name,
+    suite.totalCases ?? 0, suite.passed ?? 0, suite.failed ?? 0,
+    suite.blocked ?? 0, suite.skipped ?? 0, suite.coverage ?? 0,
+    suite.status ?? 'pending', now, now
+  );
+  const row = d.prepare('SELECT * FROM uat_suites WHERE id = ?').get(suite.id) as Record<string, unknown>;
+  return rowToUATSuite(row);
+}
+
+export function getUATCases(suiteId?: string): UATCase[] {
+  const d = getDatabase();
+  if (suiteId) {
+    const rows = d.prepare('SELECT * FROM uat_cases WHERE suite_id = ? ORDER BY id').all(suiteId) as Array<Record<string, unknown>>;
+    return rows.map(rowToUATCase);
+  }
+  const rows = d.prepare('SELECT * FROM uat_cases ORDER BY suite_id, id').all() as Array<Record<string, unknown>>;
+  return rows.map(rowToUATCase);
+}
+
+export function upsertUATCase(c: Partial<UATCase> & { id: string; suiteId: string; title: string }): UATCase {
+  const d = getDatabase();
+  const now = new Date().toISOString();
+  d.prepare(`
+    INSERT INTO uat_cases (id, suite_id, title, feature, priority, cta_element, cta_selector, user_role, device, browser, compliance, preconditions, steps, expected_result, actual_result, status, screenshot_before, screenshot_after, screenshot_error, console_log, network_log, defect_id, defect_severity, executed_by, executed_at, duration_ms, environment, build, round, retry_count, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(id) DO UPDATE SET
+      title = excluded.title,
+      feature = excluded.feature,
+      priority = excluded.priority,
+      cta_element = excluded.cta_element,
+      cta_selector = excluded.cta_selector,
+      user_role = excluded.user_role,
+      device = excluded.device,
+      browser = excluded.browser,
+      compliance = excluded.compliance,
+      preconditions = excluded.preconditions,
+      steps = excluded.steps,
+      expected_result = excluded.expected_result,
+      actual_result = excluded.actual_result,
+      status = excluded.status,
+      screenshot_before = excluded.screenshot_before,
+      screenshot_after = excluded.screenshot_after,
+      screenshot_error = excluded.screenshot_error,
+      console_log = excluded.console_log,
+      network_log = excluded.network_log,
+      defect_id = excluded.defect_id,
+      defect_severity = excluded.defect_severity,
+      executed_by = excluded.executed_by,
+      executed_at = excluded.executed_at,
+      duration_ms = excluded.duration_ms,
+      environment = excluded.environment,
+      build = excluded.build,
+      round = excluded.round,
+      retry_count = excluded.retry_count,
+      updated_at = excluded.updated_at
+  `).run(
+    c.id, c.suiteId, c.title, c.feature ?? null, c.priority ?? 'P2',
+    c.ctaElement ?? null, c.ctaSelector ?? null, c.userRole ?? null,
+    c.device ?? null, c.browser ?? null,
+    JSON.stringify(c.compliance ?? []), JSON.stringify(c.preconditions ?? []),
+    JSON.stringify(c.steps ?? []), c.expectedResult ?? null, c.actualResult ?? null,
+    c.status ?? 'pending', c.screenshotBefore ?? null, c.screenshotAfter ?? null,
+    c.screenshotError ?? null, c.consoleLog ?? null, c.networkLog ?? null,
+    c.defectId ?? null, c.defectSeverity ?? null, c.executedBy ?? null,
+    c.executedAt ?? null, c.durationMs ?? 0, c.environment ?? null,
+    c.build ?? null, c.round ?? 0, c.retryCount ?? 0, now, now
+  );
+  const row = d.prepare('SELECT * FROM uat_cases WHERE id = ?').get(c.id) as Record<string, unknown>;
+  return rowToUATCase(row);
+}
+
+export function getUATSummary(): {
+  totalSuites: number;
+  totalCases: number;
+  passed: number;
+  failed: number;
+  blocked: number;
+  skipped: number;
+  coverage: number;
+  defectsFound: number;
+  defectsResolved: number;
+} {
+  const d = getDatabase();
+  const suiteCount = (d.prepare('SELECT COUNT(*) as c FROM uat_suites').get() as { c: number }).c;
+  const stats = d.prepare(`
+    SELECT
+      COUNT(*) as total,
+      SUM(CASE WHEN status = 'pass' THEN 1 ELSE 0 END) as passed,
+      SUM(CASE WHEN status = 'fail' THEN 1 ELSE 0 END) as failed,
+      SUM(CASE WHEN status = 'blocked' THEN 1 ELSE 0 END) as blocked,
+      SUM(CASE WHEN status = 'skipped' THEN 1 ELSE 0 END) as skipped,
+      SUM(CASE WHEN defect_id IS NOT NULL THEN 1 ELSE 0 END) as defects_found,
+      SUM(CASE WHEN defect_id IS NOT NULL AND status = 'pass' THEN 1 ELSE 0 END) as defects_resolved
+    FROM uat_cases
+  `).get() as Record<string, number>;
+
+  const total = stats.total || 0;
+  const passed = stats.passed || 0;
+
+  return {
+    totalSuites: suiteCount,
+    totalCases: total,
+    passed,
+    failed: stats.failed || 0,
+    blocked: stats.blocked || 0,
+    skipped: stats.skipped || 0,
+    coverage: total > 0 ? Math.round((passed / total) * 1000) / 10 : 0,
+    defectsFound: stats.defects_found || 0,
+    defectsResolved: stats.defects_resolved || 0,
+  };
 }

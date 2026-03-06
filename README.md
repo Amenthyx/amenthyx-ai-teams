@@ -1,6 +1,6 @@
 # Amenthyx AI Teams v3.0
 
-**59 specialized virtual engineering teams** powered by Claude Code's subagent orchestration.
+**60 specialized virtual engineering teams** powered by Claude Code's subagent orchestration.
 
 Each team is a complete, self-contained execution protocol — with specialized roles, domain-specific quality gates, wave-based parallel execution, automated PM reporting (PPTX + PDF), **evidence-driven execution**, **atomic commits**, **comprehensive testing**, and **real-time GitHub kanban tracking**.
 
@@ -25,7 +25,7 @@ Each team is a complete, self-contained execution protocol — with specialized 
 2. Activate a team with the `--team` command
 3. The team self-organizes: plans, builds, tests, and ships — with evidence at every step
 
-## Available Teams (59)
+## Available Teams (60)
 
 ### Core Development (Teams 01-12)
 
@@ -140,6 +140,12 @@ Each team is a complete, self-contained execution protocol — with specialized 
 | 57 | `--team creativeAI` | Creative AI / Generative Media Team | Stable Diffusion, ComfyUI, Runway, AI video, upscaling |
 | 58 | `--team streamingBroadcast` | Streaming & Broadcast Team | OBS scripting, live graphics, NDI, RTMP/SRT, overlays |
 | 59 | `--team mediaPipeline` | Media Pipeline Team | Render farms, cloud transcoding, asset management, CDN delivery |
+
+### Social Media & Marketing (Team 60)
+
+| # | Activation | Team | Focus |
+|---|-----------|------|-------|
+| 60 | `--team socialMedia` | Social Media Engineering Team | Analytics, marketing automation, content pipelines, paid media, community management, SEO/growth, social DevOps |
 
 ## How It Works
 
@@ -338,7 +344,9 @@ amenthyx-ai-teams/
 ├── 56-2d-animation/TEAM.md             # NEW Multimedia
 ├── 57-creative-ai-media/TEAM.md        # NEW Multimedia
 ├── 58-streaming-broadcast/TEAM.md      # NEW Multimedia
-└── 59-media-pipeline/TEAM.md           # NEW Multimedia
+├── 59-media-pipeline/TEAM.md           # NEW Multimedia
+├── 60-social-media/TEAM.md             # NEW Social Media & Marketing
+└── 60-social-media/STRATEGY.md         # Base strategy for social media projects
 ```
 
 ## Adding New Teams
@@ -372,4 +380,4 @@ Proprietary — Amenthyx. Internal use only.
 
 ---
 
-*Amenthyx AI Teams v3.0 — 59 Teams | Evidence-Driven | Locally-Tested | Atomically-Committed | CI-Validated*
+*Amenthyx AI Teams v3.0 — 60 Teams | Evidence-Driven | Locally-Tested | Atomically-Committed | CI-Validated*
