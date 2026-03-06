@@ -258,8 +258,9 @@ MISSION CONTROL DEPLOY SEQUENCE (Wave 0.5):
    to POST events to http://localhost:4201/api/events/claude-code
 6. Start dashboard: cd .mission-control && npm run dashboard &
 7. Wait for health check (GET http://localhost:4201/api/health — max 30s)
-8. Print: "✓ Mission Control running at http://localhost:4200"
-9. POST initial state (agents, budget, waves) to dashboard API
+8. AUTO-OPEN browser to http://localhost:4200 (cross-platform: start/open/xdg-open)
+9. Print: "✓ Mission Control running at http://localhost:4200"
+10. POST initial state (agents, budget, waves) to dashboard API
 10. Initialize `.team/screenshots/` directory structure
 11. Initialize `.team/DISCOVERY_INTERVIEW.md` placeholder
 12. Initialize `.team/DECISION_LOG.md` for tracking all decisions
@@ -268,7 +269,8 @@ IMPORTANT:
 - Dashboard failure is NON-BLOCKING — if install/start fails, warn and continue
 - Dashboard is local-only — NEVER committed to the project repo
 - Every agent's events flow to the dashboard automatically via hooks or file watchers
-- The user sees the dashboard URL in chat and can open it immediately
+- The browser opens AUTOMATICALLY — the user sees Mission Control immediately without any manual action
+- Set MC_NO_OPEN=1 to disable auto-open if running headless
 - All subsequent waves (1-5) will have their events captured by Mission Control
 
 LIFECYCLE:

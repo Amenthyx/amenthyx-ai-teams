@@ -349,6 +349,24 @@ server.listen(PORT, () => {
   log('info', `Watching: ${WATCH_DIR}`);
   log('info', `Git CWD: ${GIT_CWD} (branch: ${GIT_BRANCH})`);
 
+  // Auto-open Mission Control in the default browser
+  const dashboardUrl = `http://localhost:4200`;
+  const noOpen = process.env.MC_NO_OPEN === '1' || process.env.MC_NO_OPEN === 'true';
+  if (!noOpen) {
+    const openCommand =
+      process.platform === 'win32' ? `start "" "${dashboardUrl}"` :
+      process.platform === 'darwin' ? `open "${dashboardUrl}"` :
+      `xdg-open "${dashboardUrl}"`;
+    child_process.exec(openCommand, (err) => {
+      if (err) {
+        log('warn', `Could not auto-open browser: ${err.message}`);
+        log('info', `Open manually: ${dashboardUrl}`);
+      } else {
+        log('info', `Browser opened: ${dashboardUrl}`);
+      }
+    });
+  }
+
   // Emit startup event
   const startupEvent: MissionControlEvent = {
     id: crypto.randomUUID(),
