@@ -1,0 +1,17 @@
+services:
+  mission-control:
+    build: .
+    ports:
+      - "4201:4201"
+    volumes:
+      - ./data:/app/data
+    environment:
+      - MC_PORT=4201
+      - MC_NO_OPEN=1
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4201/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped

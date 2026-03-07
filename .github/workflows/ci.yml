@@ -1,0 +1,146 @@
+name: Amenthyx AI Teams CI
+
+on:
+  push:
+    branches: [main, ai-team]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-teams:
+    name: Validate Teams
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: Run team test suite
+        run: python shared/team_test_suite.py --json
+
+  validate-cli:
+    name: Validate CLI
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: Run CLI health check
+        run: python shared/amenthyx_cli.py health
+
+  build-mission-control:
+    name: Build Mission Control
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: shared/mission-control/package-lock.json
+
+      - name: Install dependencies
+        working-directory: shared/mission-control
+        run: npm ci
+
+      - name: Build
+        working-directory: shared/mission-control
+        run: npm run build
+
+  lint-protocols:
+    name: Lint Protocol Files
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify required protocol files exist
+        run: |
+          missing=0
+          required_files=(
+            "shared/ACTIVATION_PROTOCOL.md"
+            "shared/ENHANCED_EXECUTION_PROTOCOL.md"
+            "shared/PM_GITHUB_INTEGRATION.md"
+            "shared/STRATEGY_EVOLUTION_PROTOCOL.md"
+            "shared/JUDGE_PROTOCOL.md"
+            "shared/CODE_REVIEW_PROTOCOL.md"
+            "shared/ROLLBACK_PROTOCOL.md"
+            "shared/RISK_ESCALATION_MATRIX.md"
+            "shared/UAT_PROTOCOL.md"
+            "shared/RETROSPECTIVE_PROTOCOL.md"
+            "shared/CROSS_TEAM_HANDOFF_PROTOCOL.md"
+            "shared/MULTI_TEAM_ORCHESTRATION_PROTOCOL.md"
+            "shared/DEPENDENCY_GUARDIAN_PROTOCOL.md"
+            "shared/OFFLINE_MODE_PROTOCOL.md"
+            "shared/AB_PLAN_EXECUTION_PROTOCOL.md"
+            "shared/AGENT_MEMORY_PROTOCOL.md"
+            "shared/AGENT_PERFORMANCE_BENCHMARKS_PROTOCOL.md"
+            "shared/VERSION_MIGRATION_PROTOCOL.md"
+            "shared/PPTX_GENERATOR.py"
+            "shared/PDF_GENERATOR.py"
+            "shared/amenthyx_cli.py"
+            "shared/team_test_suite.py"
+            "shared/strategy_validator.py"
+            "shared/team_composer.py"
+          )
+          for f in "${required_files[@]}"; do
+            if [ ! -f "$f" ]; then
+              echo "MISSING: $f"
+              missing=1
+            else
+              echo "OK: $f"
+            fi
+          done
+          if [ "$missing" -eq 1 ]; then
+            echo ""
+            echo "One or more required protocol files are missing."
+            exit 1
+          fi
+          echo ""
+          echo "All required protocol files present."
+
+  ci-status:
+    name: CI Status
+    if: always()
+    needs: [validate-teams, validate-cli, build-mission-control, lint-protocols]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check job results
+        run: |
+          echo "validate-teams: ${{ needs.validate-teams.result }}"
+          echo "validate-cli: ${{ needs.validate-cli.result }}"
+          echo "build-mission-control: ${{ needs.build-mission-control.result }}"
+          echo "lint-protocols: ${{ needs.lint-protocols.result }}"
+          if [ "${{ needs.validate-teams.result }}" != "success" ] || \
+             [ "${{ needs.validate-cli.result }}" != "success" ] || \
+             [ "${{ needs.build-mission-control.result }}" != "success" ] || \
+             [ "${{ needs.lint-protocols.result }}" != "success" ]; then
+            echo ""
+            echo "One or more jobs failed."
+            exit 1
+          fi
+          echo ""
+          echo "All jobs passed."

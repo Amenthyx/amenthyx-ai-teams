@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Amenthyx AI Teams - Documentation</title>
+<meta name="description" content="65 specialized virtual engineering teams powered by Claude Code subagent orchestration.">
+<style>
+:root {
+  --bg-primary: #0d1117;
+  --bg-secondary: #161b22;
+  --bg-tertiary: #1c2128;
+  --bg-card: #21262d;
+  --border: #30363d;
+  --text-primary: #e6edf3;
+  --text-secondary: #8b949e;
+  --text-muted: #6e7681;
+  --accent: #58a6ff;
+  --accent-hover: #79c0ff;
+  --accent-dim: #1f6feb33;
+  --green: #3fb950;
+  --orange: #d29922;
+  --red: #f85149;
+  --purple: #bc8cff;
+  --sidebar-width: 260px;
+  --header-height: 60px;
+  --radius: 6px;
+  --font-mono: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; scroll-padding-top: calc(var(--header-height) + 20px); }
+
+body {
+  font-family: var(--font-sans);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+a { color: var(--accent); text-decoration: none; }
+a:hover { color: var(--accent-hover); text-decoration: underline; }
+
+/* Header */
+.header {
+  position: fixed; top: 0; left: 0; right: 0;
+  height: var(--header-height);
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 24px;
+  z-index: 100;
+}
+
+.header-logo {
+  font-size: 1.2rem; font-weight: 700; color: var(--text-primary);
+  display: flex; align-items: center; gap: 10px;
+}
+
+.header-logo span { color: var(--accent); }
+
+.header-version {
+  font-size: 0.7rem; background: var(--accent-dim); color: var(--accent);
+  padding: 2px 8px; border-radius: 12px; font-weight: 500;
+}
+
+.header-links { display: flex; gap: 20px; align-items: center; }
+.header-links a { color: var(--text-secondary); font-size: 0.9rem; }
+.header-links a:hover { color: var(--text-primary); text-decoration: none; }
+
+.hamburger {
+  display: none; background: none; border: none; cursor: pointer;
+  width: 32px; height: 32px; flex-direction: column;
+  justify-content: center; align-items: center; gap: 5px;
+}
+.hamburger span {
+  display: block; width: 20px; height: 2px;
+  background: var(--text-secondary); transition: 0.2s;
+}
+
+/* Sidebar */
+.sidebar {
+  position: fixed; top: var(--header-height); left: 0; bottom: 0;
+  width: var(--sidebar-width);
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border);
+  overflow-y: auto; padding: 16px 0;
+  z-index: 90;
+}
+
+.sidebar-section { padding: 0 16px; margin-bottom: 8px; }
+.sidebar-label {
+  font-size: 0.7rem; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.05em; color: var(--text-muted); padding: 8px 0 4px;
+}
+
+.sidebar a {
+  display: block; padding: 6px 16px; font-size: 0.85rem;
+  color: var(--text-secondary); border-radius: var(--radius);
+  margin: 1px 8px;
+}
+.sidebar a:hover { background: var(--bg-tertiary); color: var(--text-primary); text-decoration: none; }
+
+.sidebar-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.5); z-index: 89;
+}
+
+/* Main */
+.main {
+  margin-left: var(--sidebar-width);
+  margin-top: var(--header-height);
+  padding: 40px 48px 80px;
+  max-width: 960px;
+}
+
+/* Sections */
+section { margin-bottom: 48px; }
+
+h1 { font-size: 2.2rem; font-weight: 700; margin-bottom: 8px; }
+h2 {
+  font-size: 1.5rem; font-weight: 600; margin-bottom: 16px;
+  padding-bottom: 8px; border-bottom: 1px solid var(--border);
+}
+h3 { font-size: 1.1rem; font-weight: 600; margin: 20px 0 8px; color: var(--accent); }
+
+p { margin-bottom: 12px; color: var(--text-secondary); }
+
+.subtitle { font-size: 1.1rem; color: var(--text-secondary); margin-bottom: 24px; }
+
+/* Badge row */
+.badges { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px; }
+.badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 12px; border-radius: 16px; font-size: 0.8rem; font-weight: 500;
+}
+.badge-blue { background: var(--accent-dim); color: var(--accent); }
+.badge-green { background: #3fb95022; color: var(--green); }
+.badge-orange { background: #d2992222; color: var(--orange); }
+.badge-purple { background: #bc8cff22; color: var(--purple); }
+
+/* Feature grid */
+.feature-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px; margin: 20px 0;
+}
+.feature-card {
+  background: var(--bg-secondary); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 20px;
+}
+.feature-card h4 { font-size: 0.95rem; margin-bottom: 8px; color: var(--text-primary); }
+.feature-card p { font-size: 0.85rem; margin: 0; }
+
+/* Code blocks */
+pre {
+  background: var(--bg-tertiary); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 16px; overflow-x: auto;
+  font-family: var(--font-mono); font-size: 0.85rem; line-height: 1.5;
+  margin: 12px 0 16px;
+}
+code {
+  font-family: var(--font-mono); font-size: 0.85rem;
+  background: var(--bg-tertiary); padding: 2px 6px; border-radius: 3px;
+}
+pre code { background: none; padding: 0; }
+
+.kw { color: var(--purple); }
+.str { color: #a5d6ff; }
+.cmt { color: var(--text-muted); font-style: italic; }
+.flag { color: var(--orange); }
+.cmd { color: var(--green); }
+
+/* Tables */
+.table-wrap { overflow-x: auto; margin: 12px 0 20px; }
+table {
+  width: 100%; border-collapse: collapse;
+  font-size: 0.85rem;
+}
+th {
+  text-align: left; padding: 10px 12px;
+  background: var(--bg-tertiary); border: 1px solid var(--border);
+  font-weight: 600; color: var(--text-primary);
+}
+td {
+  padding: 8px 12px; border: 1px solid var(--border);
+  color: var(--text-secondary);
+}
+tr:hover td { background: var(--bg-secondary); }
+td code { font-size: 0.8rem; }
+
+/* Collapsible */
+details { margin: 8px 0; }
+summary {
+  cursor: pointer; padding: 10px 14px;
+  background: var(--bg-secondary); border: 1px solid var(--border);
+  border-radius: var(--radius); font-weight: 600; font-size: 0.95rem;
+  color: var(--text-primary); list-style: none;
+  display: flex; align-items: center; gap: 8px;
+}
+summary::before { content: '\25B6'; font-size: 0.65rem; color: var(--text-muted); transition: transform 0.2s; }
+details[open] summary::before { transform: rotate(90deg); }
+summary::-webkit-details-marker { display: none; }
+details .detail-body { padding: 12px 14px 4px; }
+
+/* Lists */
+ul, ol { margin: 8px 0 16px 24px; color: var(--text-secondary); }
+li { margin-bottom: 4px; font-size: 0.9rem; }
+
+/* Alert */
+.alert {
+  padding: 14px 18px; border-radius: var(--radius); margin: 16px 0;
+  border-left: 4px solid; font-size: 0.9rem;
+}
+.alert-info { background: #58a6ff11; border-color: var(--accent); }
+.alert-warn { background: #d2992211; border-color: var(--orange); }
+
+/* Footer */
+.footer {
+  margin-top: 60px; padding: 24px 0;
+  border-top: 1px solid var(--border);
+  font-size: 0.8rem; color: var(--text-muted); text-align: center;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .hamburger { display: flex; }
+  .sidebar { transform: translateX(-100%); transition: transform 0.3s; }
+  .sidebar.open { transform: translateX(0); }
+  .sidebar-overlay.open { display: block; }
+  .main { margin-left: 0; padding: 24px 16px 60px; }
+  .header-links { display: none; }
+  h1 { font-size: 1.6rem; }
+  .feature-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="header">
+  <div style="display:flex;align-items:center;gap:16px;">
+    <button class="hamburger" onclick="toggleSidebar()" aria-label="Toggle menu">
+      <span></span><span></span><span></span>
+    </button>
+    <div class="header-logo">
+      Amenthyx <span>AI Teams</span>
+      <span class="header-version">v4.0</span>
+    </div>
+  </div>
+  <div class="header-links">
+    <a href="https://github.com/Amenthyx/amenthyx-ai-teams">GitHub</a>
+    <a href="https://github.com/Amenthyx/amenthyx-ai-teams/blob/main/CHANGELOG.md">Changelog</a>
+    <a href="https://github.com/Amenthyx/amenthyx-ai-teams/blob/main/LICENSE">License</a>
+  </div>
+</header>
+
+<!-- Sidebar Overlay -->
+<div class="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+<!-- Sidebar -->
+<nav class="sidebar">
+  <div class="sidebar-section">
+    <div class="sidebar-label">Getting Started</div>
+    <a href="#overview">Overview</a>
+    <a href="#quick-start">Quick Start</a>
+    <a href="#how-it-works">How It Works</a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">Teams</div>
+    <a href="#teams">All 65 Teams</a>
+    <a href="#teams-core">Core Development</a>
+    <a href="#teams-infra">Infrastructure &amp; Ops</a>
+    <a href="#teams-data">Data &amp; AI</a>
+    <a href="#teams-security">Security</a>
+    <a href="#teams-systems">Specialized Systems</a>
+    <a href="#teams-web">Web Frameworks</a>
+    <a href="#teams-mobile">Mobile</a>
+    <a href="#teams-eng">Specialized Engineering</a>
+    <a href="#teams-industry">Industry Verticals</a>
+    <a href="#teams-cross">Cross-Cutting</a>
+    <a href="#teams-multimedia">Multimedia</a>
+    <a href="#teams-social">Social Media</a>
+    <a href="#teams-advanced">Advanced Engineering</a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">Reference</div>
+    <a href="#protocols">Protocols</a>
+    <a href="#cli-tools">CLI Tools</a>
+    <a href="#mission-control">Mission Control</a>
+    <a href="#strategy">Strategy Templates</a>
+    <a href="#contributing">Contributing</a>
+  </div>
+</nav>
+
+<!-- Main Content -->
+<main class="main">
+
+  <!-- Overview -->
+  <section id="overview">
+    <h1>Amenthyx AI Teams</h1>
+    <p class="subtitle">65 specialized virtual engineering teams powered by Claude Code subagent orchestration.</p>
+    <div class="badges">
+      <span class="badge badge-blue">65 Teams</span>
+      <span class="badge badge-green">v4.0</span>
+      <span class="badge badge-purple">5 Execution Waves</span>
+      <span class="badge badge-orange">16-Section Protocol</span>
+    </div>
+    <p>Each team is a complete, self-contained execution protocol with specialized roles, domain-specific quality gates, wave-based parallel execution, automated PM reporting, evidence-driven execution, atomic commits, comprehensive testing, and real-time GitHub kanban tracking.</p>
+
+    <div class="feature-grid">
+      <div class="feature-card">
+        <h4>Judge Agent</h4>
+        <p>PM produces 2-3 alternative plans. Judge evaluates with a 7-criterion rubric. TL gets the winning recommendation.</p>
+      </div>
+      <div class="feature-card">
+        <h4>Code Review Agent</h4>
+        <p>Automated code review gate between engineering and QA waves covering OWASP, architecture drift, and code quality.</p>
+      </div>
+      <div class="feature-card">
+        <h4>Retrospective Agent</h4>
+        <p>Post-wave analysis with metrics comparison, bottleneck identification, and learning extraction.</p>
+      </div>
+      <div class="feature-card">
+        <h4>Dependency Guardian</h4>
+        <p>Pre-release dependency audit for CVEs, license compliance, and abandoned packages.</p>
+      </div>
+      <div class="feature-card">
+        <h4>Agent Memory</h4>
+        <p>Agents write reusable learnings during execution. Future sessions load them for continuous improvement.</p>
+      </div>
+      <div class="feature-card">
+        <h4>Cross-Team Handoff</h4>
+        <p>Formal contracts for multi-team projects with API contracts, data schemas, and UI contracts.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Quick Start -->
+  <section id="quick-start">
+    <h2>Quick Start</h2>
+    <p>Activate any team with a single command in Claude Code:</p>
+    <pre><code><span class="flag">--team</span> <span class="str">&lt;teamName&gt;</span> <span class="flag">--strategy</span> <span class="str">path/to/strategy.md</span></code></pre>
+
+    <h3>Step 1: Create a Strategy File</h3>
+    <p>Copy the strategy template and fill it out with your project brief:</p>
+    <pre><code><span class="cmd">cp</span> STRATEGY_TEMPLATE.md my-strategy.md</code></pre>
+    <p>The strategy file includes project identity, audience, prioritized features (P0/P1/P2), technical constraints, non-functional requirements, testing requirements, and evidence requirements.</p>
+
+    <h3>Step 2: Activate a Team</h3>
+    <pre><code><span class="flag">--team</span> <span class="str">fullStack</span> <span class="flag">--strategy</span> <span class="str">./my-strategy.md</span></code></pre>
+
+    <h3>Step 3: The Team Self-Organizes</h3>
+    <ol>
+      <li>The activation protocol matches the team name to a team folder</li>
+      <li>The strategy file is loaded as project context</li>
+      <li>The Enhanced Execution Protocol is loaded</li>
+      <li>The Team Leader agent boots and reads <code>TEAM.md</code></li>
+      <li>Agents spawn in waves: Planning, Research, Engineering, QA, Release</li>
+      <li>PM creates a GitHub Project board, milestones, and issues</li>
+      <li>Every agent produces evidence (screenshots, logs, test results)</li>
+      <li>Atomic commits with conventional format throughout</li>
+      <li>PPTX and PDF status reports generated every 6 hours</li>
+    </ol>
+  </section>
+
+  <!-- How It Works -->
+  <section id="how-it-works">
+    <h2>How It Works</h2>
+    <h3>5-Wave Execution Model</h3>
+    <p>Every team follows the same wave-based parallel execution pattern:</p>
+    <div class="feature-grid">
+      <div class="feature-card">
+        <h4>Wave 1: Planning</h4>
+        <p>PM, Judge, and TL analyze strategy, produce plans, evaluate alternatives, and create the project board.</p>
+      </div>
+      <div class="feature-card">
+        <h4>Wave 2: Research</h4>
+        <p>Research agents investigate unknowns, spike risky areas, validate technical assumptions.</p>
+      </div>
+      <div class="feature-card">
+        <h4>Wave 3: Engineering</h4>
+        <p>Domain specialists build in parallel. Code Review agent gates output before QA.</p>
+      </div>
+      <div class="feature-card">
+        <h4>Wave 4: QA</h4>
+        <p>Test agents run comprehensive test matrix. Retrospective agent analyzes metrics.</p>
+      </div>
+      <div class="feature-card">
+        <h4>Wave 5: Release</h4>
+        <p>Dependency Guardian audits, CI/CD pipeline runs, deployment with rollback plan.</p>
+      </div>
+    </div>
+
+    <h3>Team Structure</h3>
+    <p>Each <code>TEAM.md</code> file contains a 16-section v4.0 protocol with approximately 11 domain-specific roles, evidence tables, testing matrices, and quality gates. All teams share the Enhanced Execution Protocol and produce standardized artifacts.</p>
+
+    <h3>Discovery Flow</h3>
+    <pre><code><span class="cmt"># 1. Clone or update the teams repo</span>
+<span class="cmd">gh repo clone</span> Amenthyx/amenthyx-ai-teams ~/.amenthyx-ai-teams
+
+<span class="cmt"># 2. Match team name to folder</span>
+<span class="cmt"># Each TEAM.md header contains the activation keyword</span>
+
+<span class="cmt"># 3. Load team + strategy + shared protocols</span>
+<span class="cmt"># 4. Boot agents in waves</span></code></pre>
+  </section>
+
+  <!-- Teams -->
+  <section id="teams">
+    <h2>All 65 Teams</h2>
+    <p>Every team follows the same 16-section v4.0 structure. Click a category to expand the team table.</p>
+
+    <details open id="teams-core">
+      <summary>Core Development (Teams 01-12)</summary>
+      <div class="detail-body">
+        <div class="table-wrap"><table>
+          <thead><tr><th>#</th><th>Activation</th><th>Team</th><th>Focus</th></tr></thead>
+          <tbody>
+            <tr><td>01</td><td><code>--team fullStack</code></td><td>Full-Stack Team</td><td>General full-stack web/mobile development</td></tr>
+            <tr><td>02</td><td><code>--team flutter</code></td><td>Flutter Mobile Team</td><td>Flutter/Dart cross-platform mobile apps</td></tr>
+            <tr><td>03</td><td><code>--team dotnet</code></td><td>.NET Enterprise Team</td><td>C#, VB.NET, .NET enterprise systems</td></tr>
+            <tr><td>04</td><td><code>--team cpp</code></td><td>C++ Systems Team</td><td>C++ systems/performance/real-time</td></tr>
+            <tr><td>05</td><td><code>--team pythonData</code></td><td>Python Data Team</td><td>Python data science, ML pipelines</td></tr>
+            <tr><td>06</td><td><code>--team javaSpring</code></td><td>Java Spring Team</td><td>Java, Spring Boot, enterprise backends</td></tr>
+            <tr><td>07</td><td><code>--team react</code></td><td>React Frontend Team</td><td>React, Next.js, TypeScript web apps</td></tr>
+            <tr><td>08</td><td><code>--team nodejs</code></td><td>Node.js Backend Team</td><td>Node.js, Express, NestJS backends</td></tr>
+            <tr><td>09</td><td><code>--team rust</code></td><td>Rust Systems Team</td><td>Rust systems programming, safety-critical</td></tr>
+            <tr><td>10</td><td><code>--team goCloud</code></td><td>Go Cloud Team</td><td>Go microservices, cloud-native</td></tr>
+            <tr><td>11</td><td><code>--team swiftIOS</code></td><td>Swift iOS Team</td><td>Swift, iOS, Apple ecosystem</td></tr>
+            <tr><td>12</td><td><code>--team kotlinAndroid</code></td><td>Kotlin Android Team</td><td>Kotlin, Android native</td></tr>
+          </tbody>
+        </table></div>
+      </div>
+    </details>
+
+    <details id="teams-infra">
+      <summary>Infrastructure &amp; Operations (Teams 13-14, 28-29)</summary>
+      <div class="detail-body">
+        <div class="table-wrap"><table>
+          <thead><tr><th>#</th><th>Activation</th><th>Team</th><th>Focus</th></tr></thead>
+          <tbody>
+            <tr><td>13</td><td><code>--team devops</code></td><td>DevOps Team</td><td>CI/CD, automation, pipelines</td></tr>
+            <tr><td>14</td><td><code>--team infraCloud</code></td><td>Cloud Infrastructure Team</td><td>AWS/GCP/Azure, IaC, networking</td></tr>
+            <tr><td>28</td><td><code>--team sre</code></td><td>SRE Team</td><td>Site reliability, incident response, SLOs</td></tr>
+            <tr><td>29</td><td><code>--team platformEng</code></td><td>Platform Engineering Team</td><td>Developer platforms, golden paths, Backstage</td></tr>
+          </tbody>
+        </table></div>
+      </div>
+    </details>
+
+    <details id="teams-data">
+      <summary>Data &amp; AI (Teams 15-16, 38-40)</summary>
+      <div class="detail-body">
+        <div class="table-wrap"><table>
+          <thead><tr><th>#</th><th>Activation</th><th>Team</th><th>Focus</th></tr></thead>
+          <tbody>
+            <tr><td>15</td><td><code>--team dataEng</code></td><td>Data Engineering Team</td><td>ETL, Spark, Airflow, data pipelines</td></tr>
+            <tr><td>16</td><td><code>--team aiML</code></td><td>AI/ML Team</td><td>Machine learning, deep learning, MLOps</td></tr>
+            <tr><td>38</td><td><code>--team dataScience</code></td><td>Data Science Team</td><td>Jupyter, pandas, visualization, statistics</td></tr>
+            <tr><td>39</td><td><code>--team computerVision</code></td><td>Computer Vision Team</td><td>OpenCV, YOLO, image/video processing</td></tr>
+            <tr><td>40</td><td><code>--team nlpLLM</code></td><td>NLP/LLM Team</td><td>NLP, fine-tuning, RLHF, RAG, prompt engineering</td></tr>
+          </tbody>
+        </table></div>
+      </div>
+    </details>
+
+    <details id="teams-security">
+      <summary>Security &amp; Compliance (Team 17)</summary>
+      <div class="detail-body">
+        <div class="table-wrap"><table>
+          <thead><tr><th>#</th><th>Activation</th><th>Team</th><th>Focus</th></tr></thead>
+          <tbody>
+            <tr><td>17</td><td><code>--team security</code></td><td>Cybersecurity Team</td><td>Pentesting, compliance, security auditing</td></tr>
+          </tbody>
+        </table></div>
+      </div>
+    </details>
+
+    <details id="teams-systems">
+      <summary>Specialized Systems (Teams 18-21, 41-44)</summary>
+      <div class="detail-body">
+        <div class="table-wrap"><table>
+          <thead><tr><th>#</th><th>Activation</th><th>Team</th><th>Focus</th></tr></thead>
+          <tbody>
+            <tr><td>18</td><td><code>--team embeddedIoT</code></td><td>Embedded IoT Team</td><td>Firmware, embedded systems, IoT</td></tr>
+            <tr><td>19</td><td><code>--team gameDev</code></td><td>Game Dev Team</td><td>Unity, Unreal, game engines</td></tr>
+            <tr><td>20</td><td><code>--team web3</code></td><td>Blockchain Web3 Team</td><td>Smart contracts, DeFi, Web3</td></tr>
+            <tr><td>21</td><td><code>--team agenticAI</code></td><td>Agentic AI Team</td><td>OpenClaw, NanoClaw, LangChain, agent frameworks</td></tr>
+            <tr><td>41</td><td><code>--team roboticsROS</code></td><td>Robotics/ROS Team</td><td>ROS2, SLAM, motion planning, simulation</td></tr>
+            <tr><td>42</td><td><code>--team xrSpatial</code></td><td>XR/Spatial Computing Team</td><td>Unity XR, ARKit, ARCore, Vision Pro</td></tr>
+            <tr><td>43</td><td><code>--team edgeComputing</code></td><td>Edge Computing Team</td><td>Edge ML, TinyML, WASM, edge deployment</td></tr>
+            <tr><td>44</td><td><code>--team quantumComputing</code></td><td>Quantum Computing Team</td><td>Qiskit, Cirq, quantum algorithms</td></tr>
+          </tbody>
+        </table></div>
+      </div>
+    </details>
+
+    <details id="teams-web">
+      <summary>Web Frameworks (Teams 22-27)</summary>
+      <div class="detail-body">
+        <div class="table-wrap"><table>
+          <thead><tr><th>#</th><th>Activation</th><th>Team</th><th>Focus</th></tr></thead>
+          <tbody>
+            <tr><td>22</td><td><code>--team elixirPhoenix</code></td><td>Elixir/Phoenix Team</td><td>Elixir, OTP, LiveView, real-time</td></tr>
+            <tr><td>23</td><td><code>--team scalaSpark</code></td><td>Scala/Spark Team</td><td>Scala, Apache Spark, Akka, big data</td></tr>
+            <tr><td>24</td><td><code>--team rubyRails</code></td><td>Ruby on Rails Team</td><td>Ruby, Rails 7+, Hotwire, Turbo</td></tr>
+            <tr><td>25</td><td><code>--team phpLaravel</code></td><td>PHP/Laravel Team</td><td>PHP 8+, Laravel 11, Livewire</td></tr>
+            <tr><td>26</td><td><code>--team vueFrontend</code></td><td>Vue.js Frontend Team</td><td>Vue 3, Nuxt 3, Pinia, Composition API</td></tr>
+            <tr><td>27</td><td><code>--team angularEnterprise</code></td><td>Angular Enterprise Team</td><td>Angular 17+, RxJS, NgRx, micro-frontends</td></tr>
+          </tbody>
+        </table></div>
+      </div>
+    </details>
+
+    <details id="teams-mobile">
+      <summary>Mobile (Team 30)</summary>
+      <div class="detail-body">
+        <div class="table-wrap"><table>
+          <thead><tr><th>#</th><th>Activation</th><th>Team</th><th>Focus</th></tr></thead>
+          <tbody>
+            <tr><td>30</td><td><code>--team reactNative</code></td><td>React Native Team</td><td>React Native, Expo, cross-platform mobile</td></tr>
+          </tbody>
+        </table></div>
+      </div>
+    </details>
+
+    <details id="teams-eng">
+      <summary>Specialized Engineering (Teams 31-37)</summary>
+      <div class="detail-body">
+        <div class="table-wrap"><table>
+          <thead><tr><th>#</th><th>Activation</th><th>Team</th><th>Focus</th></tr></thead>
+          <tbody>
+            <tr><td>31</td><td><code>--team databaseEng</code></td><td>Database Engineering Team</td><td>PostgreSQL, MongoDB, Redis, schema design</td></tr>
+            <tr><td>32</td><td><code>--team apiDesign</code></td><td>API Design Team</td><td>REST, GraphQL, gRPC, API gateway, OpenAPI</td></tr>
+            <tr><td>33</td><td><code>--team lowcodeAutomation</code></td><td>Low-Code Automation Team</td><td>n8n, Retool, Zapier, workflow automation</td></tr>
+            <tr><td>34</td><td><code>--team qaAutomation</code></td><td>QA Automation Team</td><td>Selenium, Cypress, Playwright, test frameworks</td></tr>
+            <tr><td>35</td><td><code>--team techWriting</code></td><td>Technical Writing Team</td><td>Documentation, API docs, developer experience</td></tr>
+            <tr><td>36</td><td><code>--team uxDesign</code></td><td>UX/UI Design Team</td><td>Figma, design systems, accessibility</td></tr>
+            <tr><td>37</td><td><code>--team perfEng</code></td><td>Performance Engineering Team</td><td>Load testing, profiling, optimization</td></tr>
+          </tbody>
+        </table></div>
+      </div>
+    </details>
+
+    <details id="teams-industry">
+      <summary>Industry Verticals (Teams 45-48)</summary>
+      <div class="detail-body">
+        <div class="table-wrap"><table>
+          <thead><tr><th>#</th><th>Activation</th><th>Team</th><th>Focus</th></tr></thead>
+          <tbody>
+            <tr><td>45</td><td><code>--team fintech</code></td><td>FinTech Team</td><td>Payments, banking APIs, PCI-DSS compliance</td></tr>
+            <tr><td>46</td><td><code>--team healthtech</code></td><td>HealthTech Team</td><td>HIPAA, HL7/FHIR, medical devices</td></tr>
+            <tr><td>47</td><td><code>--team edtech</code></td><td>EdTech Team</td><td>LMS, learning analytics, gamification</td></tr>
+            <tr><td>48</td><td><code>--team ecommerce</code></td><td>E-Commerce Team</td><td>Shopify, marketplaces, payment gateways</td></tr>
+          </tbody>
+        </table></div>
+      </div>
+    </details>
+
+    <details id="teams-cross">
+      <summary>Cross-Cutting Concerns (Teams 49-51)</summary>
+      <div class="detail-body">
+        <div class="table-wrap"><table>
+          <thead><tr><th>#</th><th>Activation</th><th>Team</th><th>Focus</th></tr></thead>
+          <tbody>
+            <tr><td>49</td><td><code>--team realtimeSystems</code></td><td>Real-Time Systems Team</td><td>WebSockets, MQTT, Kafka, event streaming</td></tr>
+            <tr><td>50</td><td><code>--team accessibility</code></td><td>Accessibility Team</td><td>WCAG 2.2, screen readers, inclusive design</td></tr>
+            <tr><td>51</td><td><code>--team openSource</code></td><td>Open Source Team</td><td>Community, governance, contribution workflows</td></tr>
+          </tbody>
+        </table></div>
+      </div>
+    </details>
+
+    <details id="teams-multimedia">
+      <summary>Multimedia &amp; Content Creation (Teams 52-59)</summary>
+      <div class="detail-body">
+        <div class="table-wrap"><table>
+          <thead><tr><th>#</th><th>Activation</th><th>Team</th><th>Focus</th></tr></thead>
+          <tbody>
+            <tr><td>52</td><td><code>--team afterEffectsMotion</code></td><td>After Effects Motion Graphics</td><td>ExtendScript, expressions, motion design, kinetic typography</td></tr>
+            <tr><td>53</td><td><code>--team videoProduction</code></td><td>Video Production Team</td><td>FFmpeg, DaVinci Resolve, video editing, color grading</td></tr>
+            <tr><td>54</td><td><code>--team 3dVfx</code></td><td>3D / VFX Team</td><td>Blender Python (bpy), Cinema 4D, Houdini, compositing</td></tr>
+            <tr><td>55</td><td><code>--team audioEngineering</code></td><td>Audio Engineering Team</td><td>Sound design, mixing/mastering, spatial audio, DAW scripting</td></tr>
+            <tr><td>56</td><td><code>--team 2dAnimation</code></td><td>2D Animation Team</td><td>Lottie/Bodymovin, Rive, GSAP, SVG animation, Spine 2D</td></tr>
+            <tr><td>57</td><td><code>--team creativeAI</code></td><td>Creative AI / Generative Media</td><td>Stable Diffusion, ComfyUI, Runway, AI video, upscaling</td></tr>
+            <tr><td>58</td><td><code>--team streamingBroadcast</code></td><td>Streaming &amp; Broadcast Team</td><td>OBS scripting, live graphics, NDI, RTMP/SRT, overlays</td></tr>
+            <tr><td>59</td><td><code>--team mediaPipeline</code></td><td>Media Pipeline Team</td><td>Render farms, cloud transcoding, asset management, CDN</td></tr>
+          </tbody>
+        </table></div>
+      </div>
+    </details>
+
+    <details id="teams-social">
+      <summary>Social Media &amp; Marketing (Team 60)</summary>
+      <div class="detail-body">
+        <div class="table-wrap"><table>
+          <thead><tr><th>#</th><th>Activation</th><th>Team</th><th>Focus</th></tr></thead>
+          <tbody>
+            <tr><td>60</td><td><code>--team socialMedia</code></td><td>Social Media Engineering</td><td>Analytics, marketing automation, content pipelines, SEO/growth</td></tr>
+          </tbody>
+        </table></div>
+      </div>
+    </details>
+
+    <details id="teams-advanced">
+      <summary>Advanced Engineering (Teams 61-65)</summary>
+      <div class="detail-body">
+        <div class="table-wrap"><table>
+          <thead><tr><th>#</th><th>Activation</th><th>Team</th><th>Focus</th></tr></thead>
+          <tbody>
+            <tr><td>61</td><td><code>--team mlops</code></td><td>MLOps &amp; Model Deployment</td><td>Model serving, A/B testing, feature stores, drift monitoring</td></tr>
+            <tr><td>62</td><td><code>--team devRel</code></td><td>Developer Relations Team</td><td>API docs, SDK generation, developer portals, tutorials</td></tr>
+            <tr><td>63</td><td><code>--team compliance</code></td><td>Compliance &amp; Governance</td><td>SOC2, GDPR, audit trails, policy-as-code</td></tr>
+            <tr><td>64</td><td><code>--team migration</code></td><td>Migration &amp; Modernization</td><td>Legacy migration, strangler fig, dual-write, data migration</td></tr>
+            <tr><td>65</td><td><code>--team promptEng</code></td><td>Prompt Engineering Team</td><td>Prompt design, evaluation, guardrails, RAG pipelines</td></tr>
+          </tbody>
+        </table></div>
+      </div>
+    </details>
+  </section>
+
+  <!-- Protocols -->
+  <section id="protocols">
+    <h2>Protocols</h2>
+    <p>Shared protocols in the <code>shared/</code> directory define cross-cutting behavior that all teams inherit.</p>
+
+    <div class="feature-grid">
+      <div class="feature-card">
+        <h4>Enhanced Execution Protocol</h4>
+        <p>Core execution framework: evidence requirements, atomic commits, testing matrix, CI/CD gates.</p>
+      </div>
+      <div class="feature-card">
+        <h4>Activation Protocol</h4>
+        <p>How <code>--team</code> and <code>--strategy</code> discovery, matching, and boot sequence works.</p>
+      </div>
+      <div class="feature-card">
+        <h4>Judge Protocol</h4>
+        <p>7-criterion rubric for evaluating competing plans. Handles close-margin A/B spike execution.</p>
+      </div>
+      <div class="feature-card">
+        <h4>Code Review Protocol</h4>
+        <p>Automated review gate: OWASP checks, architecture drift detection, code quality scoring.</p>
+      </div>
+      <div class="feature-card">
+        <h4>Retrospective Protocol</h4>
+        <p>Post-wave metrics comparison, bottleneck identification, and actionable learning extraction.</p>
+      </div>
+      <div class="feature-card">
+        <h4>Dependency Guardian Protocol</h4>
+        <p>Pre-release audit for CVEs, license compliance, and abandoned package detection.</p>
+      </div>
+      <div class="feature-card">
+        <h4>Agent Memory Protocol</h4>
+        <p>Persistent learnings across sessions. Agents write findings; future runs load them.</p>
+      </div>
+      <div class="feature-card">
+        <h4>Cross-Team Handoff Protocol</h4>
+        <p>Formal contracts (API, data schema, UI) for multi-team orchestration projects.</p>
+      </div>
+      <div class="feature-card">
+        <h4>Multi-Team Orchestration</h4>
+        <p>Sequential or parallel team execution on shared workspaces with dependency management.</p>
+      </div>
+      <div class="feature-card">
+        <h4>Rollback Protocol</h4>
+        <p>Formal rollback plans with DB migration reversal, feature flags, and blue/green strategy.</p>
+      </div>
+      <div class="feature-card">
+        <h4>A/B Plan Execution Protocol</h4>
+        <p>Time-boxed spike of runner-up plan when Judge verdict margin is close.</p>
+      </div>
+      <div class="feature-card">
+        <h4>Risk Escalation Matrix</h4>
+        <p>Measurable escalation triggers with severity levels P0-P3 and response procedures.</p>
+      </div>
+      <div class="feature-card">
+        <h4>Security Incident Response</h4>
+        <p>Incident classification, containment, eradication, and post-incident review process.</p>
+      </div>
+      <div class="feature-card">
+        <h4>Strategy Evolution Protocol</h4>
+        <p>How strategies evolve during execution based on learnings and changing requirements.</p>
+      </div>
+      <div class="feature-card">
+        <h4>Offline Mode Protocol</h4>
+        <p>Run teams without GitHub access using local markdown-based kanban boards.</p>
+      </div>
+      <div class="feature-card">
+        <h4>UAT Protocol</h4>
+        <p>User Acceptance Testing procedures, sign-off criteria, and feedback loops.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- CLI Tools -->
+  <section id="cli-tools">
+    <h2>CLI Tools</h2>
+    <p>Python utilities in the <code>shared/</code> directory for managing teams and strategies.</p>
+
+    <h3>amenthyx_cli.py</h3>
+    <p>Main CLI tool for listing, searching, composing, and validating teams.</p>
+    <pre><code><span class="cmt"># List all teams</span>
+<span class="cmd">python</span> shared/amenthyx_cli.py <span class="flag">--list</span>
+
+<span class="cmt"># Search for a team by keyword</span>
+<span class="cmd">python</span> shared/amenthyx_cli.py <span class="flag">--search</span> <span class="str">"machine learning"</span>
+
+<span class="cmt"># Validate a team file</span>
+<span class="cmd">python</span> shared/amenthyx_cli.py <span class="flag">--validate</span> <span class="str">01-full-stack</span></code></pre>
+
+    <h3>strategy_validator.py</h3>
+    <p>Validates strategy files before activation to catch missing sections or misconfigurations.</p>
+    <pre><code><span class="cmd">python</span> shared/strategy_validator.py <span class="str">path/to/strategy.md</span></code></pre>
+
+    <h3>team_test_suite.py</h3>
+    <p>Validates all <code>TEAM.md</code> files for structural consistency against the v4.0 specification.</p>
+    <pre><code><span class="cmd">python</span> shared/team_test_suite.py</code></pre>
+
+    <h3>team_composer.py</h3>
+    <p>Build custom hybrid teams by picking agents from any existing team.</p>
+    <pre><code><span class="cmd">python</span> shared/team_composer.py</code></pre>
+
+    <h3>Report Generators</h3>
+    <p>Automated report generation for PM status updates:</p>
+    <ul>
+      <li><code>shared/PPTX_GENERATOR.py</code> -- PowerPoint status reports</li>
+      <li><code>shared/PDF_GENERATOR.py</code> -- PDF summary documents</li>
+    </ul>
+  </section>
+
+  <!-- Mission Control -->
+  <section id="mission-control">
+    <h2>Mission Control</h2>
+    <p>The <code>shared/mission-control/</code> directory contains the live monitoring and management layer for running teams.</p>
+
+    <div class="feature-grid">
+      <div class="feature-card">
+        <h4>Live Agent Console</h4>
+        <p>Real-time view of agent activity, current wave, and task assignments.</p>
+      </div>
+      <div class="feature-card">
+        <h4>Budget Burn-Down</h4>
+        <p>Track API token consumption and cost against project budget.</p>
+      </div>
+      <div class="feature-card">
+        <h4>Quality Score</h4>
+        <p>Aggregated quality metrics from test results, code review, and evidence validation.</p>
+      </div>
+      <div class="feature-card">
+        <h4>Agent Communication Graph</h4>
+        <p>Visualize inter-agent communication patterns and handoff flows.</p>
+      </div>
+      <div class="feature-card">
+        <h4>Webhooks</h4>
+        <p>Outbound webhook notifications for key events (wave completion, failures, milestones).</p>
+      </div>
+      <div class="feature-card">
+        <h4>Performance Benchmarks</h4>
+        <p>Track and compare agent performance across sessions and teams.</p>
+      </div>
+    </div>
+
+    <div class="alert alert-info">
+      <strong>PM GitHub Integration:</strong> The PM agent automatically creates and maintains GitHub Project boards, milestones, and issues. See <code>shared/PM_GITHUB_INTEGRATION.md</code> for the full specification.
+    </div>
+  </section>
+
+  <!-- Strategy Templates -->
+  <section id="strategy">
+    <h2>Strategy Templates</h2>
+    <p>Pre-built strategy templates to accelerate project setup. Copy one and customize it.</p>
+
+    <div class="table-wrap"><table>
+      <thead><tr><th>Template</th><th>Use Case</th><th>File</th></tr></thead>
+      <tbody>
+        <tr><td>SaaS MVP</td><td>Web SaaS product with auth, billing, and dashboards</td><td><code>STRATEGY_TEMPLATE.md</code></td></tr>
+        <tr><td>Mobile App</td><td>Cross-platform mobile application</td><td><code>shared/templates/</code></td></tr>
+        <tr><td>API Backend</td><td>REST/GraphQL API service</td><td><code>shared/templates/</code></td></tr>
+        <tr><td>Data Pipeline</td><td>ETL and data processing workflows</td><td><code>shared/templates/</code></td></tr>
+        <tr><td>Landing Page</td><td>Marketing site with analytics</td><td><code>shared/templates/</code></td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>Strategy File Structure</h3>
+    <p>Every strategy file should include these sections:</p>
+    <ul>
+      <li>Project identity, audience, and value proposition</li>
+      <li>Feature list prioritized as P0 (must-have), P1 (should-have), P2 (nice-to-have)</li>
+      <li>Technical constraints and specific technology choices</li>
+      <li>Non-functional requirements (performance, security, scalability)</li>
+      <li>Testing requirements with coverage targets</li>
+      <li>Timeline with milestones and success criteria</li>
+      <li>Evidence requirements (what proof you need from the team)</li>
+      <li>Risk analysis and hard/soft constraints</li>
+    </ul>
+
+    <div class="alert alert-warn">
+      <strong>Validate before activating:</strong> Run <code>python shared/strategy_validator.py your-strategy.md</code> to catch missing sections before team activation.
+    </div>
+  </section>
+
+  <!-- Contributing -->
+  <section id="contributing">
+    <h2>Contributing</h2>
+    <p>Contributions to Amenthyx AI Teams are welcome. See the full <a href="https://github.com/Amenthyx/amenthyx-ai-teams/blob/main/CONTRIBUTING.md">CONTRIBUTING.md</a> on GitHub.</p>
+
+    <h3>Adding a New Team</h3>
+    <ol>
+      <li>Create a new numbered folder: <code>NN-team-name/</code></li>
+      <li>Create <code>TEAM.md</code> following the 16-section v4.0 structure</li>
+      <li>Include the activation keyword in the TEAM.md header</li>
+      <li>Add approximately 11 domain-specific roles with responsibilities</li>
+      <li>Include evidence tables, testing matrices, and quality gates</li>
+      <li>Run <code>python shared/team_test_suite.py</code> to validate</li>
+      <li>Update the README team table</li>
+      <li>Submit a pull request</li>
+    </ol>
+
+    <h3>Team File Structure (16 Sections)</h3>
+    <ol>
+      <li>Team Identity and Activation Keyword</li>
+      <li>Role Definitions (~11 agents per team)</li>
+      <li>Wave Execution Plan</li>
+      <li>Domain-Specific Quality Gates</li>
+      <li>Evidence and Proof Protocol</li>
+      <li>Testing Matrix</li>
+      <li>Atomic Commit Standards</li>
+      <li>CI/CD Pipeline Requirements</li>
+      <li>PM Reporting Cadence</li>
+      <li>GitHub Project Integration</li>
+      <li>Domain-Specific Tooling</li>
+      <li>Error Handling and Escalation</li>
+      <li>Agent Memory Hooks</li>
+      <li>Cross-Team Handoff Points</li>
+      <li>Rollback Procedures</li>
+      <li>Success Criteria and Exit Conditions</li>
+    </ol>
+
+    <h3>Project Standards</h3>
+    <ul>
+      <li>Every repo must have a <code>.ai/</code> folder with <code>context_base.md</code></li>
+      <li>Never commit API keys to git</li>
+      <li>Follow conventional commit format</li>
+      <li>All PRs require passing team test suite validation</li>
+    </ul>
+  </section>
+
+  <footer class="footer">
+    <p>Amenthyx AI Teams v4.0 &mdash; 65 Specialized Virtual Engineering Teams</p>
+    <p style="margin-top:4px;">
+      <a href="https://github.com/Amenthyx/amenthyx-ai-teams">GitHub</a> &middot;
+      <a href="https://github.com/Amenthyx/amenthyx-ai-teams/blob/main/LICENSE">License</a> &middot;
+      <a href="https://github.com/Amenthyx/amenthyx-ai-teams/blob/main/CHANGELOG.md">Changelog</a>
+    </p>
+  </footer>
+
+</main>
+
+<script>
+function toggleSidebar() {
+  document.querySelector('.sidebar').classList.toggle('open');
+  document.querySelector('.sidebar-overlay').classList.toggle('open');
+}
+document.querySelectorAll('.sidebar a').forEach(function(link) {
+  link.addEventListener('click', function() {
+    document.querySelector('.sidebar').classList.remove('open');
+    document.querySelector('.sidebar-overlay').classList.remove('open');
+  });
+});
+</script>
+
+</body>
+</html>

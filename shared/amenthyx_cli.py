@@ -5,6 +5,8 @@ Amenthyx AI Teams CLI -- manage, validate, and compose teams.
 Usage:
     python shared/amenthyx_cli.py list                          # List all teams
     python shared/amenthyx_cli.py info fullStack                # Show team details
+    python shared/amenthyx_cli.py init [--dir PATH]             # Interactive project setup wizard
+    python shared/amenthyx_cli.py dry-run --team fullStack --strategy strategy.md  # Simulate activation
     python shared/amenthyx_cli.py validate-strategy strategy.md # Validate a strategy file
     python shared/amenthyx_cli.py compose --from fullStack:BE,FE --from fintech:SECCOMP --output custom-team/TEAM.md
     python shared/amenthyx_cli.py test                          # Run team test suite
@@ -22,6 +24,7 @@ import glob
 import json
 import os
 import re
+import shutil
 import sys
 from typing import Dict, List, Optional, Tuple
 
@@ -811,6 +814,370 @@ def cmd_version(args: argparse.Namespace) -> int:
     return 0
 
 
+def _list_templates() -> List[Dict[str, str]]:
+    """Return list of available strategy templates with name, path, and description."""
+    templates: List[Dict[str, str]] = []
+    templates_dir = os.path.join(BASE, "shared", "templates")
+    root_template = os.path.join(BASE, "STRATEGY_TEMPLATE.md")
+
+    if os.path.isfile(root_template):
+        templates.append({
+            "name": "STRATEGY_TEMPLATE.md",
+            "path": root_template,
+            "desc": _read_template_desc(root_template),
+            "location": "root",
+        })
+
+    if os.path.isdir(templates_dir):
+        for fname in sorted(os.listdir(templates_dir)):
+            if fname.endswith(".md") and fname.upper() != "README.md".upper():
+                fpath = os.path.join(templates_dir, fname)
+                templates.append({
+                    "name": fname,
+                    "path": fpath,
+                    "desc": _read_template_desc(fpath),
+                    "location": "shared/templates/",
+                })
+
+    return templates
+
+
+def _extract_protocols(team_dir: str) -> List[str]:
+    """Extract protocol references from TEAM.md (lines mentioning shared/ .md files)."""
+    team_md = os.path.join(BASE, team_dir, "TEAM.md")
+    protocols: List[str] = []
+    shared_dir = os.path.join(BASE, "shared")
+    if not os.path.isfile(team_md):
+        return protocols
+
+    # Collect all shared protocol names for matching
+    shared_protocols: List[str] = []
+    if os.path.isdir(shared_dir):
+        shared_protocols = [f for f in os.listdir(shared_dir) if f.endswith(".md")]
+
+    try:
+        with open(team_md, "r", encoding="utf-8", errors="replace") as f:
+            content = f.read()
+        for proto in shared_protocols:
+            if proto in content or proto.replace(".md", "").replace("_", " ").lower() in content.lower():
+                protocols.append(proto)
+    except OSError:
+        pass
+    return protocols
+
+
+def cmd_init(args: argparse.Namespace) -> int:
+    """Interactive project setup wizard."""
+    target_dir = os.path.abspath(args.dir) if args.dir else os.getcwd()
+
+    print()
+    print(_col(C.BOLD, "  Amenthyx AI Teams -- Project Init Wizard"))
+    print(_col(C.DIM, "  " + "-" * 45))
+    print()
+
+    # 1. Ask for project name
+    project_name = input(f"  {_col(C.CYAN, 'Project name')}: ").strip()
+    if not project_name:
+        print(f"  {C.RED}Project name cannot be empty.{C.RESET}")
+        return 1
+    print()
+
+    # 2. Show team categories and let user pick
+    teams = _get_all_teams()
+    active_teams = [t for t in teams if t["has_team_md"]]
+    if not active_teams:
+        print(f"  {C.RED}No active teams found in {BASE}{C.RESET}")
+        return 1
+
+    print(_col(C.BOLD + C.CYAN, "  Available Teams:"))
+    print()
+    for idx, t in enumerate(active_teams, 1):
+        n_agents = _count_agents(t["dir"])
+        focus_short = t["focus"][:50] + "..." if len(t["focus"]) > 50 else t["focus"]
+        print(f"    {_col(C.YELLOW, f'{idx:>3}')}  {_col(C.GREEN, t['keyword']):<20} {t['name']:<30} {_col(C.DIM, focus_short)}")
+    print()
+
+    team_input = input(f"  {_col(C.CYAN, 'Select team')} (number or activation name): ").strip()
+    if not team_input:
+        print(f"  {C.RED}No team selected.{C.RESET}")
+        return 1
+
+    selected_team: Optional[Dict[str, str]] = None
+    # Try as number first
+    try:
+        idx_val = int(team_input)
+        if 1 <= idx_val <= len(active_teams):
+            selected_team = active_teams[idx_val - 1]
+    except ValueError:
+        pass
+
+    # Try as keyword/dir name
+    if selected_team is None:
+        selected_team = _find_team(team_input, active_teams)
+
+    if selected_team is None:
+        print(f"  {C.RED}Team not found: {team_input}{C.RESET}")
+        return 1
+
+    print(f"  Selected: {_col(C.GREEN, selected_team['keyword'])} ({selected_team['name']})")
+    print()
+
+    # 3. Ask which strategy template to use
+    available_templates = _list_templates()
+    if not available_templates:
+        print(f"  {C.YELLOW}No strategy templates found. Skipping template copy.{C.RESET}")
+        selected_template = None
+    else:
+        print(_col(C.BOLD + C.CYAN, "  Strategy Templates:"))
+        print()
+        for idx, tmpl in enumerate(available_templates, 1):
+            print(f"    {_col(C.YELLOW, f'{idx:>3}')}  {_col(C.GREEN, tmpl['name']):<35} {_col(C.DIM, tmpl['desc'])}")
+        print(f"    {_col(C.YELLOW, '  0')}  {_col(C.DIM, '(skip -- no template)')}")
+        print()
+
+        tmpl_input = input(f"  {_col(C.CYAN, 'Select template')} (number, 0 to skip): ").strip()
+        selected_template = None
+        try:
+            tmpl_idx = int(tmpl_input)
+            if tmpl_idx == 0:
+                selected_template = None
+            elif 1 <= tmpl_idx <= len(available_templates):
+                selected_template = available_templates[tmpl_idx - 1]
+            else:
+                print(f"  {C.YELLOW}Invalid selection, skipping template.{C.RESET}")
+        except ValueError:
+            print(f"  {C.YELLOW}Invalid input, skipping template.{C.RESET}")
+    print()
+
+    # 4. Create directory structure
+    team_dir_path = os.path.join(target_dir, ".team")
+    subdirs = ["evidence", "reports", "learnings", "screenshots", "plans"]
+
+    for subdir in subdirs:
+        full_path = os.path.join(team_dir_path, subdir)
+        os.makedirs(full_path, exist_ok=True)
+
+    # 5. Copy selected template as strategy.md
+    strategy_dest = os.path.join(target_dir, "strategy.md")
+    if selected_template is not None:
+        shutil.copy2(selected_template["path"], strategy_dest)
+
+    # 6. Create mission-control.config.json
+    config = {
+        "project": project_name,
+        "team": selected_team["keyword"],
+        "teamDir": selected_team["dir"],
+        "teamName": selected_team["name"],
+        "strategy": "strategy.md" if selected_template else None,
+        "createdAt": __import__("datetime").datetime.now().isoformat(),
+        "directories": {
+            "evidence": ".team/evidence/",
+            "reports": ".team/reports/",
+            "learnings": ".team/learnings/",
+            "screenshots": ".team/screenshots/",
+            "plans": ".team/plans/",
+        },
+    }
+    config_path = os.path.join(target_dir, "mission-control.config.json")
+    with open(config_path, "w", encoding="utf-8") as f:
+        json.dump(config, f, indent=2, default=str)
+
+    # 7. Print summary
+    print(_col(C.BOLD + C.GREEN, "  Project initialized successfully!"))
+    print()
+    print(_col(C.BOLD, "  Summary:"))
+    print(f"    {'Project:':<20} {project_name}")
+    print(f"    {'Team:':<20} {selected_team['keyword']} ({selected_team['name']})")
+    print(f"    {'Target directory:':<20} {target_dir}")
+    print()
+    print(_col(C.BOLD, "  Created:"))
+    for subdir in subdirs:
+        print(f"    {_col(C.GREEN, 'DIR')}  .team/{subdir}/")
+    if selected_template:
+        print(f"    {_col(C.GREEN, 'FILE')} strategy.md  (from {selected_template['name']})")
+    print(f"    {_col(C.GREEN, 'FILE')} mission-control.config.json")
+    print()
+    print(_col(C.DIM, f"  Next: review strategy.md, then run:"))
+    print(_col(C.DIM, f"    amenthyx dry-run --team {selected_team['keyword']} --strategy strategy.md"))
+    print()
+    return 0
+
+
+def cmd_dry_run(args: argparse.Namespace) -> int:
+    """Simulate team activation without spawning anything."""
+    team_keyword = args.team
+    strategy_path = args.strategy
+    issues: List[str] = []
+
+    print()
+    print(_col(C.BOLD, "  Amenthyx AI Teams -- Dry Run"))
+    print(_col(C.DIM, "  " + "-" * 40))
+    print()
+
+    # 1. Validate team exists
+    teams = _get_all_teams()
+    team = _find_team(team_keyword, teams)
+    if team is None:
+        print(f"  {_col(C.RED, 'FAIL')} Team not found: {team_keyword}")
+        print(f"  Use 'amenthyx list' to see available teams.")
+        return 1
+
+    if not team["has_team_md"]:
+        print(f"  {_col(C.RED, 'FAIL')} Team '{team_keyword}' has no TEAM.md")
+        return 1
+
+    print(f"  {_col(C.GREEN, 'OK')}   Team: {_col(C.BOLD, team['name'])} ({team['keyword']})")
+
+    # 2. Validate strategy file
+    if not os.path.isfile(strategy_path):
+        print(f"  {_col(C.RED, 'FAIL')} Strategy file not found: {strategy_path}")
+        issues.append("Strategy file does not exist")
+    else:
+        print(f"  {_col(C.GREEN, 'OK')}   Strategy: {os.path.abspath(strategy_path)}")
+        # Try running strategy_validator if available
+        validator_path = os.path.join(BASE, "shared", "strategy_validator.py")
+        if os.path.isfile(validator_path):
+            try:
+                import importlib.util
+                spec = importlib.util.spec_from_file_location("strategy_validator", validator_path)
+                if spec and spec.loader:
+                    mod = importlib.util.module_from_spec(spec)
+                    old_argv = sys.argv
+                    # Redirect stdout to capture validator output
+                    from io import StringIO
+                    old_stdout = sys.stdout
+                    sys.stdout = StringIO()
+                    sys.argv = ["strategy_validator.py", strategy_path]
+                    try:
+                        spec.loader.exec_module(mod)
+                        val_output = sys.stdout.getvalue()
+                        print(f"  {_col(C.GREEN, 'OK')}   Strategy validation passed", file=old_stdout)
+                    except SystemExit as e:
+                        val_output = sys.stdout.getvalue()
+                        if e.code and int(e.code) != 0:
+                            print(f"  {_col(C.YELLOW, 'WARN')} Strategy validation found issues", file=old_stdout)
+                            issues.append("Strategy validation reported warnings")
+                        else:
+                            print(f"  {_col(C.GREEN, 'OK')}   Strategy validation passed", file=old_stdout)
+                    finally:
+                        sys.stdout = old_stdout
+                        sys.argv = old_argv
+            except Exception as exc:
+                print(f"  {_col(C.YELLOW, 'WARN')} Could not run strategy validator: {exc}")
+
+    # 3. Extract agents
+    agents = _extract_agents(team["dir"])
+    waves = _extract_waves(team["dir"])
+    evidence = _extract_evidence_types(team["dir"])
+    protocols = _extract_protocols(team["dir"])
+
+    print()
+    print(_col(C.BOLD + C.CYAN, "  Agent Roster (would be spawned):"))
+    print(_col(C.DIM, "  " + "-" * 55))
+    for idx, a in enumerate(agents, 1):
+        code_str = f"({a['code']})" if a["code"] else ""
+        role_str = f" -- {a['role']}" if a["role"] else ""
+        print(f"    {_col(C.YELLOW, f'{idx:>2}')}. {_col(C.GREEN, f'{code_str:<8}')} {a['name']}{_col(C.DIM, role_str)}")
+    print()
+    print(f"  Total agents: {_col(C.BOLD, str(len(agents)))}")
+    print()
+
+    # 4. Wave execution plan
+    if waves:
+        print(_col(C.BOLD + C.CYAN, "  Wave Execution Plan:"))
+        print(_col(C.DIM, "  " + "-" * 55))
+        for idx, w in enumerate(waves, 1):
+            print(f"    {_col(C.YELLOW, f'Wave {idx}')}  {w}")
+        print()
+    else:
+        print(f"  {_col(C.YELLOW, 'WARN')} No wave plan found in TEAM.md section 6")
+        print()
+
+    # 5. Approximate spawn order
+    print(_col(C.BOLD + C.CYAN, "  Estimated Spawn Order:"))
+    print(_col(C.DIM, "  " + "-" * 55))
+    # Core roles first, then specialists
+    core_codes = {"TL", "PM", "JUDGE"}
+    core_agents = [a for a in agents if a["code"] in core_codes]
+    specialist_agents = [a for a in agents if a["code"] not in core_codes]
+
+    spawn_order = 1
+    if core_agents:
+        print(f"    {_col(C.DIM, 'Phase 1: Core roles (parallel)')}")
+        for a in core_agents:
+            code_str = f"({a['code']})" if a["code"] else ""
+            print(f"      {_col(C.YELLOW, f'{spawn_order:>2}')}. {a['name']} {_col(C.GREEN, code_str)}")
+            spawn_order += 1
+    if specialist_agents:
+        print(f"    {_col(C.DIM, 'Phase 2: Specialist agents (wave-driven)')}")
+        for a in specialist_agents:
+            code_str = f"({a['code']})" if a["code"] else ""
+            print(f"      {_col(C.YELLOW, f'{spawn_order:>2}')}. {a['name']} {_col(C.GREEN, code_str)}")
+            spawn_order += 1
+    print()
+
+    # 6. Protocols that would be loaded
+    print(_col(C.BOLD + C.CYAN, "  Protocols (would be loaded):"))
+    print(_col(C.DIM, "  " + "-" * 55))
+    # Always-loaded protocols
+    always_loaded = [
+        "ACTIVATION_PROTOCOL.md",
+        "ENHANCED_EXECUTION_PROTOCOL.md",
+        "JUDGE_PROTOCOL.md",
+        "PM_GITHUB_INTEGRATION.md",
+    ]
+    all_protocols = sorted(set(always_loaded + protocols))
+    shared_dir = os.path.join(BASE, "shared")
+    for proto in all_protocols:
+        exists = os.path.isfile(os.path.join(shared_dir, proto))
+        status = _col(C.GREEN, "OK") if exists else _col(C.RED, "MISSING")
+        print(f"    {status}  {proto}")
+        if not exists:
+            issues.append(f"Protocol not found: shared/{proto}")
+    print()
+
+    # 7. Directories that would be created
+    print(_col(C.BOLD + C.CYAN, "  Directories (would be created):"))
+    print(_col(C.DIM, "  " + "-" * 55))
+    team_dirs = [
+        ".team/",
+        ".team/evidence/",
+        ".team/reports/",
+        ".team/learnings/",
+        ".team/screenshots/",
+        ".team/plans/",
+    ]
+    for d in team_dirs:
+        print(f"    {_col(C.GREEN, 'DIR')}  {d}")
+    print()
+
+    # 8. Evidence types
+    if evidence:
+        print(_col(C.BOLD + C.CYAN, "  Evidence Types (would be collected):"))
+        print(_col(C.DIM, "  " + "-" * 55))
+        for e in evidence:
+            print(f"    - {e}")
+        print()
+
+    # 9. Final verdict
+    print(_col(C.DIM, "  " + "=" * 55))
+    if issues:
+        print()
+        print(_col(C.YELLOW + C.BOLD, "  Issues Found:"))
+        for issue in issues:
+            print(f"    {_col(C.YELLOW, '!')} {issue}")
+        print()
+        print(f"  Verdict: {_col(C.YELLOW + C.BOLD, 'ISSUES DETECTED')} -- activation may have problems")
+        print()
+        return 1
+    else:
+        print()
+        print(f"  Verdict: {_col(C.GREEN + C.BOLD, 'READY')} -- team activation would succeed")
+        print(f"  {_col(C.DIM, f'Run: --team {team_keyword} --strategy {strategy_path}')}")
+        print()
+        return 0
+
+
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
@@ -824,6 +1191,10 @@ def main() -> int:
             "Examples:\n"
             "  %(prog)s list                              List all teams\n"
             "  %(prog)s info fullStack                    Show team details\n"
+            "  %(prog)s init                              Interactive project setup wizard\n"
+            "  %(prog)s init --dir ./my-project           Init in a specific directory\n"
+            "  %(prog)s dry-run --team fullStack --strategy strategy.md\n"
+            "                                             Simulate team activation\n"
             "  %(prog)s validate-strategy strategy.md     Validate a strategy\n"
             "  %(prog)s compose --from fullStack:BE,FE --output custom/TEAM.md\n"
             "  %(prog)s test                              Run test suite\n"
@@ -841,6 +1212,18 @@ def main() -> int:
     # info
     p_info = sub.add_parser("info", help="Show detailed info for a team")
     p_info.add_argument("keyword", help="Team activation keyword or directory name")
+
+    # init
+    p_init = sub.add_parser("init", help="Interactive project setup wizard")
+    p_init.add_argument(
+        "--dir", default=None,
+        help="Target directory for project setup (default: current directory)",
+    )
+
+    # dry-run
+    p_dry = sub.add_parser("dry-run", help="Simulate team activation (no spawning)")
+    p_dry.add_argument("--team", required=True, help="Team activation keyword or directory name")
+    p_dry.add_argument("--strategy", required=True, help="Path to strategy.md file")
 
     # validate-strategy
     p_val = sub.add_parser("validate-strategy", help="Validate a strategy.md file")
@@ -883,6 +1266,8 @@ def main() -> int:
     dispatch = {
         "list": cmd_list,
         "info": cmd_info,
+        "init": cmd_init,
+        "dry-run": cmd_dry_run,
         "validate-strategy": cmd_validate_strategy,
         "compose": cmd_compose,
         "test": cmd_test,

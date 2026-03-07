@@ -35,6 +35,8 @@ import { createScreenshotsRouter } from './routes/screenshots';
 import { createArtifactsRouter } from './routes/artifacts';
 import { createDebugRouter } from './routes/debug';
 import { createWebhooksRouter } from './routes/webhooks';
+import { createRetentionRouter } from './routes/retention';
+import { createBatchExportRouter } from './routes/batch-export';
 import { timingMiddleware } from './middleware/timing';
 import { responseTimerMiddleware } from './middleware/response-timer';
 import { rateTrackerMiddleware } from './middleware/rate-tracker';
@@ -258,6 +260,8 @@ app.use('/api', createScreenshotsRouter());
 app.use('/api', createArtifactsRouter(broadcast));
 app.use('/api', createDebugRouter());
 app.use('/api', createWebhooksRouter(broadcast));
+app.use('/api', createRetentionRouter());
+app.use('/api', createBatchExportRouter());
 
 // Config endpoint — frontend can fetch dynamic project settings
 app.get('/api/config', (_req, res) => {

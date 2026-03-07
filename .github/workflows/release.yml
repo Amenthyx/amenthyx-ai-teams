@@ -1,0 +1,176 @@
+name: Release — Cross-Platform Build
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag (e.g. v4.1.0)'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            artifact: amenthyx-windows.exe
+            pyinstaller_name: amenthyx.exe
+          - os: ubuntu-latest
+            artifact: amenthyx-linux
+            pyinstaller_name: amenthyx
+          - os: macos-latest
+            artifact: amenthyx-macos
+            pyinstaller_name: amenthyx
+
+    runs-on: ${{ matrix.os }}
+    name: Build (${{ matrix.os }})
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Install PyInstaller
+        run: pip install pyinstaller
+
+      - name: Collect data files
+        shell: python
+        run: |
+          import os, json
+
+          base = os.getcwd()
+          shared = os.path.join(base, "shared")
+          datas = []
+
+          # Team TEAM.md files
+          for entry in sorted(os.listdir(base)):
+              team_md = os.path.join(base, entry, "TEAM.md")
+              if entry[:2].isdigit() and os.path.isfile(team_md):
+                  datas.append((team_md, entry))
+
+          # Shared markdown protocols
+          for f in sorted(os.listdir(shared)):
+              fp = os.path.join(shared, f)
+              if f.endswith(".md") and os.path.isfile(fp):
+                  datas.append((fp, "shared"))
+
+          # Shared Python scripts (as data, not entry points)
+          for f in sorted(os.listdir(shared)):
+              fp = os.path.join(shared, f)
+              if f.endswith(".py") and os.path.isfile(fp) and f != "amenthyx_cli.py":
+                  datas.append((fp, "shared"))
+
+          # Templates
+          tpl_dir = os.path.join(shared, "templates")
+          if os.path.isdir(tpl_dir):
+              for f in sorted(os.listdir(tpl_dir)):
+                  if f.endswith(".md"):
+                      datas.append((os.path.join(tpl_dir, f), "shared/templates"))
+
+          # Root files
+          for f in ["README.md", "STRATEGY_TEMPLATE.md", "LICENSE", "CHANGELOG.md"]:
+              fp = os.path.join(base, f)
+              if os.path.isfile(fp):
+                  datas.append((fp, "."))
+
+          # .ai context
+          ai_ctx = os.path.join(base, ".ai", "context_base.md")
+          if os.path.isfile(ai_ctx):
+              datas.append((ai_ctx, ".ai"))
+
+          # Write spec helper
+          with open("_datas.json", "w") as fh:
+              json.dump(datas, fh)
+
+          print(f"Collected {len(datas)} data files")
+
+      - name: Build with PyInstaller
+        shell: python
+        run: |
+          import json, os, sys
+
+          with open("_datas.json") as f:
+              datas = json.load(f)
+
+          sep = ";" if sys.platform == "win32" else ":"
+          args = [
+              os.path.join("shared", "amenthyx_cli.py"),
+              "--onefile",
+              "--name=amenthyx",
+              "--console",
+              "--noconfirm",
+          ]
+          for src, dest in datas:
+              args.append(f"--add-data={src}{sep}{dest}")
+
+          import PyInstaller.__main__
+          PyInstaller.__main__.run(args)
+
+      - name: Rename artifact
+        shell: bash
+        run: |
+          if [ -f "dist/${{ matrix.pyinstaller_name }}" ]; then
+            cp "dist/${{ matrix.pyinstaller_name }}" "dist/${{ matrix.artifact }}"
+            echo "Built: dist/${{ matrix.artifact }}"
+            ls -lh "dist/${{ matrix.artifact }}"
+          else
+            echo "ERROR: dist/${{ matrix.pyinstaller_name }} not found"
+            ls -la dist/
+            exit 1
+          fi
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: dist/${{ matrix.artifact }}
+          retention-days: 30
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    name: Create GitHub Release
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-artifacts
+
+      - name: Make Linux and macOS binaries executable
+        run: |
+          chmod +x release-artifacts/amenthyx-linux/amenthyx-linux || true
+          chmod +x release-artifacts/amenthyx-macos/amenthyx-macos || true
+
+      - name: Generate checksums
+        run: |
+          cd release-artifacts
+          find . -type f -name "amenthyx-*" -exec sha256sum {} \; > ../checksums.txt
+          cat ../checksums.txt
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Amenthyx AI Teams ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          files: |
+            release-artifacts/amenthyx-windows.exe/amenthyx-windows.exe
+            release-artifacts/amenthyx-linux/amenthyx-linux
+            release-artifacts/amenthyx-macos/amenthyx-macos
+            checksums.txt
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
