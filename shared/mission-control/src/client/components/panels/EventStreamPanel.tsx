@@ -18,6 +18,7 @@ import {
   Eye,
   FileCode,
   Wrench,
+  ClipboardCheck,
 } from 'lucide-react';
 import { useEventStore } from '../../stores/eventStore';
 import {
@@ -49,6 +50,7 @@ const CATEGORY_ICONS: Record<string, React.ReactNode> = {
   EVIDENCE: <Eye size={12} />,
   GATE: <Shield size={12} />,
   CUSTOM: <Zap size={12} />,
+  UAT: <ClipboardCheck size={12} />,
 };
 
 function formatTimestamp(ts: string): string {

@@ -89,3 +89,59 @@
     @apply status-dot bg-blue-500;
   }
 }
+
+/* Toast slide-in animation */
+@keyframes slide-in {
+  0% { opacity: 0; transform: translateX(100%); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+
+.animate-slide-in {
+  animation: slide-in 200ms ease-out;
+}
+
+/* Glassmorphism panels (dark theme refinement) */
+.dark .glass-panel {
+  background: rgba(31, 41, 55, 0.6);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(75, 85, 99, 0.4);
+}
+
+/* Print-friendly styles */
+@media print {
+  header, aside, nav, .no-print,
+  [role="navigation"], .breadcrumb-nav {
+    display: none !important;
+  }
+
+  main {
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  .flex-1 {
+    overflow: visible !important;
+  }
+
+  body, .dark {
+    background: white !important;
+    color: black !important;
+  }
+
+  .dark\:bg-gray-800\/50,
+  .dark\:bg-gray-800,
+  .dark\:bg-gray-900 {
+    background: white !important;
+    border-color: #e5e7eb !important;
+  }
+
+  .dark\:text-white,
+  .dark\:text-gray-200,
+  .dark\:text-gray-300 {
+    color: black !important;
+  }
+
+  .rounded-xl {
+    break-inside: avoid;
+  }
+}

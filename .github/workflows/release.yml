@@ -1,0 +1,256 @@
+name: Release — Cross-Platform Encrypted Build
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main, ai-team]
+
+permissions:
+  contents: write
+
+jobs:
+  check-release:
+    name: Check Release Trigger
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.merged == true
+    outputs:
+      should_release: ${{ steps.check.outputs.should_release }}
+      bump_type: ${{ steps.check.outputs.bump_type }}
+      new_version: ${{ steps.version.outputs.new_version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check PR title for release trigger
+        id: check
+        run: |
+          TITLE="${{ github.event.pull_request.title }}"
+          echo "PR title: $TITLE"
+
+          # Case-insensitive match for MAJOR, MINOR, PATCH anywhere in title
+          if echo "$TITLE" | grep -qi '\[MAJOR\]'; then
+            echo "should_release=true" >> $GITHUB_OUTPUT
+            echo "bump_type=major" >> $GITHUB_OUTPUT
+          elif echo "$TITLE" | grep -qi '\[MINOR\]'; then
+            echo "should_release=true" >> $GITHUB_OUTPUT
+            echo "bump_type=minor" >> $GITHUB_OUTPUT
+          elif echo "$TITLE" | grep -qi '\[PATCH\]'; then
+            echo "should_release=true" >> $GITHUB_OUTPUT
+            echo "bump_type=patch" >> $GITHUB_OUTPUT
+          else
+            echo "should_release=false" >> $GITHUB_OUTPUT
+            echo "bump_type=none" >> $GITHUB_OUTPUT
+            echo "No release tag found in PR title. Skipping release."
+          fi
+
+      - name: Calculate next version
+        id: version
+        if: steps.check.outputs.should_release == 'true'
+        run: |
+          # Get latest version tag (or default to v0.0.0)
+          LATEST=$(git tag -l 'v*' --sort=-v:refname | head -1)
+          if [ -z "$LATEST" ]; then
+            LATEST="v0.0.0"
+          fi
+          echo "Latest tag: $LATEST"
+
+          # Parse version components
+          VERSION="${LATEST#v}"
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+          MAJOR=${MAJOR:-0}
+          MINOR=${MINOR:-0}
+          PATCH=${PATCH:-0}
+
+          # Bump based on type
+          BUMP="${{ steps.check.outputs.bump_type }}"
+          case "$BUMP" in
+            major)
+              MAJOR=$((MAJOR + 1))
+              MINOR=0
+              PATCH=0
+              ;;
+            minor)
+              MINOR=$((MINOR + 1))
+              PATCH=0
+              ;;
+            patch)
+              PATCH=$((PATCH + 1))
+              ;;
+          esac
+
+          NEW_VERSION="v${MAJOR}.${MINOR}.${PATCH}"
+          echo "New version: $NEW_VERSION (bump: $BUMP)"
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+
+  build:
+    needs: check-release
+    if: needs.check-release.outputs.should_release == 'true'
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            artifact: amenthyx-windows.exe
+            pyinstaller_name: amenthyx.exe
+          - os: ubuntu-latest
+            artifact: amenthyx-linux
+            pyinstaller_name: amenthyx
+          - os: macos-latest
+            artifact: amenthyx-macos
+            pyinstaller_name: amenthyx
+
+    runs-on: ${{ matrix.os }}
+    name: Build (${{ matrix.os }})
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install PyInstaller
+        run: pip install pyinstaller
+
+      - name: Encrypt content into vault
+        run: python shared/bundler.py --output shared/_vault.py
+
+      - name: Verify vault roundtrip
+        run: python shared/bundler.py --verify
+
+      - name: Build encrypted executable
+        shell: python
+        run: |
+          import os, sys
+
+          sep = ";" if sys.platform == "win32" else ":"
+          vault = os.path.join("shared", "_vault.py")
+          bundler = os.path.join("shared", "bundler.py")
+
+          args = [
+              os.path.join("shared", "amenthyx_cli.py"),
+              "--onefile",
+              "--name=amenthyx",
+              "--console",
+              "--noconfirm",
+          ]
+
+          if os.path.isfile(vault):
+              args.append(f"--add-data={vault}{sep}shared")
+          if os.path.isfile(bundler):
+              args.append(f"--add-data={bundler}{sep}shared")
+
+          import PyInstaller.__main__
+          PyInstaller.__main__.run(args)
+
+      - name: Verify no source code leaked
+        shell: bash
+        run: |
+          LEAKED=$(find dist/ -name "*.md" -o -name "*.py" 2>/dev/null | head -20)
+          if [ -n "$LEAKED" ]; then
+            echo "ERROR: Source files found in dist/:"
+            echo "$LEAKED"
+            exit 1
+          fi
+          echo "CLEAN — zero .md or .py in distribution"
+
+      - name: Rename artifact
+        shell: bash
+        run: |
+          if [ -f "dist/${{ matrix.pyinstaller_name }}" ]; then
+            cp "dist/${{ matrix.pyinstaller_name }}" "dist/${{ matrix.artifact }}"
+            ls -lh "dist/${{ matrix.artifact }}"
+          else
+            echo "ERROR: dist/${{ matrix.pyinstaller_name }} not found"
+            ls -la dist/
+            exit 1
+          fi
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: dist/${{ matrix.artifact }}
+          retention-days: 30
+
+  release:
+    needs: [check-release, build]
+    runs-on: ubuntu-latest
+    name: Create GitHub Release
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create and push version tag
+        run: |
+          VERSION="${{ needs.check-release.outputs.new_version }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "$VERSION" -m "Release $VERSION"
+          git push origin "$VERSION"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-artifacts
+
+      - name: Make Linux and macOS binaries executable
+        run: |
+          chmod +x release-artifacts/amenthyx-linux/amenthyx-linux || true
+          chmod +x release-artifacts/amenthyx-macos/amenthyx-macos || true
+
+      - name: Generate checksums
+        run: |
+          cd release-artifacts
+          find . -type f -name "amenthyx-*" -exec sha256sum {} \; > ../checksums.txt
+          cat ../checksums.txt
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.check-release.outputs.new_version }}
+          name: Amenthyx AI Teams ${{ needs.check-release.outputs.new_version }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          body: |
+            ## Amenthyx AI Teams ${{ needs.check-release.outputs.new_version }}
+
+            Cross-platform encrypted binaries — all team protocols and source code
+            are encrypted inside the binary. Zero readable .md or .py files.
+
+            ### Download
+            | Platform | File |
+            |----------|------|
+            | Windows | `amenthyx-windows.exe` |
+            | Linux | `amenthyx-linux` |
+            | macOS | `amenthyx-macos` |
+
+            ### Install
+            ```bash
+            # Linux / macOS
+            curl -fsSL https://github.com/Amenthyx/amenthyx-ai-teams/releases/download/${{ needs.check-release.outputs.new_version }}/amenthyx-linux -o amenthyx
+            chmod +x amenthyx && sudo mv amenthyx /usr/local/bin/
+
+            # Windows (PowerShell)
+            Invoke-WebRequest -Uri "https://github.com/Amenthyx/amenthyx-ai-teams/releases/download/${{ needs.check-release.outputs.new_version }}/amenthyx-windows.exe" -OutFile amenthyx.exe
+            ```
+
+            ### Usage
+            ```bash
+            amenthyx list                                       # List all 65 teams
+            amenthyx info fullStack                             # Team details
+            amenthyx activate --team fullStack --strategy s.md  # Activate a team
+            amenthyx health                                     # Project health check
+            ```
+          files: |
+            release-artifacts/amenthyx-windows.exe/amenthyx-windows.exe
+            release-artifacts/amenthyx-linux/amenthyx-linux
+            release-artifacts/amenthyx-macos/amenthyx-macos
+            checksums.txt
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

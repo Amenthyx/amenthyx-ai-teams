@@ -1,4 +1,4 @@
-# Activation Protocol v3.1
+# Activation Protocol v4.0
 
 ## How `--team` and `--strategy` Work
 
@@ -112,6 +112,7 @@ No team found matching "<name>". Available teams:
   --team creativeAI         Creative AI Team (Stable Diffusion, ComfyUI, AI video)
   --team streamingBroadcast Streaming & Broadcast Team (OBS, NDI, RTMP/SRT)
   --team mediaPipeline      Media Pipeline Team (render farms, transcoding, CDN)
+  --team socialMedia        Social Media Team (analytics, automation, content, paid media, SEO)
 
 Pick a team or check your spelling.
 ```
@@ -156,7 +157,7 @@ SHARED RESOURCES:
 - PPTX Generator: shared/PPTX_GENERATOR.py
 - PDF Generator: shared/PDF_GENERATOR.py
 
-CRITICAL REQUIREMENTS (v3.1):
+CRITICAL REQUIREMENTS (v4.0):
 1. **COST ESTIMATION FIRST**: Before ANY work begins, produce COST_ESTIMATION.md
    and WAIT for user approval. This is a HARD GATE — no PM spawning, no agent work,
    no decisions until the user says "approved".
@@ -189,11 +190,50 @@ CRITICAL REQUIREMENTS (v3.1):
 12. All tests MUST pass locally before QA wave
 13. GitHub Actions MUST be validated locally with `act` before pushing
 14. PM MUST produce PPTX + PDF reports with evidence dashboards
+15. **MANDATORY DISCOVERY INTERVIEW**: PM MUST conduct a minimum 20-question
+    discovery interview with the TL BEFORE cost estimation. This interview
+    is a HARD GATE — no cost estimation begins until the PM has asked and
+    recorded answers to at least 20 questions about the project.
+16. **SCREENSHOTS MANDATORY**: Every project MUST maintain `.team/screenshots/`
+    with visual evidence for every feature, test, and deployment.
+17. **DOCUMENTATION WEBSITE**: Every project MUST include a `docs/` directory
+    with a React-based documentation website covering architecture, API,
+    user guide, and decision log. Documentation Agent works in Wave 2-4.
+18. **MISSION CONTROL PDF REPORT**: Mission Control MUST generate a
+    comprehensive downloadable PDF report tracking every decision, task,
+    commit, and technical operation. Available at end of every wave.
+19. **DELIVERABLE PRODUCT**: Every team MUST deliver either a working MVP
+    (visually demonstrable) or a production-ready enterprise application.
+    The Team Leader MUST communicate this expectation clearly during the
+    discovery interview and ensure all agents understand the delivery target.
+20. **CODE REVIEW GATE (v4.0)**: After engineering wave, CR agent MUST review
+    all code changes before QA proceeds. See `shared/CODE_REVIEW_PROTOCOL.md`.
+21. **RETROSPECTIVE (v4.0)**: After each wave, RETRO agent analyzes execution
+    quality and extracts learnings. See `shared/RETROSPECTIVE_PROTOCOL.md`.
+22. **DEPENDENCY AUDIT (v4.0)**: Before release, DEPGUARD agent MUST audit all
+    dependencies for CVEs and license compliance. See `shared/DEPENDENCY_GUARDIAN_PROTOCOL.md`.
+23. **AGENT MEMORY (v4.0)**: Agents write learnings to `.team/learnings/`.
+    TL loads relevant learnings when spawning agents. See `shared/AGENT_MEMORY_PROTOCOL.md`.
+24. **RISK ESCALATION (v4.0)**: Concrete escalation triggers with severity
+    levels. See `shared/RISK_ESCALATION_MATRIX.md`.
 
 EXECUTION SEQUENCE:
-  Wave 0: TL reads everything → creates `ai-team` branch → produces COST_ESTIMATION.md → WAITS for user approval
+  Wave 0: TL reads everything → creates `ai-team` branch
+  Wave 0.1: PM DISCOVERY INTERVIEW → 20+ mandatory questions to TL → produces DISCOVERY_INTERVIEW.md
+  Wave 0.2: TL produces COST_ESTIMATION.md (informed by interview findings) → WAITS for user approval
   Wave 0.5: MISSION CONTROL AUTO-DEPLOY (after cost approval, before Wave 1)
-  Wave 1+: Only after approval + dashboard running → PM begins → normal wave execution on `ai-team` with auto-sync
+  Wave 1: PM produces 2-3 alternative plans → .team/plans/
+  Wave 1.5: Judge evaluates plans → VERDICT.md → TL selects winner
+  Wave 1.7: (Optional) A/B spike of runner-up if margin close
+  Wave 2: Engineering (parallel agents) on `ai-team` with auto-sync
+  Wave 2.5: Code Review (CR agent, blocking gate)
+  Wave 2.7: Retrospective (RETRO agent, background)
+  Wave 3: QA (automated testing)
+  Wave 3.5: Bug Fix Loop (if QA fails)
+  Wave 3.7: UAT (blocking gate)
+  Wave 3.8: Dependency Audit (DEPGUARD, blocking gate)
+  Wave 4: Release (with rollback plan)
+  Wave 5: Final Reporting + Retrospective
   Final: TL requests user approval to merge `ai-team` → `main`
 ```
 
@@ -239,14 +279,19 @@ MISSION CONTROL DEPLOY SEQUENCE (Wave 0.5):
    to POST events to http://localhost:4201/api/events/claude-code
 6. Start dashboard: cd .mission-control && npm run dashboard &
 7. Wait for health check (GET http://localhost:4201/api/health — max 30s)
-8. Print: "✓ Mission Control running at http://localhost:4200"
-9. POST initial state (agents, budget, waves) to dashboard API
+8. AUTO-OPEN browser to http://localhost:4200 (cross-platform: start/open/xdg-open)
+9. Print: "✓ Mission Control running at http://localhost:4200"
+10. POST initial state (agents, budget, waves) to dashboard API
+10. Initialize `.team/screenshots/` directory structure
+11. Initialize `.team/DISCOVERY_INTERVIEW.md` placeholder
+12. Initialize `.team/DECISION_LOG.md` for tracking all decisions
 
 IMPORTANT:
 - Dashboard failure is NON-BLOCKING — if install/start fails, warn and continue
 - Dashboard is local-only — NEVER committed to the project repo
 - Every agent's events flow to the dashboard automatically via hooks or file watchers
-- The user sees the dashboard URL in chat and can open it immediately
+- The browser opens AUTOMATICALLY — the user sees Mission Control immediately without any manual action
+- Set MC_NO_OPEN=1 to disable auto-open if running headless
 - All subsequent waves (1-5) will have their events captured by Mission Control
 
 LIFECYCLE:
@@ -327,6 +372,11 @@ Task(
 | `team dashboard restart` | Restart Mission Control dashboard if stopped |
 | `team dashboard stop` | Stop Mission Control dashboard |
 | `team decide <topic>` | Trigger decision aggregation |
+| `team judge` | Spawn Judge to evaluate current plans in `.team/plans/` |
+| `team review` | Spawn CR agent to review current code changes |
+| `team retro` | Spawn RETRO agent to analyze last completed wave |
+| `team deps` | Spawn DEPGUARD agent to audit dependencies |
+| `team learnings` | Show captured learnings from `.team/learnings/` |
 | `team gate check` | Run all quality gate checks (including cost + payment gates) |
 | `pause team` | Save state to `.team/TEAM_STATUS.md` (dashboard keeps running) |
 | `resume team` | Resume from `.team/` saved state (dashboard reconnects) |
@@ -345,5 +395,27 @@ You can run multiple teams on different projects simultaneously in different ter
 
 ---
 
-*Activation Protocol v3.2 — Amenthyx AI Teams*
-*59 Teams | Mission Control Dashboard | Cost-First | No-Delete | Ask-When-Unsure | ai-team Branch | Merge-Gated | Auto-Synced | Dynamically-Scaled | Evidence-Driven | Real-Time Kanban | Atomic Commits | CI-Validated*
+## UAT Wave Integration (Wave 3.7)
+
+**All team activations include UAT as a mandatory wave:**
+
+```
+Wave 3:   QA — Automated Testing
+Wave 3.5: Bug Fix Loop (conditional)
+Wave 3.7: UAT — User Acceptance Testing (BLOCKING)
+Wave 4:   Release
+```
+
+- UAT protocol: `shared/UAT_PROTOCOL.md`
+- UAT blocking gate: Release wave CANNOT proceed without UAT_PASS
+- Coverage target: >= 95% CTA coverage
+- Compliance: every test case mapped to applicable regulation
+- Mission Control: real-time UAT dashboard at `/uat`
+- Evidence: screenshots + logs captured for every test case
+- Downloads: individual case, suite, or full export (JSON/CSV)
+- Sign-off: QA → TL → User (all three required)
+
+---
+
+*Activation Protocol v4.0 — Amenthyx AI Teams*
+*65 Teams | Judge Protocol | Code Review Gate | Retrospectives | Dependency Audit | Agent Memory | Risk Escalation | Cross-Team Handoffs | Multi-Team Orchestration | Mission Control Dashboard | 20-Question Discovery | Screenshots Mandatory | Docs Website | PDF Reports | Deliverable Products | Cost-First | No-Delete | Ask-When-Unsure | ai-team Branch | Merge-Gated | Auto-Synced | Dynamically-Scaled | Evidence-Driven | Real-Time Kanban | Atomic Commits | CI-Validated*

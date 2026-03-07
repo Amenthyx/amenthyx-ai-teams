@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { MissionControlEvent } from '../types/events';
 import { useFilterStore } from './filterStore';
 
-const MAX_EVENTS = 1000;
+const MAX_EVENTS = 2000;
 
 interface EventState {
   events: MissionControlEvent[];
@@ -42,5 +42,35 @@ export const useEventStore = create<EventState>((set, get) => ({
       }
     }
     return counts;
+  },
+
+  getErrorRate: () => {
+    const { events } = get();
+    if (events.length === 0) return 0;
+    const errors = events.filter((e) => e.severity === 'error' || e.severity === 'critical');
+    return errors.length / events.length;
+  },
+
+  getErrorsByAgent: () => {
+    const { events } = get();
+    const errors: Record<string, number> = {};
+    for (const event of events) {
+      if ((event.severity === 'error' || event.severity === 'critical') && event.agent?.role) {
+        errors[event.agent.role] = (errors[event.agent.role] || 0) + 1;
+      }
+    }
+    return errors;
+  },
+
+  getEventTimeBuckets: (bucketMinutes = 5) => {
+    const { events } = get();
+    const buckets: Record<string, number> = {};
+    for (const event of events) {
+      const d = new Date(event.timestamp);
+      const mins = Math.floor(d.getMinutes() / bucketMinutes) * bucketMinutes;
+      const key = `${d.getHours().toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+      buckets[key] = (buckets[key] || 0) + 1;
+    }
+    return buckets;
   },
 }));

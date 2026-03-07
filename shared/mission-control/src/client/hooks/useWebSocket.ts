@@ -8,6 +8,7 @@ import { useCommitStore } from '../stores/commitStore';
 import { useEventStore } from '../stores/eventStore';
 import { useTestStore } from '../stores/testStore';
 import { useGateStore } from '../stores/gateStore';
+import { useUATStore } from '../stores/uatStore';
 import type { GateEvent } from '../types/events';
 
 type ConnectionStatus = 'connected' | 'connecting' | 'disconnected';
@@ -155,6 +156,51 @@ export function useWebSocket(): UseWebSocketResult {
         }
         break;
 
+      case 'UAT' as EventCategory:
+        if (event.payload.testCaseId) {
+          useUATStore.getState().upsertCase({
+            id: event.payload.testCaseId as string,
+            suiteId: event.payload.suiteId as string || '',
+            title: event.payload.title as string || '',
+            feature: event.payload.feature as string,
+            priority: event.payload.priority as string || 'P2',
+            ctaElement: event.payload.ctaElement as string,
+            ctaSelector: event.payload.ctaSelector as string,
+            userRole: event.payload.userRole as string,
+            device: event.payload.device as string,
+            browser: event.payload.browser as string,
+            compliance: (event.payload.compliance as string[]) || [],
+            preconditions: [],
+            steps: (event.payload.steps as Array<{ number: number; action: string; element: string; inputData?: string }>) || [],
+            expectedResult: event.payload.expectedResult as string,
+            actualResult: event.payload.actualResult as string,
+            status: event.payload.status as string || 'pending',
+            screenshotBefore: event.payload.screenshotBefore as string,
+            screenshotAfter: event.payload.screenshotAfter as string,
+            screenshotError: event.payload.screenshotError as string,
+            consoleLog: event.payload.consoleLog as string,
+            networkLog: event.payload.networkLog as string,
+            defectId: event.payload.defectId as string,
+            defectSeverity: event.payload.defectSeverity as string,
+            executedBy: event.agent?.role || 'QA',
+            executedAt: event.timestamp,
+            durationMs: event.meta?.duration_ms || 0,
+            environment: event.payload.environment as string,
+            build: event.payload.build as string,
+            round: (event.payload.round as number) || 0,
+            retryCount: 0,
+            createdAt: event.timestamp,
+            updatedAt: event.timestamp,
+          });
+        }
+        if (event.payload.coverage !== undefined) {
+          useUATStore.getState().setSummary({
+            ...useUATStore.getState().summary,
+            coverage: event.payload.coverage as number,
+          });
+        }
+        break;
+
       default:
         break;
     }
@@ -195,6 +241,13 @@ export function useWebSocket(): UseWebSocketResult {
         } else if (data.id && data.category) {
           dispatchEvent(data as MissionControlEvent);
         }
+        // Handle UAT broadcasts from server
+        else if (data.type === 'uat_suite' && data.data) {
+          useUATStore.getState().upsertSuite(data.data);
+        }
+        else if (data.type === 'uat_case' && data.data) {
+          useUATStore.getState().upsertCase(data.data);
+        }
         // Handle gate broadcasts from server
         else if (data.type === 'gate' && data.data) {
           const gateData = data.data as GateEvent;
@@ -232,6 +285,12 @@ export function useWebSocket(): UseWebSocketResult {
             if (pendingGates.length > 0) {
               useGateStore.getState().setPendingGates(pendingGates);
             }
+          }
+          if (data.uatSuites && Array.isArray(data.uatSuites)) {
+            useUATStore.getState().setSuites(data.uatSuites);
+          }
+          if (data.uatSummary) {
+            useUATStore.getState().setSummary(data.uatSummary);
           }
           // Replay recent events into the event store
           if (data.events && Array.isArray(data.events)) {

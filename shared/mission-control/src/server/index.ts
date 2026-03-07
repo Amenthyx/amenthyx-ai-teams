@@ -10,6 +10,7 @@ import {
   initDatabase, closeDatabase, insertEvent,
   getAgents, upsertAgent, getBudget, updateBudget,
   getWaves, upsertWave, getEvents, getGates,
+  getUATSuites, getUATCases, getUATSummary,
 } from './db/database';
 import { createHealthRouter } from './routes/health';
 import { createEventsRouter } from './routes/events';
@@ -17,6 +18,28 @@ import { createAgentsRouter } from './routes/agents';
 import { createBudgetRouter } from './routes/budget';
 import { createWavesRouter } from './routes/waves';
 import { createGatesRouter } from './routes/gates';
+import { createUATRouter } from './routes/uat';
+import { createDecisionsRouter } from './routes/decisions';
+import { createInterviewsRouter } from './routes/interviews';
+import { createCIRouter } from './routes/ci';
+import { createEvidenceRouter } from './routes/evidence';
+import { createServicesRouter } from './routes/services';
+import { createAnalyticsRouter } from './routes/analytics';
+import { createMetricsRouter } from './routes/metrics';
+import { createExportRouter } from './routes/export';
+import { createGitRouter } from './routes/git';
+import { createSearchRouter } from './routes/search';
+import { createSessionsRouter } from './routes/sessions';
+import { createReportsRouter } from './routes/reports';
+import { createScreenshotsRouter } from './routes/screenshots';
+import { createArtifactsRouter } from './routes/artifacts';
+import { createDebugRouter } from './routes/debug';
+import { createWebhooksRouter } from './routes/webhooks';
+import { createRetentionRouter } from './routes/retention';
+import { createBatchExportRouter } from './routes/batch-export';
+import { timingMiddleware } from './middleware/timing';
+import { responseTimerMiddleware } from './middleware/response-timer';
+import { rateTrackerMiddleware } from './middleware/rate-tracker';
 import { FileWatcherService } from './watchers/file-watcher';
 import { GitWatcherService } from './watchers/git-watcher';
 import { EventCategory, type MissionControlEvent, type AgentInfo } from './types/events';
@@ -105,7 +128,18 @@ function loadConfig(): ProjectConfig {
   return {};
 }
 
-const projectConfig = loadConfig();
+let projectConfig = loadConfig();
+
+// Reload config periodically to detect team activation mid-session
+function reloadConfig(): void {
+  const updated = loadConfig();
+  const wasActive = !!(projectConfig.projectName || projectConfig.teamName);
+  const nowActive = !!(updated.projectName || updated.teamName);
+  if (!wasActive && nowActive) {
+    log('info', `Project activated: ${updated.projectName || updated.teamName}`);
+  }
+  projectConfig = updated;
+}
 
 // ---------------------------------------------------------------------------
 // App Setup
@@ -117,6 +151,9 @@ const server = http.createServer(app);
 // Middleware
 app.use(cors({ origin: true }));
 app.use(express.json({ limit: '1mb' }));
+app.use(timingMiddleware);
+app.use(responseTimerMiddleware);
+app.use(rateTrackerMiddleware);
 
 // ---------------------------------------------------------------------------
 // WebSocket Setup
@@ -165,6 +202,8 @@ function sendSnapshot(ws: WebSocket): void {
     const waves = getWaves();
     const recentEvents = getEvents({ limit: 50 });
     const pendingGates = getGates('pending');
+    const uatSuites = getUATSuites();
+    const uatSummary = getUATSummary();
 
     const snapshot: Record<string, unknown> = {
       type: 'snapshot',
@@ -175,6 +214,8 @@ function sendSnapshot(ws: WebSocket): void {
       waves: waves.length > 0 ? waves : undefined,
       events: recentEvents.events,
       gates: pendingGates.length > 0 ? pendingGates : undefined,
+      uatSuites: uatSuites.length > 0 ? uatSuites : undefined,
+      uatSummary: uatSummary.totalCases > 0 ? uatSummary : undefined,
       timestamp: new Date().toISOString(),
     };
 
@@ -213,16 +254,39 @@ app.use('/api', createAgentsRouter(wsClients, broadcast));
 app.use('/api', createBudgetRouter(wsClients, broadcast));
 app.use('/api', createWavesRouter(wsClients, broadcast));
 app.use('/api', createGatesRouter(broadcast));
+app.use('/api', createUATRouter(wsClients, broadcast));
+app.use('/api', createDecisionsRouter(broadcast));
+app.use('/api', createInterviewsRouter(broadcast));
+app.use('/api', createCIRouter(broadcast));
+app.use('/api', createEvidenceRouter(broadcast));
+app.use('/api', createServicesRouter(broadcast));
+app.use('/api', createAnalyticsRouter());
+app.use('/api', createMetricsRouter());
+app.use('/api', createExportRouter());
+app.use('/api', createGitRouter(GIT_CWD));
+app.use('/api', createSearchRouter());
+app.use('/api', createSessionsRouter(broadcast));
+app.use('/api', createReportsRouter());
+app.use('/api', createScreenshotsRouter());
+app.use('/api', createArtifactsRouter(broadcast));
+app.use('/api', createDebugRouter());
+app.use('/api', createWebhooksRouter(broadcast));
+app.use('/api', createRetentionRouter());
+app.use('/api', createBatchExportRouter());
 
 // Config endpoint — frontend can fetch dynamic project settings
+// Reloads config each call to detect team activation mid-session
 app.get('/api/config', (_req, res) => {
+  reloadConfig();
   const agents = getAgents();
   const budget = getBudget();
   const waves = getWaves();
+  const hasProject = !!(projectConfig.projectName || projectConfig.teamName);
   res.json({
     sessionId: SESSION_ID,
     projectName: projectConfig.projectName || projectConfig.teamName || 'Project',
     teamName: projectConfig.teamName || 'unknown',
+    projectActive: hasProject,
     agents,
     budget,
     waves,
@@ -233,7 +297,7 @@ app.get('/api/config', (_req, res) => {
 });
 
 // Serve static files in production
-const clientDistPath = path.resolve(__dirname, '../client/dist');
+const clientDistPath = path.resolve(__dirname, '../client');
 app.use(express.static(clientDistPath));
 
 // SPA fallback: serve index.html for unmatched routes (except /api)
@@ -341,6 +405,32 @@ server.listen(PORT, () => {
   log('info', `Database: ${DB_PATH}`);
   log('info', `Watching: ${WATCH_DIR}`);
   log('info', `Git CWD: ${GIT_CWD} (branch: ${GIT_BRANCH})`);
+
+  // Auto-open Mission Control in the default browser
+  // Only opens if a project config exists (team activation created it)
+  // or if MC_FORCE_OPEN=1 is set for manual testing
+  const dashboardUrl = `http://localhost:${PORT}`;
+  const noOpen = process.env.MC_NO_OPEN === '1' || process.env.MC_NO_OPEN === 'true';
+  const forceOpen = process.env.MC_FORCE_OPEN === '1' || process.env.MC_FORCE_OPEN === 'true';
+  const hasProject = projectConfig.projectName || projectConfig.teamName;
+
+  if (!noOpen) {
+    const openCommand =
+      process.platform === 'win32' ? `start "" "${dashboardUrl}"` :
+      process.platform === 'darwin' ? `open "${dashboardUrl}"` :
+      `xdg-open "${dashboardUrl}"`;
+    child_process.exec(openCommand, (err) => {
+      if (err) {
+        log('warn', `Could not auto-open browser: ${err.message}`);
+        log('info', `Open manually: ${dashboardUrl}`);
+      } else {
+        log('info', `Browser opened: ${dashboardUrl}`);
+        if (!hasProject) {
+          log('info', 'Showing splash screen — waiting for team activation');
+        }
+      }
+    });
+  }
 
   // Emit startup event
   const startupEvent: MissionControlEvent = {

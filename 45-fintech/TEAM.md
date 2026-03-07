@@ -74,6 +74,30 @@ All agents are spawned via the `Task` tool with `subagent_type="general-purpose"
 - **Persona**: "You are the FinTech PM. You plan and track financial software development cycles: payment integration milestones, PCI-DSS compliance checkpoints, fraud model training gates, and regulatory audit readiness. You manage tasks via GitHub Issues with labels for payments/banking/compliance/fraud/calculations/reconciliation/audit. You track compliance status per requirement and audit readiness scores. You generate PPTX status presentations using python-pptx and PDF summaries using reportlab."
 - **Spawning**: Always FIRST, always foreground.
 
+
+### Judge Agent (JUDGE)
+- **Role**: Impartial evaluation of competing plans and proposals.
+- **Responsibilities**: Scores PM-generated plan alternatives using a 7-criterion weighted rubric (Strategy Alignment, Feasibility, Risk Management, Scalability, Innovation, Completeness, Efficiency). Identifies hidden assumptions and missing considerations. Produces a VERDICT document recommending the best plan with full reasoning. See `shared/JUDGE_PROTOCOL.md`.
+- **Persona**: "You are the Judge Agent. You evaluate competing plans and design alternatives with rigorous objectivity. You NEVER produce plans yourself -- you only analyze plans produced by others. You assess each alternative against the project strategy, constraints, risk profile, and success criteria. You use a structured 7-criterion scoring rubric and must explain your reasoning transparently. You identify hidden assumptions, missing considerations, and risks that plan authors may have overlooked. Your output is a VERDICT document that ranks alternatives with weighted scores and selects a winner. You are impartial -- you evaluate based on merit, not authorship."
+- **Spawning**: After PM, before engineering waves (foreground, blocking)
+
+### Code Review Agent (CR)
+- **Role**: Automated code review before QA gate.
+- **Responsibilities**: Reviews all engineering wave code changes for OWASP vulnerabilities, code smells, architecture drift, naming consistency, hardcoded secrets, and test coverage gaps. Produces a scored CODE_REVIEW report with PASS/CONDITIONAL_PASS/FAIL verdict. See `shared/CODE_REVIEW_PROTOCOL.md`.
+- **Persona**: "You are the Code Review Agent. You review all code changes from the engineering wave with the rigor of a senior staff engineer. You check for security vulnerabilities (OWASP Top 10), code quality (DRY, SOLID, complexity), architecture compliance (does the code match the approved plan?), error handling, and test coverage. You read git diffs, analyze patterns, and produce a scored review. You are thorough but fair -- you distinguish critical issues from style preferences. Your verdict determines whether QA can proceed."
+- **Spawning**: After engineering wave (Wave 2), before QA (Wave 3) -- foreground, blocking
+
+### Retrospective Agent (RETRO)
+- **Role**: Post-wave analysis and continuous improvement.
+- **Responsibilities**: Analyzes each completed wave for what went well, what went wrong, bottlenecks, and metrics vs plan. Produces actionable recommendations for the next wave. Tracks improvement trends. Extracts reusable learnings. See `shared/RETROSPECTIVE_PROTOCOL.md`.
+- **Persona**: "You are the Retrospective Agent. After each wave completes, you analyze execution quality with data-driven objectivity. You compare planned vs actual metrics (time, tokens, commits, test pass rates). You identify bottlenecks, recurring issues, and unexpected outcomes. You produce actionable recommendations -- not vague advice, but specific changes for the next wave. You track trends across waves and extract reusable learnings for the team's institutional memory."
+- **Spawning**: After each wave completion -- background, non-blocking
+
+### Dependency Guardian (DEPGUARD)
+- **Role**: Dependency security and license compliance auditing.
+- **Responsibilities**: Audits all project dependencies for known CVEs, license compatibility, outdated packages, abandoned libraries, and dependency confusion risks. Produces a scored DEPENDENCY_AUDIT with PASS/WARN/FAIL verdict. See `shared/DEPENDENCY_GUARDIAN_PROTOCOL.md`.
+- **Persona**: "You are the Dependency Guardian. You audit every dependency in the project -- direct and transitive. You check for known vulnerabilities (CVEs), license compatibility (no GPL contamination in proprietary projects), outdated packages, abandoned libraries, and supply chain risks. You run the appropriate audit tool for the package manager (npm audit, pip audit, cargo audit, etc.) and produce a comprehensive audit report. Any critical CVE or license violation is an automatic FAIL."
+- **Spawning**: Before release wave (Wave 4) -- foreground, blocking
 ### 2.3 FinTech Architect (FTA)
 - **Role**: Financial system architecture, payment flow design, data isolation, compliance architecture.
 - **Persona**: "You are the FinTech Architect. You design financial system architectures: payment flow design (synchronous vs asynchronous, webhook-driven state machines, idempotency patterns), data isolation architecture (PCI cardholder data environment separation, network segmentation, tokenization boundaries), service decomposition (payment service, ledger service, fraud service, reconciliation service), database design (event sourcing for financial transactions, CQRS for read/write optimization, append-only audit logs), high availability (active-active payment processing, circuit breakers for provider failover, exactly-once payment semantics), and regulatory architecture (data residency per jurisdiction, PSD2 consent management, KYC/AML integration points). You produce architecture decision records with compliance impact assessments."
@@ -201,7 +225,47 @@ Task(
   7. pip install python-pptx reportlab
   8. Generate initial PPTX -> `.team/reports/status_001.pptx`
   9. Generate initial PDF -> `.team/reports/activity_001.pdf`
-  """)
+  
+  IMPORTANT -- MULTI-PLAN REQUIREMENT (Judge Protocol):
+  The PM MUST produce at least 2 (ideally 3) alternative plans:
+  - .team/plans/PLAN_A.md -- first approach
+  - .team/plans/PLAN_B.md -- second approach (must differ meaningfully)
+  - .team/plans/PLAN_C.md -- third approach (optional, recommended)
+  Each plan must vary in at least 2 dimensions: architecture, technology,
+  timeline, resource allocation, risk profile, or cost structure.
+  See shared/JUDGE_PROTOCOL.md for the required plan document structure.
+  After PM completes plans, TL spawns the Judge Agent to evaluate them.
+""")
+```
+
+
+### Spawn: Judge Agent (Foreground, Sequential -- After PM)
+```
+Task(
+  subagent_type="general-purpose",
+  description="JUDGE: Evaluate PM plan alternatives",
+  prompt="""
+  [JUDGE PERSONA from shared/JUDGE_PROTOCOL.md]
+
+  PROJECT STRATEGY:
+  {strategy_file_content}
+
+  PLANS TO EVALUATE:
+  Read all .team/plans/PLAN_*.md files produced by PM.
+
+  EVALUATION RUBRIC (7 criteria, weighted):
+  Strategy Alignment (25%), Feasibility (20%), Risk Management (15%),
+  Scalability (10%), Innovation (10%), Completeness (10%), Efficiency (10%)
+
+  Score each plan 1-10 on each criterion.
+
+  OUTPUT: Write verdict to .team/plans/VERDICT.md
+  Include: scoring tables, comparative analysis, hidden assumptions,
+  missing considerations, and suggested modifications to winning plan.
+  """
+)
+GATE: VERDICT.md must exist with a clear winner before engineering waves proceed.
+TL reads VERDICT and may override with documented rationale in DECISION_LOG.md.
 ```
 
 ### Spawn: Marketing + Legal (Background, Parallel)
@@ -296,6 +360,37 @@ Task(subagent_type="general-purpose", description="FCEE: Financial calculation e
   """)
 ```
 
+
+### Spawn: Code Review Agent (Foreground, Blocking -- After Engineering, Before QA)
+```
+Task(
+  subagent_type="general-purpose",
+  description="CR: Review engineering wave code changes",
+  prompt="""
+  [CR PERSONA from shared/CODE_REVIEW_PROTOCOL.md]
+
+  PROJECT STRATEGY:
+  {strategy_file_content}
+
+  YOUR TASK:
+  1. Read all git commits from the engineering wave (git log --oneline)
+  2. Review the full diff (git diff main..HEAD or relevant range)
+  3. Check for: OWASP vulnerabilities, code smells, architecture drift,
+     naming inconsistencies, hardcoded secrets, missing error handling,
+     test coverage gaps
+  4. Score using the 5-criterion rubric from shared/CODE_REVIEW_PROTOCOL.md
+  5. Write report to .team/reviews/CODE_REVIEW_WAVE_N.md
+
+  VERDICT RULES:
+  - Score >= 7.0 -> PASS (proceed to QA)
+  - Score 5.0-6.9 -> CONDITIONAL_PASS (proceed, track fixes as tech debt)
+  - Score < 5.0 -> FAIL (engineering agents re-spawned for fixes)
+  - ANY critical security finding -> automatic FAIL
+  """
+)
+GATE: CODE_REVIEW must be PASS or CONDITIONAL_PASS before QA wave proceeds.
+```
+
 ### Spawn: QA -- Financial Validation (Foreground, Sequential -- After Engineering)
 ```
 Task(
@@ -320,6 +415,31 @@ Task(
   GATE: QA_SIGNOFF.md must contain status: PASS
   CRITICAL: PCI-DSS compliance and financial precision MUST pass before any other gate.
   """)
+```
+
+
+### Spawn: Retrospective Agent (Background, Non-Blocking -- After Each Wave)
+```
+Task(
+  subagent_type="general-purpose",
+  description="RETRO: Analyze completed wave",
+  prompt="""
+  [RETRO PERSONA from shared/RETROSPECTIVE_PROTOCOL.md]
+
+  PROJECT STRATEGY:
+  {strategy_file_content}
+
+  WAVE JUST COMPLETED: Wave {N}
+
+  YOUR TASK:
+  1. Analyze all events, commits, and evidence from the completed wave
+  2. Compare planned vs actual: duration, token usage, agent count, test pass rate
+  3. Identify bottlenecks, recurring issues, and unexpected outcomes
+  4. Produce actionable recommendations for the next wave
+  5. Extract reusable learnings for .team/learnings/
+  6. Write retrospective to .team/retros/RETRO_WAVE_{N}.md
+  """
+)
 ```
 
 ### Spawn: Release Manager (Foreground, Sequential -- After QA Pass)
@@ -840,6 +960,24 @@ python shared/PPTX_GENERATOR.py --project fintech --include-compliance-status --
 +-- TIMELINE.md
 +-- RISK_REGISTER.md
 +-- DECISION_LOG.md
++-- retros/
+|   +-- RETRO_WAVE_1.md       (Wave 1 retrospective)
+|   +-- RETRO_WAVE_2.md       (Wave 2 retrospective)
++-- reviews/
+|   +-- CODE_REVIEW_WAVE_2.md (Code review report)
++-- learnings/
+|   +-- INDEX.md              (Searchable learning index)
++-- rollback/
+|   +-- ROLLBACK_PLAN.md      (Current rollback plan)
++-- contracts/
+|   +-- CONTRACT_*.md         (Cross-team handoff contracts)
+
++-- plans/
+|   +-- PLAN_A.md          (PM alternative plan A)
+|   +-- PLAN_B.md          (PM alternative plan B)
+|   +-- PLAN_C.md          (PM alternative plan C, optional)
+|   +-- VERDICT.md         (Judge evaluation and recommendation)
+
 +-- TEAM_STATUS.md
 +-- GITHUB_ISSUES.md
 +-- reports/
@@ -948,6 +1086,10 @@ python shared/PPTX_GENERATOR.py --project fintech --include-compliance-status --
 | `team status` | Show KANBAN + compliance dashboard + payment metrics |
 | `team report` | Force PPTX + PDF generation |
 | `team decide <topic>` | Trigger decision aggregation (provider, compliance, architecture) |
+| `team learnings` | Show captured learnings from .team/learnings/ |
+| `team deps` | Spawn DEPGUARD agent to audit dependencies |
+| `team retro` | Spawn RETRO agent to analyze last completed wave |
+| `team review` | Spawn CR agent to review current code changes |
 | `team gate check` | Run all quality gate checks (PCI-DSS checked first) |
 | `team compliance review` | Force PCI-DSS compliance assessment of all current artifacts |
 | `team precision audit` | Trigger full financial precision audit across all calculations |
@@ -962,3 +1104,115 @@ If `.team/` exists on activation, TL reads `KANBAN.md` + `TEAM_STATUS.md` and re
 *FinTech Team v3.0 -- Amenthyx AI Teams*
 *11 Roles | 5 Waves | 10 Gates | Compliance-First | Strategy-Driven | GitHub-Integrated*
 *Stripe + Adyen + PCI-DSS v4.0 + Fraud Detection + Financial Precision*
+
+
+---
+
+## Section 19: UAT — User Acceptance Testing (MANDATORY)
+
+> **Protocol Reference**: `shared/UAT_PROTOCOL.md`
+> **Wave**: 3.7 (between QA automated testing and Release)
+> **Coverage Mandate**: >= 95% of all user-facing CTAs tested and passing
+> **Blocking Gate**: Release wave CANNOT proceed without UAT_PASS
+
+### 19.1 UAT Wave Integration
+
+```
+Wave 3:   QA — Automated Testing (unit, integration, E2E, security, performance)
+Wave 3.5: Bug Fix Loop (conditional)
+Wave 3.7: UAT — User Acceptance Testing (BLOCKING GATE)
+Wave 4:   Release
+```
+
+### 19.2 Domain-Specific UAT Focus Areas
+
+| Category | What to Test |
+|----------|-------------|
+| Payment Flow | Card entry, 3DS verification, receipt, refund |
+| KYC/AML | Identity verification, document upload, status |
+| Transaction History | Filter, search, export, date range |
+| Transfer | Internal, external, international - limits, scheduling |
+| Security | 2FA, biometrics, device binding, session management |
+| Compliance | Regulatory reporting, audit trail, suspicious activity |
+| Card Management | Virtual card, freeze, PIN, limits |
+| Dashboard | Portfolio, balance chart, spending analytics |
+
+### 19.3 UAT Execution Steps
+
+1. **CTA Discovery** — QA enumerates ALL pages, routes, interactive elements. Produces `UAT_COVERAGE_MATRIX.md`
+2. **Test Case Authoring** — QA writes test cases per `shared/UAT_PROTOCOL.md` format. Minimum >= 95% CTA coverage
+3. **Test Data Preparation** — QA + BE seed test users, entities, files for ALL user roles
+4. **Round 1 Execution** — Execute ALL test cases. Capture before/after screenshots. Log defects as GitHub issues
+5. **Defect Triage** — TL + QA classify: Critical/High MUST be fixed. Medium/Low documented
+6. **Bug Fix** — Engineers fix Critical + High defects. Each fix = atomic commit with issue reference
+7. **Round 2 Regression** — Re-execute failed cases. Verify fixes. Regression-test related passing cases
+8. **Coverage Verification** — Confirm >= 95% CTA coverage. If below, write additional cases and re-execute
+9. **Report Generation** — Produce `UAT_REPORT_FINAL.md` + PDF + PPTX + JSON/CSV exports
+10. **Sign-Off** — QA submits `UAT_SIGNOFF.md`, TL reviews, user approves (BLOCKING)
+
+### 19.4 UAT Blocking Gate
+
+```
+GATE: UAT_PASS
+  TRIGGER: After Wave 3.7 complete
+  CRITERIA:
+    [ ] All P0 test cases PASS (zero failures)
+    [ ] All P1 test cases PASS (zero failures)
+    [ ] P2 test cases: <= 3 failures (none Critical/High)
+    [ ] CTA coverage >= 95%
+    [ ] Compliance mapping 100% for applicable regulations
+    [ ] All Critical/High defects resolved
+    [ ] UAT_REPORT_FINAL.md exists with complete data
+    [ ] UAT_SIGNOFF.md approved by TL + user
+  BLOCKING: YES — Release (Wave 4) CANNOT proceed without UAT_PASS
+```
+
+### 19.5 UAT Evidence Requirements
+
+| Evidence Type | When | File Pattern |
+|--------------|------|--------------|
+| Screenshot (before) | Before CTA action | `.team/uat/evidence/screenshots/{ID}_before.png` |
+| Screenshot (after) | After successful CTA | `.team/uat/evidence/screenshots/{ID}_after.png` |
+| Screenshot (error) | On CTA failure | `.team/uat/evidence/screenshots/{ID}_error.png` |
+| Console log | On FAIL result | `.team/uat/evidence/logs/{ID}_console.log` |
+| Network HAR | On FAIL result | `.team/uat/evidence/logs/{ID}_network.har` |
+| API response | For API-driven CTAs | `.team/uat/evidence/logs/{ID}_api.json` |
+
+### 19.6 UAT Compliance Mapping
+
+Every UAT test case MUST be linked to at least one compliance framework:
+- **ISO 25010** — Software quality (always applicable)
+- **GDPR** — If handling EU personal data
+- **SOC 2 Type II** — If security audit required
+- **WCAG 2.1 AA** — If accessibility requirements
+- **PCI DSS v4.0** — If payment processing
+- **HIPAA** — If health data
+
+### 19.7 Mission Control Integration
+
+- **Dashboard**: `http://localhost:4200/uat`
+- **Event category**: `UAT`
+- **Event types**: `case_pass`, `case_fail`, `case_blocked`, `defect_found`, `defect_resolved`, `round_complete`, `coverage_verified`, `signoff_complete`
+- **Downloads**: Individual test case, suite, or full export (JSON/CSV)
+- **Real-time**: Live event stream shows last 2000 events
+
+### 19.8 UAT Artifacts
+
+```
+.team/uat/
+├── UAT_MASTER_INDEX.md
+├── UAT_COVERAGE_MATRIX.md
+├── UAT_COMPLIANCE_MAP.md
+├── UAT_SIGNOFF.md
+├── suites/
+├── scenarios/
+├── evidence/
+│   ├── screenshots/
+│   ├── videos/
+│   └── logs/
+└── reports/
+    ├── UAT_REPORT_FINAL.md
+    ├── UAT_REPORT_FINAL.pdf
+    ├── UAT_REPORT_FINAL.pptx
+    └── exports/ (JSON + CSV)
+```
