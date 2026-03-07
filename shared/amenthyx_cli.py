@@ -1628,5 +1628,34 @@ def main() -> int:
         return 1
 
 
+def _should_pause_on_exit() -> bool:
+    """Detect if the exe was launched by double-click (no parent terminal).
+
+    When double-clicked from Explorer, Windows creates a temporary console
+    that closes immediately when the process exits.  We pause so the user
+    can read the output.  When launched from CMD, PowerShell, Git Bash, or
+    any terminal, we do NOT pause — output stays visible in the caller's
+    window.
+    """
+    if not _FROZEN or sys.platform != "win32":
+        return False
+    try:
+        import ctypes
+        kernel32 = ctypes.windll.kernel32  # type: ignore[attr-defined]
+        # GetConsoleProcessList returns the number of processes attached
+        # to the current console.  If it's 1, we own the console (double-click).
+        # If > 1, a parent shell (cmd/powershell/bash) also owns it.
+        pid_count = ctypes.c_ulong(0)
+        pids = (ctypes.c_ulong * 16)()
+        n = kernel32.GetConsoleProcessList(pids, 16)
+        return n <= 1
+    except Exception:
+        return False
+
+
 if __name__ == "__main__":
-    sys.exit(main())
+    _exit_code = main()
+    if _should_pause_on_exit():
+        print()
+        input("Press Enter to exit...")
+    sys.exit(_exit_code)
