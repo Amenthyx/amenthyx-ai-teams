@@ -28,7 +28,6 @@ jobs:
           TITLE="${{ github.event.pull_request.title }}"
           echo "PR title: $TITLE"
 
-          # Case-insensitive match for MAJOR, MINOR, PATCH anywhere in title
           if echo "$TITLE" | grep -qi '\[MAJOR\]'; then
             echo "should_release=true" >> $GITHUB_OUTPUT
             echo "bump_type=major" >> $GITHUB_OUTPUT
@@ -48,35 +47,23 @@ jobs:
         id: version
         if: steps.check.outputs.should_release == 'true'
         run: |
-          # Get latest version tag (or default to v0.0.0)
           LATEST=$(git tag -l 'v*' --sort=-v:refname | head -1)
           if [ -z "$LATEST" ]; then
             LATEST="v0.0.0"
           fi
           echo "Latest tag: $LATEST"
 
-          # Parse version components
           VERSION="${LATEST#v}"
           IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
           MAJOR=${MAJOR:-0}
           MINOR=${MINOR:-0}
           PATCH=${PATCH:-0}
 
-          # Bump based on type
           BUMP="${{ steps.check.outputs.bump_type }}"
           case "$BUMP" in
-            major)
-              MAJOR=$((MAJOR + 1))
-              MINOR=0
-              PATCH=0
-              ;;
-            minor)
-              MINOR=$((MINOR + 1))
-              PATCH=0
-              ;;
-            patch)
-              PATCH=$((PATCH + 1))
-              ;;
+            major) MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0 ;;
+            minor) MINOR=$((MINOR + 1)); PATCH=0 ;;
+            patch) PATCH=$((PATCH + 1)) ;;
           esac
 
           NEW_VERSION="v${MAJOR}.${MINOR}.${PATCH}"
@@ -109,8 +96,61 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install PyInstaller
-        run: pip install pyinstaller
+      # Build PyInstaller bootloader from source to avoid AV false positives.
+      # Pre-built bootloaders are flagged by heuristic scanners because their
+      # hash is widely known. Compiling from source produces a unique binary.
+      - name: Install PyInstaller (bootloader from source)
+        shell: bash
+        run: |
+          pip install pyinstaller --no-binary pyinstaller
+
+      # Inject version metadata into the executable (helps AV trust scoring)
+      - name: Create version info
+        shell: python
+        run: |
+          import json, os
+
+          version = "${{ needs.check-release.outputs.new_version }}".lstrip("v")
+          parts = version.split(".")
+          major, minor, patch = int(parts[0]), int(parts[1]), int(parts[2])
+
+          # Windows version info (VERSIONINFO resource)
+          version_info = f'''
+          VSVersionInfo(
+            ffi=FixedFileInfo(
+              filevers=({major}, {minor}, {patch}, 0),
+              prodvers=({major}, {minor}, {patch}, 0),
+              mask=0x3f,
+              flags=0x0,
+              OS=0x40004,
+              fileType=0x1,
+              subtype=0x0,
+              date=(0, 0)
+            ),
+            kids=[
+              StringFileInfo([
+                StringTable(
+                  u'040904B0',
+                  [
+                    StringStruct(u'CompanyName', u'Amenthyx'),
+                    StringStruct(u'FileDescription', u'Amenthyx AI Teams CLI'),
+                    StringStruct(u'FileVersion', u'{version}'),
+                    StringStruct(u'InternalName', u'amenthyx'),
+                    StringStruct(u'LegalCopyright', u'Copyright (c) 2024-2026 Amenthyx'),
+                    StringStruct(u'OriginalFilename', u'amenthyx.exe'),
+                    StringStruct(u'ProductName', u'Amenthyx AI Teams'),
+                    StringStruct(u'ProductVersion', u'{version}'),
+                  ]
+                )
+              ]),
+              VarFileInfo([VarStruct(u'Translation', [1033, 1200])])
+            ]
+          )
+          '''
+
+          with open("version_info.txt", "w") as f:
+              f.write(version_info)
+          print(f"Version info created: {version}")
 
       - name: Encrypt content into vault
         run: python shared/bundler.py --output shared/_vault.py
@@ -133,7 +173,13 @@ jobs:
               "--name=amenthyx",
               "--console",
               "--noconfirm",
+              "--noupx",          # Disable UPX compression (triggers AV heuristics)
+              "--strip",          # Strip debug symbols (reduces size, cleaner binary)
           ]
+
+          # Add Windows version info resource
+          if sys.platform == "win32" and os.path.isfile("version_info.txt"):
+              args.append("--version-file=version_info.txt")
 
           if os.path.isfile(vault):
               args.append(f"--add-data={vault}{sep}shared")
@@ -153,6 +199,40 @@ jobs:
             exit 1
           fi
           echo "CLEAN — zero .md or .py in distribution"
+
+      # Windows: sign with certificate if available
+      - name: Sign Windows executable
+        if: matrix.os == 'windows-latest' && env.WINDOWS_SIGN_CERT != ''
+        shell: pwsh
+        env:
+          WINDOWS_SIGN_CERT: ${{ secrets.WINDOWS_SIGN_CERT }}
+          WINDOWS_SIGN_PASSWORD: ${{ secrets.WINDOWS_SIGN_PASSWORD }}
+        run: |
+          $certBytes = [Convert]::FromBase64String($env:WINDOWS_SIGN_CERT)
+          [IO.File]::WriteAllBytes("cert.pfx", $certBytes)
+          & signtool sign /f cert.pfx /p $env:WINDOWS_SIGN_PASSWORD /tr http://timestamp.digicert.com /td sha256 /fd sha256 "dist\${{ matrix.pyinstaller_name }}"
+          Remove-Item cert.pfx -Force
+          Write-Host "Windows binary signed successfully"
+
+      # macOS: sign and notarize if credentials available
+      - name: Sign and notarize macOS binary
+        if: matrix.os == 'macos-latest' && env.APPLE_DEVELOPER_ID != ''
+        env:
+          APPLE_DEVELOPER_ID: ${{ secrets.APPLE_DEVELOPER_ID }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          codesign --force --deep --sign "$APPLE_DEVELOPER_ID" "dist/${{ matrix.pyinstaller_name }}"
+          echo "macOS binary signed"
+
+          # Notarize (submit to Apple for scanning)
+          ditto -c -k --keepParent "dist/${{ matrix.pyinstaller_name }}" "dist/amenthyx.zip"
+          xcrun notarytool submit "dist/amenthyx.zip" \
+            --apple-id "$APPLE_ID" \
+            --password "$APPLE_ID_PASSWORD" \
+            --team-id "$APPLE_TEAM_ID" \
+            --wait || echo "Notarization submitted (may take time)"
 
       - name: Rename artifact
         shell: bash
@@ -223,6 +303,10 @@ jobs:
             Cross-platform encrypted binaries — all team protocols and source code
             are encrypted inside the binary. Zero readable .md or .py files.
 
+            **Security**: Binaries are built from a compiled-from-source PyInstaller
+            bootloader, include version metadata, and are signed when certificates
+            are configured. SHA-256 checksums are provided below.
+
             ### Download
             | Platform | File |
             |----------|------|
@@ -230,14 +314,9 @@ jobs:
             | Linux | `amenthyx-linux` |
             | macOS | `amenthyx-macos` |
 
-            ### Install
+            ### Verify Integrity
             ```bash
-            # Linux / macOS
-            curl -fsSL https://github.com/Amenthyx/amenthyx-ai-teams/releases/download/${{ needs.check-release.outputs.new_version }}/amenthyx-linux -o amenthyx
-            chmod +x amenthyx && sudo mv amenthyx /usr/local/bin/
-
-            # Windows (PowerShell)
-            Invoke-WebRequest -Uri "https://github.com/Amenthyx/amenthyx-ai-teams/releases/download/${{ needs.check-release.outputs.new_version }}/amenthyx-windows.exe" -OutFile amenthyx.exe
+            sha256sum -c checksums.txt
             ```
 
             ### Usage
