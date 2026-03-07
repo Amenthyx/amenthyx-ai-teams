@@ -1,6 +1,7 @@
 import React from 'react';
 import { Outlet } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
+import { Breadcrumbs } from './Breadcrumbs';
 import { AgentFilterBar } from '../panels/AgentFilterBar';
 
 export const DashboardShell: React.FC = () => {
@@ -10,6 +11,7 @@ export const DashboardShell: React.FC = () => {
       <div className="flex flex-col flex-1 overflow-hidden">
         <AgentFilterBar />
         <main className="flex-1 overflow-y-auto p-4 dark:bg-gray-900 bg-gray-50">
+          <Breadcrumbs />
           <Outlet />
         </main>
       </div>

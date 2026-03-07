@@ -144,6 +144,91 @@ export function initDatabase(dbPath: string): Database.Database {
     CREATE INDEX IF NOT EXISTS idx_events_agent_role ON events(agent_role);
     CREATE INDEX IF NOT EXISTS idx_events_timestamp ON events(timestamp);
     CREATE INDEX IF NOT EXISTS idx_gates_status ON gates(status);
+
+    -- Decisions table (Enhancement #3)
+    CREATE TABLE IF NOT EXISTS decisions (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      context TEXT,
+      decision_text TEXT NOT NULL,
+      rationale TEXT,
+      decided_by TEXT,
+      status TEXT NOT NULL DEFAULT 'proposed',
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_decisions_status ON decisions(status);
+
+    -- Interviews table (Enhancement #4)
+    CREATE TABLE IF NOT EXISTS interviews (
+      id TEXT PRIMARY KEY,
+      question TEXT NOT NULL,
+      answer TEXT NOT NULL,
+      implications TEXT,
+      category TEXT NOT NULL DEFAULT 'general',
+      order_num INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_interviews_category ON interviews(category);
+
+    -- CI/CD runs table (Enhancement #5)
+    CREATE TABLE IF NOT EXISTS ci_runs (
+      id TEXT PRIMARY KEY,
+      pipeline_id TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'running',
+      steps TEXT NOT NULL DEFAULT '[]',
+      duration INTEGER DEFAULT 0,
+      trigger_agent TEXT,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_ci_runs_status ON ci_runs(status);
+
+    -- Evidence table (Enhancement #8)
+    CREATE TABLE IF NOT EXISTS evidence (
+      id TEXT PRIMARY KEY,
+      type TEXT NOT NULL,
+      artifact_url TEXT,
+      linked_entity_type TEXT,
+      linked_entity_id TEXT,
+      verified_by TEXT,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_evidence_type ON evidence(type);
+
+    -- Sessions table (Enhancement #9)
+    CREATE TABLE IF NOT EXISTS sessions (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      last_active TEXT DEFAULT CURRENT_TIMESTAMP,
+      config TEXT NOT NULL DEFAULT '{}'
+    );
+
+    -- Agent messages table (Enhancement #42)
+    CREATE TABLE IF NOT EXISTS agent_messages (
+      id TEXT PRIMARY KEY,
+      sender TEXT NOT NULL,
+      receiver TEXT NOT NULL,
+      content TEXT NOT NULL,
+      timestamp TEXT NOT NULL,
+      context TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_agent_messages_sender ON agent_messages(sender);
+    CREATE INDEX IF NOT EXISTS idx_agent_messages_receiver ON agent_messages(receiver);
+
+    -- Build artifacts table (Enhancement #49)
+    CREATE TABLE IF NOT EXISTS artifacts (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      type TEXT NOT NULL,
+      size INTEGER DEFAULT 0,
+      hash TEXT,
+      path TEXT,
+      producer_agent TEXT,
+      wave INTEGER,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_artifacts_wave ON artifacts(wave);
   `);
 
   log('info', `Database initialized at ${dbPath}`);
@@ -869,5 +954,338 @@ export function getUATSummary(): {
     coverage: total > 0 ? Math.round((passed / total) * 1000) / 10 : 0,
     defectsFound: stats.defects_found || 0,
     defectsResolved: stats.defects_resolved || 0,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Decision Operations
+// ---------------------------------------------------------------------------
+
+export interface DecisionRow {
+  id: string;
+  title: string;
+  context?: string;
+  decision_text: string;
+  rationale?: string;
+  decided_by?: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export function getDecisions(status?: string): DecisionRow[] {
+  const d = getDatabase();
+  if (status) {
+    return d.prepare('SELECT * FROM decisions WHERE status = ? ORDER BY created_at DESC').all(status) as DecisionRow[];
+  }
+  return d.prepare('SELECT * FROM decisions ORDER BY created_at DESC').all() as DecisionRow[];
+}
+
+export function insertDecision(decision: Omit<DecisionRow, 'created_at' | 'updated_at'>): DecisionRow {
+  const d = getDatabase();
+  const now = new Date().toISOString();
+  d.prepare(`
+    INSERT INTO decisions (id, title, context, decision_text, rationale, decided_by, status, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(decision.id, decision.title, decision.context ?? null, decision.decision_text, decision.rationale ?? null, decision.decided_by ?? null, decision.status, now, now);
+  return d.prepare('SELECT * FROM decisions WHERE id = ?').get(decision.id) as DecisionRow;
+}
+
+export function updateDecision(id: string, updates: Partial<DecisionRow>): DecisionRow | null {
+  const d = getDatabase();
+  const setClauses: string[] = [];
+  const params: unknown[] = [];
+  for (const [key, val] of Object.entries(updates)) {
+    if (key !== 'id' && key !== 'created_at' && val !== undefined) {
+      setClauses.push(`${key} = ?`);
+      params.push(val);
+    }
+  }
+  if (setClauses.length === 0) return d.prepare('SELECT * FROM decisions WHERE id = ?').get(id) as DecisionRow | null;
+  setClauses.push('updated_at = ?');
+  params.push(new Date().toISOString());
+  params.push(id);
+  d.prepare(`UPDATE decisions SET ${setClauses.join(', ')} WHERE id = ?`).run(...params);
+  return d.prepare('SELECT * FROM decisions WHERE id = ?').get(id) as DecisionRow | null;
+}
+
+// ---------------------------------------------------------------------------
+// Interview Operations
+// ---------------------------------------------------------------------------
+
+export interface InterviewRow {
+  id: string;
+  question: string;
+  answer: string;
+  implications?: string;
+  category: string;
+  order_num: number;
+  created_at: string;
+}
+
+export function getInterviews(category?: string): InterviewRow[] {
+  const d = getDatabase();
+  if (category) {
+    return d.prepare('SELECT * FROM interviews WHERE category = ? ORDER BY order_num').all(category) as InterviewRow[];
+  }
+  return d.prepare('SELECT * FROM interviews ORDER BY order_num').all() as InterviewRow[];
+}
+
+export function insertInterview(interview: Omit<InterviewRow, 'created_at'>): InterviewRow {
+  const d = getDatabase();
+  const now = new Date().toISOString();
+  d.prepare(`
+    INSERT INTO interviews (id, question, answer, implications, category, order_num, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `).run(interview.id, interview.question, interview.answer, interview.implications ?? null, interview.category, interview.order_num, now);
+  return d.prepare('SELECT * FROM interviews WHERE id = ?').get(interview.id) as InterviewRow;
+}
+
+// ---------------------------------------------------------------------------
+// CI Run Operations
+// ---------------------------------------------------------------------------
+
+export interface CIRunRow {
+  id: string;
+  pipeline_id: string;
+  status: string;
+  steps: string;
+  duration: number;
+  trigger_agent?: string;
+  created_at: string;
+}
+
+export function getCIRuns(status?: string): CIRunRow[] {
+  const d = getDatabase();
+  if (status) {
+    return d.prepare('SELECT * FROM ci_runs WHERE status = ? ORDER BY created_at DESC').all(status) as CIRunRow[];
+  }
+  return d.prepare('SELECT * FROM ci_runs ORDER BY created_at DESC').all() as CIRunRow[];
+}
+
+export function insertCIRun(run: Omit<CIRunRow, 'created_at'>): CIRunRow {
+  const d = getDatabase();
+  const now = new Date().toISOString();
+  d.prepare(`
+    INSERT INTO ci_runs (id, pipeline_id, status, steps, duration, trigger_agent, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `).run(run.id, run.pipeline_id, run.status, run.steps, run.duration, run.trigger_agent ?? null, now);
+  return d.prepare('SELECT * FROM ci_runs WHERE id = ?').get(run.id) as CIRunRow;
+}
+
+export function updateCIRun(id: string, updates: Partial<CIRunRow>): CIRunRow | null {
+  const d = getDatabase();
+  const setClauses: string[] = [];
+  const params: unknown[] = [];
+  for (const [key, val] of Object.entries(updates)) {
+    if (key !== 'id' && key !== 'created_at' && val !== undefined) {
+      setClauses.push(`${key} = ?`);
+      params.push(val);
+    }
+  }
+  if (setClauses.length === 0) return null;
+  params.push(id);
+  d.prepare(`UPDATE ci_runs SET ${setClauses.join(', ')} WHERE id = ?`).run(...params);
+  return d.prepare('SELECT * FROM ci_runs WHERE id = ?').get(id) as CIRunRow | null;
+}
+
+// ---------------------------------------------------------------------------
+// Evidence Operations
+// ---------------------------------------------------------------------------
+
+export interface EvidenceRow {
+  id: string;
+  type: string;
+  artifact_url?: string;
+  linked_entity_type?: string;
+  linked_entity_id?: string;
+  verified_by?: string;
+  created_at: string;
+}
+
+export function getEvidence(type?: string): EvidenceRow[] {
+  const d = getDatabase();
+  if (type) {
+    return d.prepare('SELECT * FROM evidence WHERE type = ? ORDER BY created_at DESC').all(type) as EvidenceRow[];
+  }
+  return d.prepare('SELECT * FROM evidence ORDER BY created_at DESC').all() as EvidenceRow[];
+}
+
+export function insertEvidence(evidence: Omit<EvidenceRow, 'created_at'>): EvidenceRow {
+  const d = getDatabase();
+  const now = new Date().toISOString();
+  d.prepare(`
+    INSERT INTO evidence (id, type, artifact_url, linked_entity_type, linked_entity_id, verified_by, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `).run(evidence.id, evidence.type, evidence.artifact_url ?? null, evidence.linked_entity_type ?? null, evidence.linked_entity_id ?? null, evidence.verified_by ?? null, now);
+  return d.prepare('SELECT * FROM evidence WHERE id = ?').get(evidence.id) as EvidenceRow;
+}
+
+// ---------------------------------------------------------------------------
+// Session Operations
+// ---------------------------------------------------------------------------
+
+export interface SessionRow {
+  id: string;
+  name: string;
+  created_at: string;
+  last_active: string;
+  config: string;
+}
+
+export function getSessions(): SessionRow[] {
+  const d = getDatabase();
+  return d.prepare('SELECT * FROM sessions ORDER BY last_active DESC').all() as SessionRow[];
+}
+
+export function insertSession(session: { id: string; name: string; config?: Record<string, unknown> }): SessionRow {
+  const d = getDatabase();
+  const now = new Date().toISOString();
+  d.prepare(`
+    INSERT INTO sessions (id, name, created_at, last_active, config)
+    VALUES (?, ?, ?, ?, ?)
+  `).run(session.id, session.name, now, now, JSON.stringify(session.config ?? {}));
+  return d.prepare('SELECT * FROM sessions WHERE id = ?').get(session.id) as SessionRow;
+}
+
+export function deleteSession(id: string): boolean {
+  const d = getDatabase();
+  const result = d.prepare('DELETE FROM sessions WHERE id = ?').run(id);
+  return result.changes > 0;
+}
+
+// ---------------------------------------------------------------------------
+// Agent Message Operations
+// ---------------------------------------------------------------------------
+
+export interface AgentMessageRow {
+  id: string;
+  sender: string;
+  receiver: string;
+  content: string;
+  timestamp: string;
+  context?: string;
+}
+
+export function getAgentMessages(agent?: string): AgentMessageRow[] {
+  const d = getDatabase();
+  if (agent) {
+    return d.prepare('SELECT * FROM agent_messages WHERE sender = ? OR receiver = ? ORDER BY timestamp DESC LIMIT 200').all(agent, agent) as AgentMessageRow[];
+  }
+  return d.prepare('SELECT * FROM agent_messages ORDER BY timestamp DESC LIMIT 200').all() as AgentMessageRow[];
+}
+
+export function insertAgentMessage(msg: AgentMessageRow): AgentMessageRow {
+  const d = getDatabase();
+  d.prepare(`
+    INSERT INTO agent_messages (id, sender, receiver, content, timestamp, context)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `).run(msg.id, msg.sender, msg.receiver, msg.content, msg.timestamp, msg.context ?? null);
+  return msg;
+}
+
+// ---------------------------------------------------------------------------
+// Artifact Operations
+// ---------------------------------------------------------------------------
+
+export interface ArtifactRow {
+  id: string;
+  name: string;
+  type: string;
+  size: number;
+  hash?: string;
+  path?: string;
+  producer_agent?: string;
+  wave?: number;
+  created_at: string;
+}
+
+export function getArtifacts(wave?: number): ArtifactRow[] {
+  const d = getDatabase();
+  if (wave !== undefined) {
+    return d.prepare('SELECT * FROM artifacts WHERE wave = ? ORDER BY created_at DESC').all(wave) as ArtifactRow[];
+  }
+  return d.prepare('SELECT * FROM artifacts ORDER BY created_at DESC').all() as ArtifactRow[];
+}
+
+export function insertArtifact(artifact: Omit<ArtifactRow, 'created_at'>): ArtifactRow {
+  const d = getDatabase();
+  const now = new Date().toISOString();
+  d.prepare(`
+    INSERT INTO artifacts (id, name, type, size, hash, path, producer_agent, wave, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(artifact.id, artifact.name, artifact.type, artifact.size, artifact.hash ?? null, artifact.path ?? null, artifact.producer_agent ?? null, artifact.wave ?? null, now);
+  return d.prepare('SELECT * FROM artifacts WHERE id = ?').get(artifact.id) as ArtifactRow;
+}
+
+// ---------------------------------------------------------------------------
+// Search Operations (Full-text across tables)
+// ---------------------------------------------------------------------------
+
+export function searchAll(query: string, limit = 20): Array<{ type: string; id: string; text: string; timestamp: string }> {
+  const d = getDatabase();
+  const results: Array<{ type: string; id: string; text: string; timestamp: string }> = [];
+  const q = `%${query}%`;
+
+  // Search events
+  const events = d.prepare(`
+    SELECT id, type as text, timestamp FROM events
+    WHERE type LIKE ? OR payload LIKE ? ORDER BY timestamp DESC LIMIT ?
+  `).all(q, q, limit) as Array<{ id: string; text: string; timestamp: string }>;
+  for (const e of events) results.push({ type: 'event', ...e });
+
+  // Search decisions
+  const decisions = d.prepare(`
+    SELECT id, title as text, created_at as timestamp FROM decisions
+    WHERE title LIKE ? OR decision_text LIKE ? ORDER BY created_at DESC LIMIT ?
+  `).all(q, q, limit) as Array<{ id: string; text: string; timestamp: string }>;
+  for (const dec of decisions) results.push({ type: 'decision', ...dec });
+
+  return results.slice(0, limit);
+}
+
+// ---------------------------------------------------------------------------
+// Analytics Helpers
+// ---------------------------------------------------------------------------
+
+export function getEventCountsByCategory(): Record<string, number> {
+  const d = getDatabase();
+  const rows = d.prepare('SELECT category, COUNT(*) as count FROM events GROUP BY category').all() as Array<{ category: string; count: number }>;
+  const result: Record<string, number> = {};
+  for (const row of rows) result[row.category] = row.count;
+  return result;
+}
+
+export function getEventTimeline(bucketMinutes = 5, limit = 100): Array<{ bucket: string; count: number }> {
+  const d = getDatabase();
+  return d.prepare(`
+    SELECT
+      strftime('%Y-%m-%dT%H:', timestamp) || printf('%02d', (CAST(strftime('%M', timestamp) AS INTEGER) / ?) * ?) || ':00' as bucket,
+      COUNT(*) as count
+    FROM events
+    GROUP BY bucket
+    ORDER BY bucket DESC
+    LIMIT ?
+  `).all(bucketMinutes, bucketMinutes, limit) as Array<{ bucket: string; count: number }>;
+}
+
+export function getErrorEvents(limit = 50): Array<{ agent_role: string; count: number }> {
+  const d = getDatabase();
+  return d.prepare(`
+    SELECT agent_role, COUNT(*) as count FROM events
+    WHERE severity IN ('error', 'critical') AND agent_role IS NOT NULL
+    GROUP BY agent_role ORDER BY count DESC LIMIT ?
+  `).all(limit) as Array<{ agent_role: string; count: number }>;
+}
+
+export function getDatabaseHealth(): { tables: number; totalRows: number; dbSizeEstimate: number } {
+  const d = getDatabase();
+  const tables = d.prepare("SELECT COUNT(*) as c FROM sqlite_master WHERE type='table'").get() as { c: number };
+  const events = (d.prepare('SELECT COUNT(*) as c FROM events').get() as { c: number }).c;
+  const agents = (d.prepare('SELECT COUNT(*) as c FROM agents').get() as { c: number }).c;
+  return {
+    tables: tables.c,
+    totalRows: events + agents,
+    dbSizeEstimate: (d.prepare('SELECT page_count * page_size as size FROM pragma_page_count(), pragma_page_size()').get() as { size: number })?.size || 0,
   };
 }

@@ -322,7 +322,7 @@ export const UATPage: React.FC = () => {
         <div className="card p-4">
           <p className="text-[10px] uppercase dark:text-gray-500 text-gray-400 mb-1">Coverage</p>
           <p className={`text-2xl font-bold ${coverageColor}`}>{summary.coverage.toFixed(1)}%</p>
-          <p className="text-[10px] dark:text-gray-500 text-gray-400">target: >= 95%</p>
+          <p className="text-[10px] dark:text-gray-500 text-gray-400">target: {'>'}= 95%</p>
         </div>
         <div className="card p-4">
           <p className="text-[10px] uppercase dark:text-gray-500 text-gray-400 mb-1">Pass Rate</p>

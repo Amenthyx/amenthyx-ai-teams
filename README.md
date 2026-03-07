@@ -1,19 +1,30 @@
-# Amenthyx AI Teams v3.0
+# Amenthyx AI Teams v4.0
 
-**60 specialized virtual engineering teams** powered by Claude Code's subagent orchestration.
+**65 specialized virtual engineering teams** powered by Claude Code's subagent orchestration.
 
 Each team is a complete, self-contained execution protocol — with specialized roles, domain-specific quality gates, wave-based parallel execution, automated PM reporting (PPTX + PDF), **evidence-driven execution**, **atomic commits**, **comprehensive testing**, and **real-time GitHub kanban tracking**.
 
-## What's New in v3.0
+## What's New in v4.0
 
-- **Evidence & Proof Protocol** — every agent produces verifiable proof: screenshots, build logs, test results, runtime health checks
-- **Local Install & Test** — agents install, build, and test locally as if deploying to production
-- **Atomic Commits** — every single change is a separate git commit with conventional format and issue references
-- **Comprehensive Testing** — full test pyramid: static analysis, unit, integration, E2E, performance, security, release
-- **GitHub Actions Local Testing** — CI/CD workflows validated locally with `act` before pushing
-- **Real-Time Kanban** — PM maintains GitHub Projects V2 board with real-time card movement and evidence-linked issues
-- **30 New Teams** — expanded from 21 to 51 specialized teams covering every major engineering domain
-- **8 Multimedia & Creative Teams** — expanded from 51 to 59 teams with motion graphics, video, 3D, audio, animation, generative AI, streaming, and media pipeline teams
+- **Judge Agent** — PM produces 2-3 alternative plans, Judge evaluates with 7-criterion rubric, TL gets winning recommendation
+- **Code Review Agent (CR)** — automated code review gate between engineering and QA waves (OWASP, architecture drift, code quality)
+- **Retrospective Agent (RETRO)** — post-wave analysis with metrics comparison, bottleneck identification, and learning extraction
+- **Dependency Guardian (DEPGUARD)** — pre-release dependency audit for CVEs, license compliance, abandoned packages
+- **Agent Memory & Learning** — agents write reusable learnings during execution; future sessions load them
+- **Cross-Team Handoff Protocol** — formal contracts for multi-team projects (API contracts, data schemas, UI contracts)
+- **Multi-Team Orchestration** — run sequential or parallel teams on the same project with shared workspace
+- **Rollback Protocol** — formal rollback plans with DB migration reversal, feature flags, and blue/green strategy
+- **A/B Plan Execution** — time-boxed spike of runner-up plan when Judge verdict margin is close
+- **Risk Escalation Matrix** — concrete, measurable escalation triggers with severity levels (P0-P3)
+- **Strategy Validator** — `python shared/strategy_validator.py` validates strategy files before activation
+- **Team Test Suite** — `python shared/team_test_suite.py` validates all TEAM.md files for consistency
+- **CLI Tool** — `python shared/amenthyx_cli.py` for listing, searching, composing, and validating teams
+- **Team Composer** — build custom hybrid teams by picking agents from any existing team
+- **Strategy Templates** — 5 pre-built strategy templates (SaaS MVP, Mobile App, API Backend, Data Pipeline, Landing Page)
+- **5 New Teams** — MLOps (#61), Developer Relations (#62), Compliance (#63), Migration (#64), Prompt Engineering (#65)
+- **Offline Mode** — run teams without GitHub access using local markdown kanban
+- **Agent Performance Benchmarks** — track and compare agent performance across sessions
+- **Mission Control Enhancements** — live agent console, budget burn-down, quality score, agent comm graph, webhooks
 
 ## Quick Start
 
@@ -25,7 +36,7 @@ Each team is a complete, self-contained execution protocol — with specialized 
 2. Activate a team with the `--team` command
 3. The team self-organizes: plans, builds, tests, and ships — with evidence at every step
 
-## Available Teams (60)
+## Available Teams (65)
 
 ### Core Development (Teams 01-12)
 
@@ -147,6 +158,16 @@ Each team is a complete, self-contained execution protocol — with specialized 
 |---|-----------|------|-------|
 | 60 | `--team socialMedia` | Social Media Engineering Team | Analytics, marketing automation, content pipelines, paid media, community management, SEO/growth, social DevOps |
 
+### Advanced Engineering (Teams 61-65)
+
+| # | Activation | Team | Focus |
+|---|-----------|------|-------|
+| 61 | `--team mlops` | MLOps & Model Deployment Team | Model serving, A/B testing, feature stores, drift monitoring, ML pipelines |
+| 62 | `--team devRel` | Developer Relations Team | API docs, SDK generation, developer portals, tutorials, community |
+| 63 | `--team compliance` | Compliance & Governance Team | SOC2, GDPR, audit trails, policy-as-code, regulatory compliance |
+| 64 | `--team migration` | Migration & Modernization Team | Legacy migration, strangler fig, dual-write, data migration |
+| 65 | `--team promptEng` | Prompt Engineering Team | Prompt design, evaluation, guardrails, RAG pipelines, A/B testing |
+
 ## How It Works
 
 ### Activation Protocol
@@ -181,19 +202,27 @@ Every team activation requires a strategy file. Copy `STRATEGY_TEMPLATE.md` (v3.
 Every team follows the same organizational pattern:
 
 ```
-         USER
-           |
-      TEAM LEADER (orchestrator)
-           |
-     +-----+-----+
-     |     |     |
-    PM   MKT  LEGAL
+             USER
+               |
+          TEAM LEADER (orchestrator)
+               |
+     +---------+---------+
+     |         |         |
+    PM      JUDGE      MKT/LEGAL
+     |         |
+  PLANS    VERDICT
      |
-  +--+--+--+--+
-  |  |  |  |  |
+  +--+--+--+--+--+
+  |  |  |  |  |  |
  [5-7 domain-specific engineers]
      |
+    CR (Code Review) ── blocking gate
+     |
+  RETRO (background)
+     |
     QA
+     |
+  DEPGUARD ── blocking gate
      |
   RELEASE MGR
 ```
@@ -216,13 +245,29 @@ Wave 1.5: Research (background)
   ├── Marketing: competitive analysis, positioning
   └── Legal: compliance, privacy, licensing
 
+Wave 1.5: Judge Evaluation (foreground, blocking)
+  ├── Judge scores PM plan alternatives (7-criterion rubric)
+  ├── Produces VERDICT.md with winner recommendation
+  ├── TL reviews verdict, may override with rationale
+  └── Optional: A/B spike of runner-up if margin close
+
 Wave 2: Engineering (parallel, all agents)
   ├── Each agent: install → build → implement → test → evidence
   ├── Each change = atomic commit with issue reference
   ├── PM moves kanban cards in real-time
   └── Evidence manifests produced per agent
 
-Wave 2.5: PM Reporting + Review
+Wave 2.5: Code Review (CR agent, blocking gate)
+  ├── Reviews all engineering code for OWASP, quality, architecture drift
+  ├── Produces scored CODE_REVIEW report (PASS/CONDITIONAL_PASS/FAIL)
+  └── FAIL → engineering agents re-spawned for fixes
+
+Wave 2.7: Retrospective (RETRO agent, background)
+  ├── Analyzes wave metrics: planned vs actual
+  ├── Identifies bottlenecks and recurring issues
+  └── Extracts learnings to .team/learnings/
+
+Wave 2.8: PM Reporting + Review
   ├── PPTX + PDF with evidence dashboard
   ├── TL reviews all evidence manifests
   └── Re-spawn agents if evidence incomplete
@@ -237,8 +282,14 @@ Wave 3.5: Bug Fix Loop (if QA fails)
   ├── Re-spawn failing agents with error context
   └── QA re-tests until PASS
 
+Wave 3.8: Dependency Audit (DEPGUARD, blocking gate)
+  ├── Scans all dependencies for CVEs, license issues, abandoned packages
+  ├── Produces DEPENDENCY_AUDIT.md (PASS/WARN/FAIL)
+  └── FAIL → must resolve before release
+
 Wave 4: Release (sequential gate)
   ├── Deployment checklist, changelog, rollback plan
+  ├── Rollback plan verified (DB migrations reversible, feature flags ready)
   ├── GitHub Release with test results + evidence summary
   └── Deployment sign-off
 
@@ -299,10 +350,35 @@ amenthyx-ai-teams/
 ├── STRATEGY_TEMPLATE.md                   # Strategy brief template (v3.0)
 ├── shared/
 │   ├── ACTIVATION_PROTOCOL.md             # How --team and --strategy work
-│   ├── ENHANCED_EXECUTION_PROTOCOL.md     # Evidence, testing, commits, CI (NEW v3.0)
-│   ├── PM_GITHUB_INTEGRATION.md           # GitHub integration for PM (enhanced)
+│   ├── ENHANCED_EXECUTION_PROTOCOL.md     # Evidence, testing, commits, CI
+│   ├── PM_GITHUB_INTEGRATION.md           # GitHub integration for PM
+│   ├── JUDGE_PROTOCOL.md                  # Judge Agent evaluation protocol
+│   ├── CODE_REVIEW_PROTOCOL.md            # Code Review Agent protocol (NEW v4.0)
+│   ├── RETROSPECTIVE_PROTOCOL.md          # Retrospective Agent protocol (NEW v4.0)
+│   ├── DEPENDENCY_GUARDIAN_PROTOCOL.md    # Dependency audit protocol (NEW v4.0)
+│   ├── CROSS_TEAM_HANDOFF_PROTOCOL.md     # Multi-team handoff contracts (NEW v4.0)
+│   ├── AGENT_MEMORY_PROTOCOL.md           # Agent learning system (NEW v4.0)
+│   ├── RISK_ESCALATION_MATRIX.md          # Risk severity & escalation triggers (NEW v4.0)
+│   ├── ROLLBACK_PROTOCOL.md               # Deployment rollback procedures (NEW v4.0)
+│   ├── AB_PLAN_EXECUTION_PROTOCOL.md      # A/B spike testing for plans (NEW v4.0)
+│   ├── MULTI_TEAM_ORCHESTRATION_PROTOCOL.md # Multi-team coordination (NEW v4.0)
+│   ├── OFFLINE_MODE_PROTOCOL.md           # Air-gapped execution (NEW v4.0)
+│   ├── VERSION_MIGRATION_PROTOCOL.md      # Framework version migration (NEW v4.0)
+│   ├── STRATEGY_EVOLUTION_PROTOCOL.md     # Mid-project strategy changes (NEW v4.0)
+│   ├── AGENT_PERFORMANCE_BENCHMARKS_PROTOCOL.md # Agent metrics tracking (NEW v4.0)
 │   ├── PPTX_GENERATOR.py                  # Enhanced PPTX with evidence dashboard
-│   └── PDF_GENERATOR.py                   # Enhanced PDF with test coverage
+│   ├── PDF_GENERATOR.py                   # Enhanced PDF with test coverage
+│   ├── amenthyx_cli.py                    # CLI tool (NEW v4.0)
+│   ├── strategy_validator.py              # Strategy file validator (NEW v4.0)
+│   ├── team_test_suite.py                 # TEAM.md consistency tests (NEW v4.0)
+│   ├── team_composer.py                   # Custom team builder (NEW v4.0)
+│   ├── templates/                         # Pre-built strategy templates (NEW v4.0)
+│   │   ├── STRATEGY_SAAS_MVP.md
+│   │   ├── STRATEGY_MOBILE_APP.md
+│   │   ├── STRATEGY_API_BACKEND.md
+│   │   ├── STRATEGY_DATA_PIPELINE.md
+│   │   └── STRATEGY_LANDING_PAGE.md
+│   └── mission-control/                   # Real-time monitoring dashboard
 ├── 01-full-stack/TEAM.md
 ├── 02-flutter-mobile/TEAM.md
 ├── ...
@@ -345,8 +421,13 @@ amenthyx-ai-teams/
 ├── 57-creative-ai-media/TEAM.md        # NEW Multimedia
 ├── 58-streaming-broadcast/TEAM.md      # NEW Multimedia
 ├── 59-media-pipeline/TEAM.md           # NEW Multimedia
-├── 60-social-media/TEAM.md             # NEW Social Media & Marketing
-└── 60-social-media/STRATEGY.md         # Base strategy for social media projects
+├── 60-social-media/TEAM.md             # Social Media & Marketing
+├── 60-social-media/STRATEGY.md         # Base strategy for social media projects
+├── 61-mlops-model-deployment/TEAM.md   # NEW v4.0 — MLOps
+├── 62-developer-relations/TEAM.md      # NEW v4.0 — DevRel
+├── 63-compliance-governance/TEAM.md    # NEW v4.0 — Compliance
+├── 64-migration-modernization/TEAM.md  # NEW v4.0 — Migration
+└── 65-prompt-engineering/TEAM.md       # NEW v4.0 — Prompt Engineering
 ```
 
 ## Adding New Teams
@@ -380,4 +461,47 @@ Proprietary — Amenthyx. Internal use only.
 
 ---
 
-*Amenthyx AI Teams v3.0 — 60 Teams | Evidence-Driven | Locally-Tested | Atomically-Committed | CI-Validated*
+## CLI Tool (v4.0)
+
+```bash
+# List all teams
+python shared/amenthyx_cli.py list
+
+# Search teams by keyword
+python shared/amenthyx_cli.py search "kubernetes"
+
+# Show team details
+python shared/amenthyx_cli.py info fullStack
+
+# Validate a strategy file
+python shared/amenthyx_cli.py validate-strategy strategy.md
+
+# Build a custom hybrid team
+python shared/amenthyx_cli.py compose --from fullStack:BE,FE --from fintech:SECCOMP --output custom/TEAM.md
+
+# Run team consistency tests
+python shared/amenthyx_cli.py test
+
+# Check repo health
+python shared/amenthyx_cli.py health
+```
+
+## Strategy Templates (v4.0)
+
+Pre-built, fully-filled strategy files for common project types:
+
+| Template | Project Type | Stack |
+|----------|-------------|-------|
+| `STRATEGY_SAAS_MVP.md` | SaaS web app | Next.js, PostgreSQL, Redis |
+| `STRATEGY_MOBILE_APP.md` | Mobile app | Flutter, Firebase |
+| `STRATEGY_API_BACKEND.md` | API backend | Go, PostgreSQL, K8s |
+| `STRATEGY_DATA_PIPELINE.md` | Data pipeline | Python, Kafka, Spark |
+| `STRATEGY_LANDING_PAGE.md` | Landing page | Astro, Tailwind, Sanity |
+
+```bash
+cp shared/templates/STRATEGY_SAAS_MVP.md my-strategy.md
+# Edit to customize, then activate:
+# --team fullStack --strategy my-strategy.md
+```
+
+*Amenthyx AI Teams v4.0 — 65 Teams | Judge Protocol | Code Review Gate | Retrospectives | Dependency Audit | Agent Memory | Cross-Team Handoffs | Multi-Team Orchestration | CLI Tool | Strategy Templates | Evidence-Driven | Locally-Tested | Atomically-Committed | CI-Validated*

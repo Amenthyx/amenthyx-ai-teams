@@ -19,6 +19,25 @@ import { createBudgetRouter } from './routes/budget';
 import { createWavesRouter } from './routes/waves';
 import { createGatesRouter } from './routes/gates';
 import { createUATRouter } from './routes/uat';
+import { createDecisionsRouter } from './routes/decisions';
+import { createInterviewsRouter } from './routes/interviews';
+import { createCIRouter } from './routes/ci';
+import { createEvidenceRouter } from './routes/evidence';
+import { createServicesRouter } from './routes/services';
+import { createAnalyticsRouter } from './routes/analytics';
+import { createMetricsRouter } from './routes/metrics';
+import { createExportRouter } from './routes/export';
+import { createGitRouter } from './routes/git';
+import { createSearchRouter } from './routes/search';
+import { createSessionsRouter } from './routes/sessions';
+import { createReportsRouter } from './routes/reports';
+import { createScreenshotsRouter } from './routes/screenshots';
+import { createArtifactsRouter } from './routes/artifacts';
+import { createDebugRouter } from './routes/debug';
+import { createWebhooksRouter } from './routes/webhooks';
+import { timingMiddleware } from './middleware/timing';
+import { responseTimerMiddleware } from './middleware/response-timer';
+import { rateTrackerMiddleware } from './middleware/rate-tracker';
 import { FileWatcherService } from './watchers/file-watcher';
 import { GitWatcherService } from './watchers/git-watcher';
 import { EventCategory, type MissionControlEvent, type AgentInfo } from './types/events';
@@ -119,6 +138,9 @@ const server = http.createServer(app);
 // Middleware
 app.use(cors({ origin: true }));
 app.use(express.json({ limit: '1mb' }));
+app.use(timingMiddleware);
+app.use(responseTimerMiddleware);
+app.use(rateTrackerMiddleware);
 
 // ---------------------------------------------------------------------------
 // WebSocket Setup
@@ -220,6 +242,22 @@ app.use('/api', createBudgetRouter(wsClients, broadcast));
 app.use('/api', createWavesRouter(wsClients, broadcast));
 app.use('/api', createGatesRouter(broadcast));
 app.use('/api', createUATRouter(wsClients, broadcast));
+app.use('/api', createDecisionsRouter(broadcast));
+app.use('/api', createInterviewsRouter(broadcast));
+app.use('/api', createCIRouter(broadcast));
+app.use('/api', createEvidenceRouter(broadcast));
+app.use('/api', createServicesRouter(broadcast));
+app.use('/api', createAnalyticsRouter());
+app.use('/api', createMetricsRouter());
+app.use('/api', createExportRouter());
+app.use('/api', createGitRouter(GIT_CWD));
+app.use('/api', createSearchRouter());
+app.use('/api', createSessionsRouter(broadcast));
+app.use('/api', createReportsRouter());
+app.use('/api', createScreenshotsRouter());
+app.use('/api', createArtifactsRouter(broadcast));
+app.use('/api', createDebugRouter());
+app.use('/api', createWebhooksRouter(broadcast));
 
 // Config endpoint — frontend can fetch dynamic project settings
 app.get('/api/config', (_req, res) => {
