@@ -31,7 +31,7 @@ from typing import Dict, List, Optional, Tuple
 _FROZEN = getattr(sys, 'frozen', False)
 _BASE_DEFAULT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BASE = _BASE_DEFAULT
-VERSION = "4.3.5"
+VERSION = "4.3.6"
 
 # ---------------------------------------------------------------------------
 # Vault integration — when running as a PyInstaller binary, team data lives
@@ -1373,11 +1373,8 @@ Begin execution now. Start with Wave 1."""
         print()
         print(_col(C.BOLD + C.CYAN, "  Run manually:"))
         print()
-        print(f"    {_col(C.GREEN, f'claude --dangerously-skip-permissions -p \"$(cat {prompt_path})\"')}")
-        print()
-        print(f"  Or interactive:")
-        print(f"    {_col(C.GREEN, 'claude --dangerously-skip-permissions')}")
-        print(f"    Then paste the contents of {_col(C.DIM, prompt_path)}")
+        print(f"    {_col(C.GREEN, 'cd ' + target_dir)}")
+        print(f"    {_col(C.GREEN, f'claude --dangerously-skip-permissions \"Read {prompt_path} and execute it\"')}")
         print()
         return 0
 
@@ -1390,15 +1387,22 @@ Begin execution now. Start with Wave 1."""
     print(_col(C.BOLD, "  " + "=" * 55))
     print()
 
-    # Launch claude with a short prompt that references the activation file.
-    # Avoids Windows ~8K CLI arg limit by pointing to the file instead of inlining.
+    # Launch claude interactively with a short initial prompt referencing the
+    # activation file. Uses positional arg (no -p) so Claude stays in agent mode.
     os.chdir(target_dir)
 
-    short_prompt = f"Read the file {prompt_path} and execute every instruction in it."
+    # Use forward slashes — works on both Windows and Unix in Claude's Read tool
+    prompt_path_clean = prompt_path.replace("\\", "/")
+    short_prompt = (
+        f"You are activating Amenthyx AI Team: {team['name']} (--team {team['keyword']}). "
+        f"Read the activation prompt file at {prompt_path_clean} and execute every instruction in it. "
+        f"The file contains the full team protocol, project strategy, and activation instructions. "
+        f"Your working directory is {target_dir.replace(chr(92), '/')}. Begin now."
+    )
 
     try:
         result = _sp.run(
-            [claude_bin, "--dangerously-skip-permissions", "-p", short_prompt],
+            [claude_bin, "--dangerously-skip-permissions", short_prompt],
             cwd=target_dir,
         )
         return result.returncode

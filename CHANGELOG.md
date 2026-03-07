@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [4.3.6] - 2026-03-07
+
+### Fixed
+- Claude Code now launches in **interactive agent mode** (removed `-p` print mode flag)
+- Claude receives team name, strategy context, and working directory in the initial prompt
+- Claude reads the activation file with its Read tool instead of receiving it via stdin/pipe
+- Fixed `cwd` so Claude operates in the project directory, not system32
+
 ## [4.3.5] - 2026-03-07
 
 ### Fixed
