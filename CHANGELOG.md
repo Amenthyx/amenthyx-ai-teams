@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [4.5.0] - 2026-03-07
+
+### Changed
+- Removed strategy template selection menu from `amenthyx init`
+- User always provides their own strategy file — no more picking from preset templates
+- Claude auto-adjusts the user's strategy to the Amenthyx standard format on activation
+- Standard `STRATEGY_TEMPLATE.md` is copied into `.team/` as a reference for Claude
+
 ## [4.4.0] - 2026-03-07
 
 ### Added

@@ -31,7 +31,7 @@ from typing import Dict, List, Optional, Tuple
 _FROZEN = getattr(sys, 'frozen', False)
 _BASE_DEFAULT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BASE = _BASE_DEFAULT
-VERSION = "4.4.0"
+VERSION = "4.5.0"
 
 # ---------------------------------------------------------------------------
 # Vault integration — when running as a PyInstaller binary, team data lives
@@ -1001,56 +1001,26 @@ def cmd_init(args: argparse.Namespace) -> int:
     print(f"  Selected: {_col(C.GREEN, selected_team['keyword'])} ({selected_team['name']})")
     print()
 
-    # 3. Ask which strategy template to use
-    available_templates = _list_templates()
-    if not available_templates:
-        print(f"  {C.YELLOW}No strategy templates found. Skipping template copy.{C.RESET}")
-        selected_template = None
-    else:
-        print(_col(C.BOLD + C.CYAN, "  Strategy Templates:"))
-        print()
-        for idx, tmpl in enumerate(available_templates, 1):
-            print(f"    {_col(C.YELLOW, f'{idx:>3}')}  {_col(C.GREEN, tmpl['name']):<35} {_col(C.DIM, tmpl['desc'])}")
-        print(f"    {_col(C.YELLOW, '  0')}  {_col(C.DIM, '(skip -- no template)')}")
-        print()
-
-        tmpl_input = input(f"  {_col(C.CYAN, 'Select template')} (number, 0 for own strategy): ").strip()
-        selected_template = None
-        try:
-            tmpl_idx = int(tmpl_input)
-            if tmpl_idx == 0:
-                selected_template = None
-            elif 1 <= tmpl_idx <= len(available_templates):
-                selected_template = available_templates[tmpl_idx - 1]
-            else:
-                print(f"  {C.YELLOW}Invalid selection.{C.RESET}")
-                selected_template = None
-        except ValueError:
-            print(f"  {C.YELLOW}Invalid input.{C.RESET}")
-            selected_template = None
-
-    # If no template selected, ask for path to existing strategy.md
+    # 3. Ask for the user's strategy file
+    print(_col(C.BOLD + C.CYAN, "  Strategy File:"))
+    print(_col(C.DIM, "  Provide your project strategy. Claude will auto-adjust it to the"))
+    print(_col(C.DIM, "  Amenthyx standard format when the team activates."))
+    print()
     strategy_path: Optional[str] = None
-    if selected_template is None:
-        print()
-        print(_col(C.BOLD + C.CYAN, "  Provide your strategy file:"))
-        print(_col(C.DIM, "  (absolute or relative path to your strategy.md)"))
-        print()
-        while True:
-            strat_input = input(f"  {_col(C.CYAN, 'Path to strategy.md')}: ").strip()
-            if not strat_input:
-                print(f"  {C.RED}Strategy file is required. Cannot skip.{C.RESET}")
-                continue
-            strat_input = os.path.expanduser(strat_input)
-            if not os.path.isabs(strat_input):
-                strat_input = os.path.abspath(strat_input)
-            if os.path.isfile(strat_input):
-                strategy_path = strat_input
-                print(f"  {_col(C.GREEN, 'OK')}  Using: {strategy_path}")
-                break
-            else:
-                print(f"  {C.RED}File not found: {strat_input}{C.RESET}")
-                print(f"  {C.DIM}  Please enter a valid path to an existing file.{C.RESET}")
+    while True:
+        strat_input = input(f"  {_col(C.CYAN, 'Path to strategy.md')}: ").strip()
+        if not strat_input:
+            print(f"  {C.RED}Strategy file is required.{C.RESET}")
+            continue
+        strat_input = os.path.expanduser(strat_input)
+        if not os.path.isabs(strat_input):
+            strat_input = os.path.abspath(strat_input)
+        if os.path.isfile(strat_input):
+            strategy_path = strat_input
+            print(f"  {_col(C.GREEN, 'OK')}   Using: {strategy_path}")
+            break
+        else:
+            print(f"  {C.RED}File not found: {strat_input}{C.RESET}")
     print()
 
     # 4. Create directory structure
@@ -1078,16 +1048,18 @@ def cmd_init(args: argparse.Namespace) -> int:
     else:
         print(f"  {_col(C.GREEN, 'OK')}   Git repository already exists")
 
-    # 5. Copy strategy.md into project
+    # 5. Copy user's strategy into project + standard template as reference
     strategy_dest = os.path.join(target_dir, "strategy.md")
-    if selected_template is not None:
-        shutil.copy2(selected_template["path"], strategy_dest)
-        strategy_path = strategy_dest
-    elif strategy_path is not None:
-        # Copy user's strategy into the project directory
+    if strategy_path is not None:
         if os.path.abspath(strategy_path) != os.path.abspath(strategy_dest):
             shutil.copy2(strategy_path, strategy_dest)
         strategy_path = strategy_dest
+
+    # Copy the Amenthyx standard strategy template for Claude's reference
+    std_template_src = os.path.join(BASE, "STRATEGY_TEMPLATE.md")
+    std_template_dest = os.path.join(team_dir_path, "STRATEGY_TEMPLATE.md")
+    if os.path.isfile(std_template_src):
+        shutil.copy2(std_template_src, std_template_dest)
 
     # 6. Create mission-control.config.json
     config = {
@@ -1122,10 +1094,8 @@ def cmd_init(args: argparse.Namespace) -> int:
     print(f"    {_col(C.GREEN, 'GIT')}  .git/")
     for subdir in subdirs:
         print(f"    {_col(C.GREEN, 'DIR')}  .team/{subdir}/")
-    if selected_template:
-        print(f"    {_col(C.GREEN, 'FILE')} strategy.md  (from {selected_template['name']})")
-    else:
-        print(f"    {_col(C.GREEN, 'FILE')} strategy.md  (from your file)")
+    print(f"    {_col(C.GREEN, 'FILE')} strategy.md")
+    print(f"    {_col(C.GREEN, 'FILE')} .team/STRATEGY_TEMPLATE.md  (standard reference)")
     print(f"    {_col(C.GREEN, 'FILE')} mission-control.config.json")
     print()
 
@@ -1329,17 +1299,41 @@ def cmd_activate(args: argparse.Namespace) -> int:
     if perm_mode == "skip-permissions":
         perm_flag = " --dangerously-skip-permissions"
 
+    # Read the standard strategy template if available in .team/
+    std_template_path = os.path.join(target_dir, ".team", "STRATEGY_TEMPLATE.md")
+    std_template_content = ""
+    if os.path.isfile(std_template_path):
+        with open(std_template_path, "r", encoding="utf-8", errors="replace") as f:
+            std_template_content = f.read()
+
     activation_prompt = f"""You are activating the Amenthyx AI Team: {team['name']} (--team {team['keyword']}).
 
 Your mission is defined by the strategy file below. Follow the team protocol exactly.
+
+## IMPORTANT: STRATEGY COMPLIANCE
+
+The user has provided their own strategy file. Before starting execution, you MUST:
+1. Read the user's strategy below (PROJECT STRATEGY section)
+2. Read the Amenthyx standard strategy template below (STANDARD STRATEGY TEMPLATE section)
+3. Restructure the user's strategy to comply with the standard template format
+4. Save the adjusted strategy as `strategy.md` in the project root (overwrite the original)
+5. Use the adjusted strategy for all team execution
+
+The standard template defines the required sections, structure, and format.
+Map the user's content into the standard sections. Fill gaps with reasonable defaults.
+Preserve all of the user's original intent and requirements.
 
 ## TEAM PROTOCOL
 
 {team_content}
 
-## PROJECT STRATEGY
+## PROJECT STRATEGY (user-provided — adjust to standard format)
 
 {strategy_content}
+
+## STANDARD STRATEGY TEMPLATE (reference for restructuring)
+
+{std_template_content}
 
 {protocol_content}
 
