@@ -28,8 +28,43 @@ import shutil
 import sys
 from typing import Dict, List, Optional, Tuple
 
-BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-VERSION = "4.2.0"
+_FROZEN = getattr(sys, 'frozen', False)
+_BASE_DEFAULT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+BASE = _BASE_DEFAULT
+VERSION = "4.3.0"
+
+# ---------------------------------------------------------------------------
+# Vault integration — when running as a PyInstaller binary, team data lives
+# inside the encrypted vault.  We extract it to a temp directory so all
+# existing file-based helpers work unchanged.
+# ---------------------------------------------------------------------------
+if _FROZEN:
+    import atexit
+    import tempfile as _tempfile
+
+    try:
+        _meipass = getattr(sys, '_MEIPASS', '')
+        _vault_mod_dir = os.path.join(_meipass, 'shared')
+        if _vault_mod_dir not in sys.path:
+            sys.path.insert(0, _vault_mod_dir)
+        from _vault import vault_list, vault_read as _vault_read  # type: ignore[import-not-found]
+
+        _TEMP_BASE = _tempfile.mkdtemp(prefix='amenthyx-')
+        for _key in vault_list():
+            _content = _vault_read(_key)
+            if _content is not None:
+                _fpath = os.path.join(_TEMP_BASE, _key.replace('/', os.sep))
+                os.makedirs(os.path.dirname(_fpath), exist_ok=True)
+                with open(_fpath, 'w', encoding='utf-8') as _f:
+                    _f.write(_content)
+        BASE = _TEMP_BASE
+
+        def _cleanup_temp_base():
+            shutil.rmtree(_TEMP_BASE, ignore_errors=True)
+
+        atexit.register(_cleanup_temp_base)
+    except ImportError:
+        pass  # No vault available — fall back to disk layout
 
 # ---------------------------------------------------------------------------
 # ANSI colours (with Windows support)
