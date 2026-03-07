@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [4.3.3] - 2026-03-07
+
+### Changed
+- `amenthyx init`: selecting `0` (no template) now prompts for path to your own strategy.md instead of skipping
+- Strategy file is always required — cannot be skipped during init
+- `amenthyx init` now auto-activates the team immediately after setup (no manual `activate` step needed)
+
+### Fixed
+- `init` wizard config always sets `"strategy": "strategy.md"` (was `null` when skipped)
+- "Next steps" now shows `activate` instead of `dry-run`
+
 ## [4.3.2] - 2026-03-07
 
 ### Fixed

@@ -31,7 +31,7 @@ from typing import Dict, List, Optional, Tuple
 _FROZEN = getattr(sys, 'frozen', False)
 _BASE_DEFAULT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BASE = _BASE_DEFAULT
-VERSION = "4.3.2"
+VERSION = "4.3.3"
 
 # ---------------------------------------------------------------------------
 # Vault integration — when running as a PyInstaller binary, team data lives
@@ -1003,7 +1003,7 @@ def cmd_init(args: argparse.Namespace) -> int:
         print(f"    {_col(C.YELLOW, '  0')}  {_col(C.DIM, '(skip -- no template)')}")
         print()
 
-        tmpl_input = input(f"  {_col(C.CYAN, 'Select template')} (number, 0 to skip): ").strip()
+        tmpl_input = input(f"  {_col(C.CYAN, 'Select template')} (number, 0 for own strategy): ").strip()
         selected_template = None
         try:
             tmpl_idx = int(tmpl_input)
@@ -1012,9 +1012,34 @@ def cmd_init(args: argparse.Namespace) -> int:
             elif 1 <= tmpl_idx <= len(available_templates):
                 selected_template = available_templates[tmpl_idx - 1]
             else:
-                print(f"  {C.YELLOW}Invalid selection, skipping template.{C.RESET}")
+                print(f"  {C.YELLOW}Invalid selection.{C.RESET}")
+                selected_template = None
         except ValueError:
-            print(f"  {C.YELLOW}Invalid input, skipping template.{C.RESET}")
+            print(f"  {C.YELLOW}Invalid input.{C.RESET}")
+            selected_template = None
+
+    # If no template selected, ask for path to existing strategy.md
+    strategy_path: Optional[str] = None
+    if selected_template is None:
+        print()
+        print(_col(C.BOLD + C.CYAN, "  Provide your strategy file:"))
+        print(_col(C.DIM, "  (absolute or relative path to your strategy.md)"))
+        print()
+        while True:
+            strat_input = input(f"  {_col(C.CYAN, 'Path to strategy.md')}: ").strip()
+            if not strat_input:
+                print(f"  {C.RED}Strategy file is required. Cannot skip.{C.RESET}")
+                continue
+            strat_input = os.path.expanduser(strat_input)
+            if not os.path.isabs(strat_input):
+                strat_input = os.path.abspath(strat_input)
+            if os.path.isfile(strat_input):
+                strategy_path = strat_input
+                print(f"  {_col(C.GREEN, 'OK')}  Using: {strategy_path}")
+                break
+            else:
+                print(f"  {C.RED}File not found: {strat_input}{C.RESET}")
+                print(f"  {C.DIM}  Please enter a valid path to an existing file.{C.RESET}")
     print()
 
     # 4. Create directory structure
@@ -1025,10 +1050,16 @@ def cmd_init(args: argparse.Namespace) -> int:
         full_path = os.path.join(team_dir_path, subdir)
         os.makedirs(full_path, exist_ok=True)
 
-    # 5. Copy selected template as strategy.md
+    # 5. Copy strategy.md into project
     strategy_dest = os.path.join(target_dir, "strategy.md")
     if selected_template is not None:
         shutil.copy2(selected_template["path"], strategy_dest)
+        strategy_path = strategy_dest
+    elif strategy_path is not None:
+        # Copy user's strategy into the project directory
+        if os.path.abspath(strategy_path) != os.path.abspath(strategy_dest):
+            shutil.copy2(strategy_path, strategy_dest)
+        strategy_path = strategy_dest
 
     # 6. Create mission-control.config.json
     config = {
@@ -1036,7 +1067,7 @@ def cmd_init(args: argparse.Namespace) -> int:
         "team": selected_team["keyword"],
         "teamDir": selected_team["dir"],
         "teamName": selected_team["name"],
-        "strategy": "strategy.md" if selected_template else None,
+        "strategy": "strategy.md",
         "createdAt": __import__("datetime").datetime.now().isoformat(),
         "directories": {
             "evidence": ".team/evidence/",
@@ -1063,12 +1094,22 @@ def cmd_init(args: argparse.Namespace) -> int:
         print(f"    {_col(C.GREEN, 'DIR')}  .team/{subdir}/")
     if selected_template:
         print(f"    {_col(C.GREEN, 'FILE')} strategy.md  (from {selected_template['name']})")
+    else:
+        print(f"    {_col(C.GREEN, 'FILE')} strategy.md  (from your file)")
     print(f"    {_col(C.GREEN, 'FILE')} mission-control.config.json")
     print()
-    print(_col(C.DIM, f"  Next: review strategy.md, then run:"))
-    print(_col(C.DIM, f"    amenthyx dry-run --team {selected_team['keyword']} --strategy strategy.md"))
+
+    # 8. Auto-activate the team immediately
+    print(_col(C.BOLD + C.CYAN, "  Activating team..."))
     print()
-    return 0
+
+    # Build a namespace that cmd_activate expects
+    activate_args = argparse.Namespace(
+        team=selected_team["keyword"],
+        strategy=strategy_dest,
+        dir=target_dir,
+    )
+    return cmd_activate(activate_args)
 
 
 def cmd_activate(args: argparse.Namespace) -> int:
