@@ -24,20 +24,6 @@ jobs:
       - name: Run team test suite
         run: python shared/team_test_suite.py --json
 
-  validate-cli:
-    name: Validate CLI
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Run CLI health check
-        run: python shared/amenthyx_cli.py health
-
   build-mission-control:
     name: Build Mission Control
     runs-on: ubuntu-latest
@@ -89,7 +75,6 @@ jobs:
             "shared/VERSION_MIGRATION_PROTOCOL.md"
             "shared/PPTX_GENERATOR.py"
             "shared/PDF_GENERATOR.py"
-            "shared/amenthyx_cli.py"
             "shared/team_test_suite.py"
             "shared/strategy_validator.py"
             "shared/team_composer.py"
@@ -113,17 +98,15 @@ jobs:
   ci-status:
     name: CI Status
     if: always()
-    needs: [validate-teams, validate-cli, build-mission-control, lint-protocols]
+    needs: [validate-teams, build-mission-control, lint-protocols]
     runs-on: ubuntu-latest
     steps:
       - name: Check job results
         run: |
           echo "validate-teams: ${{ needs.validate-teams.result }}"
-          echo "validate-cli: ${{ needs.validate-cli.result }}"
           echo "build-mission-control: ${{ needs.build-mission-control.result }}"
           echo "lint-protocols: ${{ needs.lint-protocols.result }}"
           if [ "${{ needs.validate-teams.result }}" != "success" ] || \
-             [ "${{ needs.validate-cli.result }}" != "success" ] || \
              [ "${{ needs.build-mission-control.result }}" != "success" ] || \
              [ "${{ needs.lint-protocols.result }}" != "success" ]; then
             echo ""

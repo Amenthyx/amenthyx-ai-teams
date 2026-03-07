@@ -2,132 +2,43 @@
 
 **65 specialized virtual engineering teams** powered by Claude Code's subagent orchestration.
 
-Each team is a complete, self-contained execution protocol with specialized roles, domain-specific quality gates, wave-based parallel execution, evidence-driven development, atomic commits, comprehensive testing, real-time Mission Control dashboard, and automated reporting.
-
-[![CI](https://github.com/Amenthyx/amenthyx-ai-teams/actions/workflows/ci.yml/badge.svg)](https://github.com/Amenthyx/amenthyx-ai-teams/actions/workflows/ci.yml)
-[![Release](https://github.com/Amenthyx/amenthyx-ai-teams/actions/workflows/release.yml/badge.svg)](https://github.com/Amenthyx/amenthyx-ai-teams/actions/workflows/release.yml)
-
-## Installation
-
-### Option A: Pre-built Binary (recommended)
-
-Download the latest release from [Releases](https://github.com/Amenthyx/amenthyx-ai-teams/releases/latest):
-
-| Platform | Download |
-|----------|----------|
-| Windows | `amenthyx-windows.exe` |
-| Linux | `amenthyx-linux` |
-| macOS | `amenthyx-macos` |
-
-### Option B: Install Script
-
-```bash
-# Linux / macOS
-bash install.sh
-
-# Windows (PowerShell as admin)
-powershell -ExecutionPolicy Bypass -File install.ps1
-```
-
-The installer sets up the CLI and configures environment variables (ANTHROPIC_API_KEY, MC_PORT, etc.).
-
-### Option C: From Source
-
-```bash
-git clone https://github.com/Amenthyx/amenthyx-ai-teams.git
-cd amenthyx-ai-teams
-python shared/amenthyx_cli.py --help
-```
-
-Requires Python 3.8+, no external dependencies.
+Each team is a complete, self-contained execution protocol with specialized roles, domain-specific quality gates, wave-based parallel execution, evidence-driven development, atomic commits, comprehensive testing, and automated reporting.
 
 ## Quick Start
 
 ```bash
-# 1. List available teams
-amenthyx list
+# Clone the repo
+git clone https://github.com/Amenthyx/amenthyx-ai-teams.git
+cd amenthyx-ai-teams
 
-# 2. Initialize a project (interactive wizard)
-amenthyx init
-
-# 3. Activate a team
-amenthyx activate --team fullStack --strategy strategy.md
-
-# 4. Claude executes the team protocol
-claude -p "$(cat .team/activation-prompt.md)"
+# Activate a team with your strategy
+claude --dangerously-skip-permissions \
+  "--team fullStack --strategy path/to/your-strategy.md"
 ```
 
-### What happens on `activate`
+Claude reads the team protocol, adjusts your strategy to the Amenthyx standard format, and begins wave-based execution.
 
-1. Validates the team + strategy file
-2. Creates `.team/` scaffold (evidence, reports, screenshots, plans)
-3. Generates `mission-control.config.json` with agents, waves, budget
-4. Launches Mission Control dashboard (splash screen until ready)
-5. Generates activation prompt for Claude at `.team/activation-prompt.md`
-6. Prints next steps: run Claude via CLI, interactive mode, or Claude.ai
+## How It Works
 
-## CLI Commands
+1. You pick a **team** (e.g. `fullStack`, `flutter`, `devops`) and provide a **strategy file** describing your project
+2. Claude reads the team's `TEAM.md` protocol and your strategy
+3. The Team Lead agent boots, reads the protocol, and spawns specialist agents in waves
+4. Each wave has quality gates — agents produce evidence, tests, and atomic commits
 
-```bash
-amenthyx list                                          # List all 65 teams
-amenthyx info fullStack                                # Show team details
-amenthyx init                                          # Interactive project setup wizard
-amenthyx activate --team fullStack --strategy s.md     # Activate team + launch dashboard
-amenthyx dry-run --team fullStack --strategy s.md      # Simulate activation (no changes)
-amenthyx merge-strategy my-idea.md                     # AI-merge strategy into Amenthyx format
-amenthyx merge-strategy my-idea.md --cli               # Merge via Claude CLI (no API key)
-amenthyx merge-strategy my-idea.md --prompt            # Generate prompt for Claude.ai
-amenthyx validate-strategy strategy.md                 # Validate strategy compliance
-amenthyx compose --from fullStack:BE,FE --output t.md  # Build custom hybrid team
-amenthyx search "kubernetes"                           # Search teams by keyword
-amenthyx templates                                     # List strategy templates
-amenthyx test                                          # Run team consistency tests
-amenthyx health                                        # Check project health
-amenthyx version                                       # Show version
+### Wave Execution
+
 ```
-
-## Strategy Merger (AI-powered)
-
-The strategy merger takes your project idea in any format and rewrites it into a fully Amenthyx-compliant strategy. Three modes, auto-detected:
-
-| Mode | Flag | Requires |
-|------|------|----------|
-| Claude Code CLI | `--cli` (auto-detected) | `npm install -g @anthropic-ai/claude-code` + `claude login` |
-| Claude API | (default if key set) | `ANTHROPIC_API_KEY` + `pip install anthropic` |
-| Prompt file | `--prompt` (fallback) | Nothing |
-
-```bash
-# Auto-detects best mode
-amenthyx merge-strategy my-idea.md --team fullStack
-
-# Explicit modes
-amenthyx merge-strategy my-idea.md --cli               # Claude Code CLI (no API key)
-amenthyx merge-strategy my-idea.md --prompt             # Generates prompt file
-```
-
-## Mission Control Dashboard
-
-Real-time monitoring dashboard for team execution. Opens automatically on `activate`.
-
-- Live agent activity stream
-- Kanban board with drag-and-drop
-- Git commit timeline
-- Test results panel
-- Cost/budget monitoring
-- UAT test management
-- CI/CD pipeline status
-- Evidence audit trail
-- Session analytics with charts
-- Splash screen while waiting for team activation
-
-```bash
-# Manual launch
-cd shared/mission-control && npm run build && node dist/server/index.js
-
-# Environment variables
-MC_PORT=4201              # Dashboard port
-MC_PROJECT_DIR=/my/proj   # Project root
-MC_NO_OPEN=1              # Disable auto-open browser
+Wave 0: Init          TL boots, reads strategy, creates .team/
+Wave 1: Planning      PM creates project board, milestones, issues
+Wave 1.5: Judge       Evaluates PM plans with 7-criterion rubric
+Wave 2: Engineering   Parallel agents: implement, test, evidence
+Wave 2.5: Code Review CR agent reviews for OWASP, quality, drift
+Wave 2.7: Retro       Analyzes metrics, extracts learnings
+Wave 3: QA            Full test pyramid, evidence verification
+Wave 3.5: Bug Fix     Re-spawn failing agents if needed
+Wave 3.8: Dep Audit   CVEs, license compliance, abandoned packages
+Wave 4: Release       Deployment, changelog, rollback plan
+Wave 5: Reporting     Final PPTX + PDF, close milestones
 ```
 
 ## Available Teams (65)
@@ -262,42 +173,11 @@ MC_NO_OPEN=1              # Disable auto-open browser
 | 64 | `migration` | Migration & Modernization Team | Legacy migration, strangler fig |
 | 65 | `promptEng` | Prompt Engineering Team | Prompt design, RAG, guardrails |
 
-## How It Works
+## Strategy File
 
-### Activation Flow
+Your strategy file describes what you want built. Write it in any format — Claude will auto-adjust it to the Amenthyx standard structure on activation.
 
-```
-amenthyx activate --team fullStack --strategy strategy.md
-    |
-    v
-1. Validate team + strategy
-2. Create .team/ scaffold
-3. Generate mission-control.config.json
-4. Launch Mission Control (splash -> dashboard)
-5. Generate .team/activation-prompt.md
-    |
-    v
-claude -p "$(cat .team/activation-prompt.md)"
-    |
-    v
-Team Lead boots -> reads protocol -> spawns agents in waves
-```
-
-### Wave Execution
-
-```
-Wave 0: Init          TL boots, reads strategy, creates .team/
-Wave 1: Planning      PM creates project board, milestones, issues
-Wave 1.5: Judge       Evaluates PM plans with 7-criterion rubric
-Wave 2: Engineering   Parallel agents: implement, test, evidence
-Wave 2.5: Code Review CR agent reviews for OWASP, quality, drift
-Wave 2.7: Retro       Analyzes metrics, extracts learnings
-Wave 3: QA            Full test pyramid, evidence verification
-Wave 3.5: Bug Fix     Re-spawn failing agents if needed
-Wave 3.8: Dep Audit   CVEs, license compliance, abandoned packages
-Wave 4: Release       Deployment, changelog, rollback plan
-Wave 5: Reporting     Final PPTX + PDF, close milestones
-```
+The standard template is at `STRATEGY_TEMPLATE.md` for reference.
 
 ### Evidence Structure
 
@@ -312,97 +192,28 @@ Wave 5: Reporting     Final PPTX + PDF, close milestones
   ci/              # GitHub Actions local test results (act)
 ```
 
-## Strategy Templates
-
-Pre-built strategy files for common project types:
-
-| Template | Project Type | Stack |
-|----------|-------------|-------|
-| `STRATEGY_SAAS_MVP.md` | SaaS web app | Next.js, PostgreSQL, Redis |
-| `STRATEGY_MOBILE_APP.md` | Mobile app | Flutter, Firebase |
-| `STRATEGY_API_BACKEND.md` | API backend | Go, PostgreSQL, K8s |
-| `STRATEGY_DATA_PIPELINE.md` | Data pipeline | Python, Kafka, Spark |
-| `STRATEGY_LANDING_PAGE.md` | Landing page | Astro, Tailwind, Sanity |
-
-```bash
-amenthyx templates                              # List all templates
-cp shared/templates/STRATEGY_SAAS_MVP.md s.md   # Copy template
-amenthyx activate --team fullStack --strategy s.md
-```
-
-## Releasing
-
-Releases are triggered when a Pull Request is **merged** with a version tag in the PR title:
-
-| PR Title Tag | Bump | Example |
-|--------------|------|---------|
-| `[MAJOR]` | Major (breaking changes) | `v1.0.0 -> v2.0.0` |
-| `[MINOR]` | Minor (new features) | `v1.0.0 -> v1.1.0` |
-| `[PATCH]` | Patch (bug fixes) | `v1.0.0 -> v1.0.1` |
-
-### How to release
-
-```bash
-# 1. Create a branch and make changes
-git checkout -b feat/new-feature
-git commit -m "feat: add awesome feature"
-git push origin feat/new-feature
-
-# 2. Open a PR with version tag in the title
-gh pr create --title "feat: add awesome feature [MINOR]" --body "..."
-
-# 3. Get PR approved and merge -> release is automatic
-```
-
-The release pipeline automatically:
-1. Detects `[MAJOR]`, `[MINOR]`, or `[PATCH]` in the **merged PR title**
-2. Calculates the next version from the latest git tag
-3. Builds encrypted binaries for Windows, Linux, and macOS
-4. Creates a git tag and GitHub Release with checksums
-5. All source code is encrypted inside the binary (zero readable .md or .py)
-
-PRs without a version tag in the title are merged normally without triggering a release.
-
-## Requirements
-
-- **Claude Code** CLI with Task tool (subagent orchestration)
-- **Python 3.8+** (no external dependencies for CLI)
-- **Node.js 20+** (for Mission Control dashboard)
-- **GitHub CLI** (`gh`) for PM GitHub integration
-- **act** ([nektos/act](https://github.com/nektos/act)) for local CI testing (optional)
-
 ## Repository Structure
 
 ```
 amenthyx-ai-teams/
   README.md
-  STRATEGY_TEMPLATE.md          # Strategy template (v3.4)
-  install.sh                    # Linux/macOS installer
-  install.ps1                   # Windows installer
+  STRATEGY_TEMPLATE.md              # Standard strategy template
   shared/
-    amenthyx_cli.py             # CLI tool
-    strategy_merger.py          # AI strategy merger
-    strategy_validator.py       # Strategy file validator
-    team_test_suite.py          # TEAM.md consistency tests
-    team_composer.py            # Custom team builder
-    team_recommender.py         # AI team recommender
-    strategy_diff.py            # Strategy comparison tool
-    team_compatibility.py       # Team compatibility matrix
-    bundler.py                  # Encrypted vault builder
-    ACTIVATION_PROTOCOL.md      # How --team and --strategy work
+    ACTIVATION_PROTOCOL.md           # How --team and --strategy work
     ENHANCED_EXECUTION_PROTOCOL.md
     JUDGE_PROTOCOL.md
     CODE_REVIEW_PROTOCOL.md
-    ... (18 protocol files)
-    templates/                  # 5 pre-built strategy templates
-    mission-control/            # React + Express monitoring dashboard
+    ... (protocol files)
   01-full-stack/TEAM.md
   02-flutter-mobile/TEAM.md
   ... (65 team directories)
-  .github/workflows/
-    ci.yml                      # CI pipeline (validate, build, lint)
-    release.yml                 # Auto-release on [MAJOR]/[MINOR]/[PATCH]
 ```
+
+## Requirements
+
+- **Claude Code** CLI with Task tool (subagent orchestration)
+- **GitHub CLI** (`gh`) for PM GitHub integration
+- **act** ([nektos/act](https://github.com/nektos/act)) for local CI testing (optional)
 
 ## License
 

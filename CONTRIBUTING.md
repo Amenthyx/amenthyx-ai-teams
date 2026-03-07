@@ -7,7 +7,7 @@ Thank you for your interest in contributing! This guide covers how to add new te
 1. Fork the repository
 2. Create a feature branch: `git checkout -b feat/my-enhancement`
 3. Make your changes
-4. Validate: `python shared/team_test_suite.py` and `python shared/amenthyx_cli.py health`
+4. Validate: `python shared/team_test_suite.py`
 5. Commit with conventional format: `feat(team): add XYZ team`
 6. Open a Pull Request
 
@@ -63,10 +63,9 @@ Plus 3-7 domain-specific engineering agents.
 
 ```bash
 python shared/team_test_suite.py
-python shared/amenthyx_cli.py health
 ```
 
-Both must pass with zero errors.
+Must pass with zero errors.
 
 ## Adding a Protocol
 
@@ -75,14 +74,6 @@ Both must pass with zero errors.
 3. Reference it from relevant TEAM.md files
 4. Update `shared/ACTIVATION_PROTOCOL.md` if it should be loaded automatically
 5. Update `README.md` repository structure section
-
-## Adding a Strategy Template
-
-1. Create `shared/templates/STRATEGY_<TYPE>.md`
-2. Follow the v3.0 strategy template structure (22 sections)
-3. Include realistic example data (fake project name, concrete tech choices)
-4. Update `shared/templates/README.md` with the new template
-5. Update the CLI tool if adding new template categories
 
 ## Modifying Mission Control
 
@@ -111,7 +102,6 @@ npm run build        # production build
 ## Code Standards
 
 - TypeScript for Mission Control (strict mode)
-- Python 3.8+ for CLI tools (no external dependencies beyond stdlib)
 - Markdown for protocols and team definitions
 - Conventional commits: `feat:`, `fix:`, `docs:`, `refactor:`, `test:`
 
@@ -126,15 +116,11 @@ python shared/strategy_validator.py path/to/strategy.md
 
 # Build Mission Control
 cd shared/mission-control && npm run build
-
-# Run CLI health check
-python shared/amenthyx_cli.py health
 ```
 
 ## Pull Request Checklist
 
 - [ ] All 65+ TEAM.md files pass validation (`team_test_suite.py`)
-- [ ] CLI health check passes (`amenthyx_cli.py health`)
 - [ ] Mission Control builds without errors (`npm run build`)
 - [ ] New features are documented in README.md
 - [ ] CHANGELOG.md is updated
