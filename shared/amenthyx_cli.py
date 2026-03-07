@@ -31,7 +31,7 @@ from typing import Dict, List, Optional, Tuple
 _FROZEN = getattr(sys, 'frozen', False)
 _BASE_DEFAULT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BASE = _BASE_DEFAULT
-VERSION = "4.3.6"
+VERSION = "4.4.0"
 
 # ---------------------------------------------------------------------------
 # Vault integration — when running as a PyInstaller binary, team data lives
@@ -943,11 +943,22 @@ def cmd_init(args: argparse.Namespace) -> int:
     print(_col(C.DIM, "  " + "-" * 45))
     print()
 
-    # 1. Ask for project name
+    # 1. Ask for project name and create project folder on Desktop
     project_name = input(f"  {_col(C.CYAN, 'Project name')}: ").strip()
     if not project_name:
         print(f"  {C.RED}Project name cannot be empty.{C.RESET}")
         return 1
+
+    # Create project directory on Desktop (sanitize name for filesystem)
+    safe_name = "".join(c if c.isalnum() or c in ("-", "_", " ") else "" for c in project_name).strip()
+    safe_name = safe_name.replace(" ", "-").lower()
+    if not safe_name:
+        safe_name = "amenthyx-project"
+
+    desktop = os.path.join(os.path.expanduser("~"), "Desktop")
+    target_dir = os.path.join(desktop, safe_name)
+    os.makedirs(target_dir, exist_ok=True)
+    print(f"  {_col(C.GREEN, 'OK')}   Project folder: {target_dir}")
     print()
 
     # 2. Show team categories and let user pick
@@ -1050,6 +1061,23 @@ def cmd_init(args: argparse.Namespace) -> int:
         full_path = os.path.join(team_dir_path, subdir)
         os.makedirs(full_path, exist_ok=True)
 
+    # 4b. Initialize git repo if not already one
+    git_dir = os.path.join(target_dir, ".git")
+    if not os.path.isdir(git_dir):
+        import subprocess as _sp_init
+        try:
+            _sp_init.run(["git", "init"], cwd=target_dir, capture_output=True)
+            # Create .gitignore with sensible defaults
+            gitignore_path = os.path.join(target_dir, ".gitignore")
+            if not os.path.isfile(gitignore_path):
+                with open(gitignore_path, "w", encoding="utf-8") as f:
+                    f.write("node_modules/\n.env\n.env.*\n*.log\n.DS_Store\nThumbs.db\n.team/screenshots/\n")
+            print(f"  {_col(C.GREEN, 'OK')}   Git repository initialized")
+        except FileNotFoundError:
+            print(f"  {_col(C.YELLOW, 'WARN')} git not found — skipping repo init")
+    else:
+        print(f"  {_col(C.GREEN, 'OK')}   Git repository already exists")
+
     # 5. Copy strategy.md into project
     strategy_dest = os.path.join(target_dir, "strategy.md")
     if selected_template is not None:
@@ -1090,6 +1118,8 @@ def cmd_init(args: argparse.Namespace) -> int:
     print(f"    {'Target directory:':<20} {target_dir}")
     print()
     print(_col(C.BOLD, "  Created:"))
+    print(f"    {_col(C.GREEN, 'DIR')}  {target_dir}")
+    print(f"    {_col(C.GREEN, 'GIT')}  .git/")
     for subdir in subdirs:
         print(f"    {_col(C.GREEN, 'DIR')}  .team/{subdir}/")
     if selected_template:

@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [4.4.0] - 2026-03-07
+
+### Added
+- `amenthyx init` now creates a new project folder on the Desktop (named after the project)
+- Git repository auto-initialized in the project folder (`git init` + `.gitignore`)
+- `.team/` scaffold created inside the new project folder
+
 ## [4.3.6] - 2026-03-07
 
 ### Fixed
