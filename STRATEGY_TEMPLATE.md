@@ -476,12 +476,85 @@ If any agent is unsure about an action's effect, safety, correctness, or scope, 
 
 ---
 
-## 14. Additional Context
+## 14. Execution Permissions
+
+> **MANDATORY** — Define what the AI team is allowed to do autonomously.
+
+**Claude Code Permission Mode**:
+- [ ] `--dangerously-skip-permissions` — Full auto-mode. Agents can read, write, execute, install, and deploy without asking. **USE WITH CAUTION.** Recommended only for isolated environments (containers, VMs, disposable machines).
+- [ ] Standard mode (default) — Claude asks for permission before destructive or sensitive actions. Recommended for local development on your main machine.
+- [ ] Restricted mode — Agents cannot install packages, run arbitrary commands, or access network. Manual approval for every action.
+
+**Why this matters**: With `--dangerously-skip-permissions`, agents will autonomously install dependencies, run build commands, execute tests, start servers, and modify system files. This is fast but gives the AI full control of your machine.
+
+**Recommended setup by environment**:
+
+| Environment | Permission Mode | Reasoning |
+|-------------|----------------|-----------|
+| Docker container | `--dangerously-skip-permissions` | Isolated, disposable — safe for full autonomy |
+| VM / Cloud instance | `--dangerously-skip-permissions` | Isolated — can be destroyed if issues arise |
+| Local dev machine | Standard mode | Your main machine — keep human-in-the-loop |
+| Production server | Restricted mode | Never give AI full autonomy on production |
+
+**Additional permission rules**:
+- **Can agents install npm/pip/cargo packages?**: [Yes / Yes with approval / No]
+- **Can agents start local servers (ports)?**: [Yes / Yes with approval / No]
+- **Can agents access the internet?**: [Yes / Yes for specific domains / No]
+- **Can agents run docker commands?**: [Yes / Yes with approval / No]
+- **Can agents modify .env or config files?**: [Yes / Yes with approval / No]
+
+---
+
+## 15. Runtime Environment
+
+> **MANDATORY** — Define where the AI team executes.
+
+**Execution Environment**:
+- [ ] Local machine — Team runs directly on your workstation
+- [ ] Docker container — Team runs inside an isolated container (recommended for `--dangerously-skip-permissions`)
+- [ ] Remote VM / Cloud — Team runs on a cloud instance (SSH or remote Claude Code)
+- [ ] GitHub Codespaces — Team runs in a Codespace environment
+- [ ] Other: [specify]
+
+**If Docker**:
+- **Base image**: [e.g., `node:20-slim` / `python:3.12-slim` / `ubuntu:24.04` / custom]
+- **Pre-installed tools**: [e.g., git, gh, act, node, python, docker-cli]
+- **Volume mounts**: [e.g., `./:/workspace` for code, `~/.ssh:/root/.ssh` for git auth]
+- **Network**: [host / bridge / none]
+- **Resource limits**: [CPU, memory — e.g., `--cpus=4 --memory=8g`]
+
+**If Local**:
+- **OS**: [Windows / macOS / Linux]
+- **Pre-installed tools**: [List what's already available — node, python, git, gh, docker, etc.]
+- **Working directory**: [Path where the team should operate]
+
+**Container template** (if Docker chosen):
+```dockerfile
+FROM ubuntu:24.04
+RUN apt-get update && apt-get install -y git curl nodejs npm python3 python3-pip
+# Install Claude Code
+RUN npm install -g @anthropic-ai/claude-code
+# Install GitHub CLI
+RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+WORKDIR /workspace
+```
+
+**Environment variables** (team needs these):
+| Variable | Value | Purpose |
+|----------|-------|---------|
+| `ANTHROPIC_API_KEY` | [set at runtime] | Claude API access |
+| `GITHUB_TOKEN` | [set at runtime] | GitHub API access (gh cli) |
+| `MC_PORT` | 4201 | Mission Control dashboard port |
+| [custom] | [value] | [purpose] |
+
+---
+
+## 16. Additional Context
 
 [Anything else the team should know — organizational context, political constraints, historical decisions, previous failed attempts, team culture, communication preferences, timezone constraints, etc.]
 
 ---
 
-*Strategy Brief v3.3 — Amenthyx AI Teams*
-*Cost-First | No-Delete | Ask-When-Unsure | ai-team Branch | Merge-Gated | Auto-Synced | Dynamically Scaled | Evidence-Driven | Deliverable Products | 20-Question Discovery | Screenshots Mandatory | Documentation Website | Mission Control PDF*
+*Strategy Brief v3.4 — Amenthyx AI Teams*
+*Cost-First | No-Delete | Ask-When-Unsure | ai-team Branch | Merge-Gated | Auto-Synced | Dynamically Scaled | Evidence-Driven | Deliverable Products | 20-Question Discovery | Screenshots Mandatory | Documentation Website | Mission Control PDF | Permission-Aware | Environment-Declared*
 *The more specific you are here, the better the team performs.*

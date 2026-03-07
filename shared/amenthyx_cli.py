@@ -866,6 +866,39 @@ def _extract_protocols(team_dir: str) -> List[str]:
     return protocols
 
 
+def cmd_merge_strategy(args: argparse.Namespace) -> int:
+    """AI-merge a user strategy into Amenthyx format."""
+    merger_path = os.path.join(BASE, "shared", "strategy_merger.py")
+    if not os.path.isfile(merger_path):
+        print(f"{C.RED}strategy_merger.py not found at {merger_path}{C.RESET}")
+        return 1
+
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("strategy_merger", merger_path)
+    if spec is None or spec.loader is None:
+        print(f"{C.RED}Could not load strategy_merger.py{C.RESET}")
+        return 1
+    mod = importlib.util.module_from_spec(spec)
+    old_argv = sys.argv
+    argv_new = ["strategy_merger.py", args.path]
+    if args.team:
+        argv_new.extend(["--team", args.team])
+    if args.output:
+        argv_new.extend(["--output", args.output])
+    if args.model:
+        argv_new.extend(["--model", args.model])
+    if args.prompt:
+        argv_new.append("--prompt")
+    sys.argv = argv_new
+    try:
+        spec.loader.exec_module(mod)
+    except SystemExit as e:
+        return int(e.code) if e.code is not None else 0
+    finally:
+        sys.argv = old_argv
+    return 0
+
+
 def cmd_init(args: argparse.Namespace) -> int:
     """Interactive project setup wizard."""
     target_dir = os.path.abspath(args.dir) if args.dir else os.getcwd()
@@ -1225,6 +1258,15 @@ def main() -> int:
     p_dry.add_argument("--team", required=True, help="Team activation keyword or directory name")
     p_dry.add_argument("--strategy", required=True, help="Path to strategy.md file")
 
+    # merge-strategy
+    p_merge = sub.add_parser("merge-strategy", help="AI-merge a user strategy into Amenthyx format")
+    p_merge.add_argument("path", help="Path to user's strategy file (any format)")
+    p_merge.add_argument("--team", "-t", default=None, help="Team keyword for team-specific context")
+    p_merge.add_argument("--output", "-o", default=None, help="Output path (default: <input>-amenthyx.md)")
+    p_merge.add_argument("--model", "-m", default="claude-sonnet-4-6", help="Claude model (default: claude-sonnet-4-6)")
+    p_merge.add_argument("--prompt", "-p", action="store_true",
+                         help="Generate prompt file for Claude Code / Claude.ai (no API key needed)")
+
     # validate-strategy
     p_val = sub.add_parser("validate-strategy", help="Validate a strategy.md file")
     p_val.add_argument("path", help="Path to the strategy file")
@@ -1268,6 +1310,7 @@ def main() -> int:
         "info": cmd_info,
         "init": cmd_init,
         "dry-run": cmd_dry_run,
+        "merge-strategy": cmd_merge_strategy,
         "validate-strategy": cmd_validate_strategy,
         "compose": cmd_compose,
         "test": cmd_test,
