@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [4.3.5] - 2026-03-07
+
+### Fixed
+- Fixed "filename or extension is too long" error on Windows when launching Claude Code
+- Claude now receives a short prompt referencing the activation file path instead of the full prompt text
+- Removed platform-specific piping/launcher workarounds — single cross-platform approach
+
 ## [4.3.4] - 2026-03-07
 
 ### Changed

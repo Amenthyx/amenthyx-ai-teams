@@ -31,7 +31,7 @@ from typing import Dict, List, Optional, Tuple
 _FROZEN = getattr(sys, 'frozen', False)
 _BASE_DEFAULT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BASE = _BASE_DEFAULT
-VERSION = "4.3.4"
+VERSION = "4.3.5"
 
 # ---------------------------------------------------------------------------
 # Vault integration — when running as a PyInstaller binary, team data lives
@@ -1390,27 +1390,22 @@ Begin execution now. Start with Wave 1."""
     print(_col(C.BOLD, "  " + "=" * 55))
     print()
 
-    # Launch claude with the activation prompt, replacing this process
-    # Use exec (os.execvp) so claude inherits the terminal — no new window
-    claude_args = [
-        claude_bin,
-        "--dangerously-skip-permissions",
-        "-p",
-        prompt_content,
-    ]
-
+    # Launch claude with a short prompt that references the activation file.
+    # Avoids Windows ~8K CLI arg limit by pointing to the file instead of inlining.
     os.chdir(target_dir)
 
+    short_prompt = f"Read the file {prompt_path} and execute every instruction in it."
+
     try:
-        # os.execvp replaces the current process — claude takes over the terminal
-        os.execvp(claude_bin, claude_args)
-    except OSError:
-        # Fallback: use subprocess if execvp fails (e.g., on Windows with .cmd files)
         result = _sp.run(
-            claude_args,
+            [claude_bin, "--dangerously-skip-permissions", "-p", short_prompt],
             cwd=target_dir,
         )
         return result.returncode
+    except (OSError, FileNotFoundError) as exc:
+        print(f"  {_col(C.RED, 'ERROR')} Failed to launch Claude: {exc}")
+        print(f"  {_col(C.DIM, f'       Prompt file: {prompt_path}')}")
+        return 1
 
 
 def cmd_dry_run(args: argparse.Namespace) -> int:
