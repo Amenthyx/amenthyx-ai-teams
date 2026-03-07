@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [4.3.4] - 2026-03-07
+
+### Changed
+- `amenthyx init` and `amenthyx activate` now auto-launch Claude Code CLI with `--dangerously-skip-permissions`
+- Claude takes over the terminal and starts executing the team protocol immediately
+- No manual copy-paste of prompts needed — fully automated from init to execution
+- Falls back to manual instructions if `claude` CLI is not found in PATH
+
 ## [4.3.3] - 2026-03-07
 
 ### Changed

@@ -31,7 +31,7 @@ from typing import Dict, List, Optional, Tuple
 _FROZEN = getattr(sys, 'frozen', False)
 _BASE_DEFAULT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BASE = _BASE_DEFAULT
-VERSION = "4.3.3"
+VERSION = "4.3.4"
 
 # ---------------------------------------------------------------------------
 # Vault integration — when running as a PyInstaller binary, team data lives
@@ -1345,21 +1345,72 @@ Begin execution now. Start with Wave 1."""
     print(f"    {'Strategy:':<20} {strategy_path}")
     print(f"    {'Dashboard:':<20} http://localhost:{mc_port}")
     print()
-    print(_col(C.BOLD + C.CYAN, "  Next Steps:"))
-    print()
-    print(f"  {_col(C.CYAN, '  Option A')} -- Claude Code CLI (recommended):")
-    claude_cmd = 'claude%s -p "$(cat %s)"' % (perm_flag, prompt_path)
-    print(f"    {_col(C.GREEN, claude_cmd)}")
-    print()
-    print(f"  {_col(C.CYAN, '  Option B')} -- Claude Code interactive:")
-    print(f"    {_col(C.GREEN, f'claude{perm_flag}')}")
-    print(f"    Then paste the contents of {_col(C.DIM, prompt_path)}")
-    print()
-    print(f"  {_col(C.CYAN, '  Option C')} -- Claude.ai:")
-    print(f"    Copy {_col(C.DIM, prompt_path)} and paste into claude.ai")
+
+    # 9. Launch Claude Code CLI automatically
+    print(_col(C.BOLD + C.CYAN, "  Launching Claude Code CLI..."))
     print()
 
-    return 0
+    # Read the activation prompt
+    with open(prompt_path, "r", encoding="utf-8", errors="replace") as f:
+        prompt_content = f.read()
+
+    # Find claude binary
+    claude_bin = shutil.which("claude")
+    if claude_bin is None:
+        # Try common locations
+        for candidate in [
+            os.path.expanduser("~/.npm-global/bin/claude"),
+            os.path.expanduser("~/AppData/Roaming/npm/claude.cmd"),
+            os.path.expanduser("~/AppData/Roaming/npm/claude"),
+            "/usr/local/bin/claude",
+        ]:
+            if os.path.isfile(candidate):
+                claude_bin = candidate
+                break
+
+    if claude_bin is None:
+        print(f"  {_col(C.YELLOW, 'WARN')} Claude Code CLI not found in PATH")
+        print()
+        print(_col(C.BOLD + C.CYAN, "  Run manually:"))
+        print()
+        print(f"    {_col(C.GREEN, f'claude --dangerously-skip-permissions -p \"$(cat {prompt_path})\"')}")
+        print()
+        print(f"  Or interactive:")
+        print(f"    {_col(C.GREEN, 'claude --dangerously-skip-permissions')}")
+        print(f"    Then paste the contents of {_col(C.DIM, prompt_path)}")
+        print()
+        return 0
+
+    print(f"  {_col(C.GREEN, 'OK')}   Found: {claude_bin}")
+    print(f"  {_col(C.GREEN, 'OK')}   Mode: --dangerously-skip-permissions")
+    print(f"  {_col(C.GREEN, 'OK')}   Working dir: {target_dir}")
+    print()
+    print(_col(C.BOLD, "  " + "=" * 55))
+    print(_col(C.BOLD + C.GREEN, "  Claude Code is starting — team execution begins now"))
+    print(_col(C.BOLD, "  " + "=" * 55))
+    print()
+
+    # Launch claude with the activation prompt, replacing this process
+    # Use exec (os.execvp) so claude inherits the terminal — no new window
+    claude_args = [
+        claude_bin,
+        "--dangerously-skip-permissions",
+        "-p",
+        prompt_content,
+    ]
+
+    os.chdir(target_dir)
+
+    try:
+        # os.execvp replaces the current process — claude takes over the terminal
+        os.execvp(claude_bin, claude_args)
+    except OSError:
+        # Fallback: use subprocess if execvp fails (e.g., on Windows with .cmd files)
+        result = _sp.run(
+            claude_args,
+            cwd=target_dir,
+        )
+        return result.returncode
 
 
 def cmd_dry_run(args: argparse.Namespace) -> int:
