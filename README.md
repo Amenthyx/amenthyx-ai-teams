@@ -332,7 +332,7 @@ amenthyx activate --team fullStack --strategy s.md
 
 ## Releasing
 
-Releases are triggered when a Pull Request is **merged into `main`** with a version tag in the PR title:
+Releases are triggered when a Pull Request is **merged** with a version tag in the PR title:
 
 | PR Title Tag | Bump | Example |
 |--------------|------|---------|

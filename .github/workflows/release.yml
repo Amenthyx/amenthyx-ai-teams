@@ -3,7 +3,7 @@ name: Release — Cross-Platform Encrypted Build
 on:
   pull_request:
     types: [closed]
-    branches: [main]
+    branches: [main, ai-team]
 
 permissions:
   contents: write
