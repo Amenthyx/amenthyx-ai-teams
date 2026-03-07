@@ -29,7 +29,7 @@ import sys
 from typing import Dict, List, Optional, Tuple
 
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-VERSION = "4.0.0"
+VERSION = "4.2.0"
 
 # ---------------------------------------------------------------------------
 # ANSI colours (with Windows support)
