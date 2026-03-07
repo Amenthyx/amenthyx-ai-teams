@@ -1036,6 +1036,255 @@ def cmd_init(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_activate(args: argparse.Namespace) -> int:
+    """Activate a team: validate, scaffold, launch Mission Control, generate Claude prompt."""
+    import datetime
+    import subprocess as _sp
+
+    team_keyword = args.team
+    strategy_path = args.strategy
+    target_dir = os.path.abspath(args.dir) if args.dir else os.getcwd()
+
+    print()
+    print(_col(C.BOLD + C.CYAN, "  Amenthyx AI Teams -- Activation"))
+    print(_col(C.DIM, "  " + "=" * 45))
+    print()
+
+    # 1. Validate team
+    teams = _get_all_teams()
+    team = _find_team(team_keyword, teams)
+    if team is None:
+        print(f"  {_col(C.RED, 'FAIL')} Team not found: {team_keyword}")
+        print(f"  Use 'amenthyx list' to see available teams.")
+        return 1
+    if not team["has_team_md"]:
+        print(f"  {_col(C.RED, 'FAIL')} Team '{team_keyword}' has no TEAM.md")
+        return 1
+    print(f"  {_col(C.GREEN, 'OK')}   Team: {_col(C.BOLD, team['name'])} ({team['keyword']})")
+
+    # 2. Validate strategy
+    if not os.path.isfile(strategy_path):
+        print(f"  {_col(C.RED, 'FAIL')} Strategy file not found: {strategy_path}")
+        return 1
+    strategy_path = os.path.abspath(strategy_path)
+    print(f"  {_col(C.GREEN, 'OK')}   Strategy: {strategy_path}")
+
+    # 3. Extract team metadata
+    agents = _extract_agents(team["dir"])
+    waves = _extract_waves(team["dir"])
+    print(f"  {_col(C.GREEN, 'OK')}   Agents: {len(agents)}  |  Waves: {len(waves)}")
+    print()
+
+    # 4. Create .team/ scaffold
+    print(_col(C.BOLD, "  Setting up project scaffold..."))
+    team_dir_path = os.path.join(target_dir, ".team")
+    subdirs = ["evidence", "reports", "learnings", "screenshots", "plans"]
+    for subdir in subdirs:
+        full_path = os.path.join(team_dir_path, subdir)
+        os.makedirs(full_path, exist_ok=True)
+    print(f"  {_col(C.GREEN, 'OK')}   .team/ directory ready")
+
+    # 5. Generate mission-control.config.json
+    agent_colors = [
+        "#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6",
+        "#06b6d4", "#ec4899", "#14b8a6", "#f97316", "#6366f1",
+        "#84cc16", "#e11d48",
+    ]
+    agent_list = []
+    for idx, a in enumerate(agents):
+        agent_list.append({
+            "role": a.get("code", f"AGENT{idx+1}"),
+            "name": a.get("name", f"Agent {idx+1}"),
+            "color": agent_colors[idx % len(agent_colors)],
+            "category": a.get("role", "specialist"),
+        })
+
+    wave_list = []
+    for idx, w in enumerate(waves, 1):
+        wave_list.append({
+            "number": idx,
+            "name": w,
+            "status": "pending",
+            "gate": f"gate-{idx}",
+        })
+
+    # Read project name from strategy if possible
+    project_name = team["name"] + " Project"
+    try:
+        with open(strategy_path, "r", encoding="utf-8", errors="replace") as f:
+            for line in f:
+                line = line.strip()
+                if line.startswith("# ") and not line.startswith("## "):
+                    project_name = line[2:].strip()
+                    break
+                if "project" in line.lower() and ":" in line:
+                    project_name = line.split(":", 1)[1].strip()
+                    break
+    except Exception:
+        pass
+
+    mc_config = {
+        "sessionId": None,  # Will be set by Mission Control
+        "projectName": project_name,
+        "teamName": team["keyword"],
+        "teamFullName": team["name"],
+        "teamDir": team["dir"],
+        "strategy": strategy_path,
+        "activatedAt": datetime.datetime.now().isoformat(),
+        "agents": agent_list,
+        "budget": {
+            "total": 50,
+            "currency": "USD",
+            "alertThreshold": 0.8,
+        },
+        "waves": wave_list,
+    }
+
+    config_path = os.path.join(target_dir, "mission-control.config.json")
+    with open(config_path, "w", encoding="utf-8") as f:
+        json.dump(mc_config, f, indent=2, default=str)
+    print(f"  {_col(C.GREEN, 'OK')}   Config: {config_path}")
+
+    # 6. Launch Mission Control
+    print()
+    print(_col(C.BOLD, "  Launching Mission Control..."))
+
+    mc_server_path = os.path.join(BASE, "shared", "mission-control", "dist", "server", "index.js")
+    mc_port = os.environ.get("MC_PORT", "4201")
+
+    if os.path.isfile(mc_server_path):
+        env = os.environ.copy()
+        env["MC_PROJECT_DIR"] = target_dir
+        env["MC_PORT"] = mc_port
+        env["MC_WATCH_DIR"] = team_dir_path
+
+        try:
+            # Launch Mission Control as a background process
+            if sys.platform == "win32":
+                # Windows: use CREATE_NEW_PROCESS_GROUP + DETACHED_PROCESS
+                CREATE_NEW_PROCESS_GROUP = 0x00000200
+                DETACHED_PROCESS = 0x00000008
+                _sp.Popen(
+                    ["node", mc_server_path],
+                    env=env,
+                    cwd=target_dir,
+                    stdout=_sp.DEVNULL,
+                    stderr=_sp.DEVNULL,
+                    creationflags=CREATE_NEW_PROCESS_GROUP | DETACHED_PROCESS,
+                )
+            else:
+                _sp.Popen(
+                    ["node", mc_server_path],
+                    env=env,
+                    cwd=target_dir,
+                    stdout=_sp.DEVNULL,
+                    stderr=_sp.DEVNULL,
+                    start_new_session=True,
+                )
+            print(f"  {_col(C.GREEN, 'OK')}   Mission Control running at http://localhost:{mc_port}")
+        except FileNotFoundError:
+            print(f"  {_col(C.YELLOW, 'WARN')} Node.js not found -- Mission Control not started")
+            print(f"  {_col(C.DIM, '       Install Node.js, then run: node ' + mc_server_path)}")
+        except Exception as exc:
+            print(f"  {_col(C.YELLOW, 'WARN')} Could not start Mission Control: {exc}")
+    else:
+        print(f"  {_col(C.YELLOW, 'WARN')} Mission Control not built")
+        print(f"  {_col(C.DIM, '       Run: cd shared/mission-control && npm run build')}")
+
+    # 7. Generate the Claude activation prompt
+    print()
+    print(_col(C.BOLD, "  Generating activation prompt..."))
+
+    team_md_path = os.path.join(BASE, team["dir"], "TEAM.md")
+    protocols_dir = os.path.join(BASE, "shared")
+
+    # Read team protocol
+    team_content = ""
+    if os.path.isfile(team_md_path):
+        with open(team_md_path, "r", encoding="utf-8", errors="replace") as f:
+            team_content = f.read()
+
+    # Read strategy
+    with open(strategy_path, "r", encoding="utf-8", errors="replace") as f:
+        strategy_content = f.read()
+
+    # Read core protocols
+    core_protocols = ["ACTIVATION_PROTOCOL.md", "ENHANCED_EXECUTION_PROTOCOL.md"]
+    protocol_content = ""
+    for proto_name in core_protocols:
+        proto_path = os.path.join(protocols_dir, proto_name)
+        if os.path.isfile(proto_path):
+            with open(proto_path, "r", encoding="utf-8", errors="replace") as f:
+                protocol_content += f"\n\n---\n\n# {proto_name}\n\n{f.read()}"
+
+    # Check permissions mode
+    perm_mode = os.environ.get("AMENTHYX_PERMISSIONS_MODE", "safe")
+    perm_flag = ""
+    if perm_mode == "skip-permissions":
+        perm_flag = " --dangerously-skip-permissions"
+
+    activation_prompt = f"""You are activating the Amenthyx AI Team: {team['name']} (--team {team['keyword']}).
+
+Your mission is defined by the strategy file below. Follow the team protocol exactly.
+
+## TEAM PROTOCOL
+
+{team_content}
+
+## PROJECT STRATEGY
+
+{strategy_content}
+
+{protocol_content}
+
+---
+
+## ACTIVATION INSTRUCTIONS
+
+1. You are the Team Lead (TL). Read the strategy and team protocol completely.
+2. Create the wave execution plan based on the strategy deliverables.
+3. Execute waves sequentially. Within each wave, coordinate the specialist agents.
+4. For every deliverable: implement, test, collect evidence, commit atomically.
+5. Mission Control is running at http://localhost:{mc_port} — it monitors your progress in real-time.
+6. All evidence goes into .team/evidence/, screenshots into .team/screenshots/.
+7. After each wave, run the gate review before proceeding.
+
+Begin execution now. Start with Wave 1."""
+
+    prompt_path = os.path.join(target_dir, ".team", "activation-prompt.md")
+    with open(prompt_path, "w", encoding="utf-8") as f:
+        f.write(activation_prompt)
+    print(f"  {_col(C.GREEN, 'OK')}   Prompt: {prompt_path}")
+
+    # 8. Final summary
+    print()
+    print(_col(C.DIM, "  " + "=" * 55))
+    print()
+    print(_col(C.GREEN + C.BOLD, "  Team Activated!"))
+    print()
+    print(f"    {'Project:':<20} {project_name}")
+    print(f"    {'Team:':<20} {team['keyword']} ({team['name']})")
+    print(f"    {'Agents:':<20} {len(agents)}")
+    print(f"    {'Waves:':<20} {len(waves)}")
+    print(f"    {'Strategy:':<20} {strategy_path}")
+    print(f"    {'Dashboard:':<20} http://localhost:{mc_port}")
+    print()
+    print(_col(C.BOLD + C.CYAN, "  Next Steps:"))
+    print()
+    print(f"  {_col(C.CYAN, '  Option A')} -- Claude Code CLI (recommended):")
+    print(f"    {_col(C.GREEN, f'claude{perm_flag} -p \"$(cat {prompt_path})\"')}")
+    print()
+    print(f"  {_col(C.CYAN, '  Option B')} -- Claude Code interactive:")
+    print(f"    {_col(C.GREEN, f'claude{perm_flag}')}")
+    print(f"    Then paste the contents of {_col(C.DIM, prompt_path)}")
+    print()
+    print(f"  {_col(C.CYAN, '  Option C')} -- Claude.ai:")
+    print(f"    Copy {_col(C.DIM, prompt_path)} and paste into claude.ai")
+    print()
+
+    return 0
+
+
 def cmd_dry_run(args: argparse.Namespace) -> int:
     """Simulate team activation without spawning anything."""
     team_keyword = args.team
@@ -1225,7 +1474,8 @@ def main() -> int:
             "  %(prog)s list                              List all teams\n"
             "  %(prog)s info fullStack                    Show team details\n"
             "  %(prog)s init                              Interactive project setup wizard\n"
-            "  %(prog)s init --dir ./my-project           Init in a specific directory\n"
+            "  %(prog)s activate --team fullStack --strategy strategy.md\n"
+            "                                             Activate team + launch Mission Control\n"
             "  %(prog)s dry-run --team fullStack --strategy strategy.md\n"
             "                                             Simulate team activation\n"
             "  %(prog)s validate-strategy strategy.md     Validate a strategy\n"
@@ -1252,6 +1502,12 @@ def main() -> int:
         "--dir", default=None,
         help="Target directory for project setup (default: current directory)",
     )
+
+    # activate (the main command — was `--team --strategy`)
+    p_act = sub.add_parser("activate", help="Activate a team: scaffold, launch Mission Control, generate prompt")
+    p_act.add_argument("--team", required=True, help="Team activation keyword (e.g. fullStack)")
+    p_act.add_argument("--strategy", required=True, help="Path to strategy.md file")
+    p_act.add_argument("--dir", default=None, help="Target project directory (default: current directory)")
 
     # dry-run
     p_dry = sub.add_parser("dry-run", help="Simulate team activation (no spawning)")
@@ -1309,6 +1565,7 @@ def main() -> int:
         "list": cmd_list,
         "info": cmd_info,
         "init": cmd_init,
+        "activate": cmd_activate,
         "dry-run": cmd_dry_run,
         "merge-strategy": cmd_merge_strategy,
         "validate-strategy": cmd_validate_strategy,

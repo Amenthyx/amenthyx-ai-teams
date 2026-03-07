@@ -1,4 +1,4 @@
-import React, { Suspense, lazy, useMemo } from 'react';
+import React, { Suspense, lazy, useMemo, useState, useEffect, useCallback } from 'react';
 import { Routes, Route, useNavigate } from 'react-router-dom';
 import { useWebSocket } from './hooks/useWebSocket';
 import { Header } from './components/layout/Header';
@@ -8,6 +8,7 @@ import { ToastContainer } from './components/common/Toast';
 import { CommandPalette } from './components/common/CommandPalette';
 import { ShortcutsHelpModal } from './components/common/ShortcutsHelpModal';
 import { PageSkeleton } from './components/common/PageSkeleton';
+import { SplashScreen } from './components/common/SplashScreen';
 import { useCommandPalette, type Command } from './hooks/useCommandPalette';
 import { useKeyboardShortcuts, useShortcutsHelp } from './hooks/useKeyboardShortcuts';
 import { ApprovalDialog } from './components/ApprovalDialog';
@@ -35,9 +36,20 @@ const WidgetBuilderPage = lazy(() => import('./pages/WidgetBuilderPage').then((m
 const AgentConsolePage = lazy(() => import('./pages/AgentConsolePage').then((m) => ({ default: m.AgentConsolePage })));
 
 const App: React.FC = () => {
+  const [projectReady, setProjectReady] = useState<boolean | null>(null);
   const { status, reconnectCount } = useWebSocket();
   const navigate = useNavigate();
   const shortcutsHelp = useShortcutsHelp();
+
+  // Check project status on mount
+  useEffect(() => {
+    fetch('/api/config')
+      .then((res) => res.json())
+      .then((data) => setProjectReady(!!data.projectActive))
+      .catch(() => setProjectReady(false));
+  }, []);
+
+  const handleProjectReady = useCallback(() => setProjectReady(true), []);
 
   const commands = useMemo<Command[]>(() => [
     { id: 'nav-overview', label: 'Go to Overview', category: 'Navigation', shortcut: 'G O', action: () => navigate('/') },
@@ -64,6 +76,16 @@ const App: React.FC = () => {
     { key: 'k', ctrl: true, description: 'Open command palette', action: palette.open },
     { key: '?', description: 'Show shortcuts help', action: shortcutsHelp.toggle },
   ]);
+
+  // Show splash screen while waiting for project activation
+  if (projectReady === null) {
+    // Initial load — show nothing briefly while checking
+    return null;
+  }
+
+  if (!projectReady) {
+    return <SplashScreen onProjectReady={handleProjectReady} />;
+  }
 
   return (
     <ErrorBoundary>

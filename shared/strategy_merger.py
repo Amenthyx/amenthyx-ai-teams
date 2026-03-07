@@ -13,21 +13,30 @@ When a user provides their own strategy file (any format, any structure), this t
 The AI understands context — it can extract features from a paragraph, infer tech stack
 from code references, and fill gaps with reasonable defaults.
 
-Two usage modes:
+Three usage modes (auto-detects the best available):
 
-  MODE 1 — Claude API (programmatic, requires ANTHROPIC_API_KEY):
+  MODE 1 — Claude Code CLI (no API key — uses your Claude subscription):
+    python strategy_merger.py user-strategy.md --cli
+    python strategy_merger.py user-strategy.md --cli --team fullStack
+    Requires: npm install -g @anthropic-ai/claude-code + claude login
+
+  MODE 2 — Claude API (programmatic, requires ANTHROPIC_API_KEY):
     python strategy_merger.py user-strategy.md
     python strategy_merger.py user-strategy.md --team fullStack
     python strategy_merger.py user-strategy.md --model claude-opus-4-6
+    Requires: pip install anthropic + ANTHROPIC_API_KEY env var
 
-  MODE 2 — Claude Code CLI (interactive, requires Claude Code subscription):
+  MODE 3 — Prompt file (manual paste into Claude.ai):
     python strategy_merger.py user-strategy.md --prompt
-    This generates a prompt file that you paste into Claude Code or any Claude interface.
-    Claude Code users can also run the merge directly from the CLI:
-      amenthyx merge-strategy user-strategy.md
+    Generates a prompt file you paste into any Claude interface.
+
+Auto-detection priority (when no flag specified):
+    1. ANTHROPIC_API_KEY set? -> API mode
+    2. claude CLI found? -> CLI mode (no key needed)
+    3. Neither? -> generates prompt file
 
 Environment:
-    ANTHROPIC_API_KEY=sk-ant-...   (required for API mode, not needed for --prompt mode)
+    ANTHROPIC_API_KEY=sk-ant-...   (required for API mode only)
 
 Python 3.8+. API mode requires: pip install anthropic
 """
@@ -36,6 +45,8 @@ import argparse
 import json
 import os
 import re
+import shutil
+import subprocess
 import sys
 from typing import Optional
 
@@ -327,6 +338,116 @@ IMPORTANT: Output the merged strategy directly — no code fences, no preamble, 
 
 
 # ---------------------------------------------------------------------------
+# Claude Code CLI — no API key needed
+# ---------------------------------------------------------------------------
+
+def find_claude_cli() -> Optional[str]:
+    """Find the claude CLI executable on the system."""
+    # Check common locations
+    claude_path = shutil.which("claude")
+    if claude_path:
+        return claude_path
+
+    # Windows: check npm global, AppData, common install paths
+    if sys.platform == "win32":
+        candidates = [
+            os.path.expandvars(r"%APPDATA%\npm\claude.cmd"),
+            os.path.expandvars(r"%LOCALAPPDATA%\Programs\claude\claude.exe"),
+            os.path.expandvars(r"%USERPROFILE%\.claude\bin\claude.exe"),
+        ]
+    else:
+        # Linux / macOS
+        candidates = [
+            os.path.expanduser("~/.npm-global/bin/claude"),
+            "/usr/local/bin/claude",
+            os.path.expanduser("~/.local/bin/claude"),
+            os.path.expanduser("~/.claude/bin/claude"),
+        ]
+
+    for p in candidates:
+        if os.path.isfile(p):
+            return p
+
+    return None
+
+
+def merge_with_claude_cli(
+    user_strategy: str,
+    template: str,
+    team_context: Optional[str] = None,
+) -> str:
+    """Use the claude CLI (Claude Code) to merge strategies — no API key needed.
+
+    Requires Claude Code CLI installed with an active subscription.
+    Runs: claude -p "<prompt>" --output-format text
+    """
+    claude_bin = find_claude_cli()
+    if not claude_bin:
+        print(f"{C.RED}ERROR: claude CLI not found on your system.{C.RESET}")
+        print()
+        print(f"  Install Claude Code CLI:")
+        print(f"    {C.CYAN}npm install -g @anthropic-ai/claude-code{C.RESET}")
+        print()
+        print(f"  Or use alternative modes:")
+        print(f"    {C.DIM}--prompt    Generate prompt file (paste into Claude.ai){C.RESET}")
+        print(f"    {C.DIM}(no flag)   API mode (requires ANTHROPIC_API_KEY){C.RESET}")
+        sys.exit(1)
+
+    # Build the full prompt
+    prompt = generate_prompt(user_strategy, template, team_context)
+
+    print(f"  {C.CYAN}Running claude CLI...{C.RESET}")
+    print(f"  {C.DIM}Binary: {claude_bin}{C.RESET}")
+    print(f"  {C.DIM}Prompt: {len(prompt)} chars{C.RESET}")
+    print()
+
+    try:
+        result = subprocess.run(
+            [claude_bin, "-p", prompt, "--output-format", "text"],
+            capture_output=True,
+            text=True,
+            timeout=300,  # 5 minute timeout
+            cwd=os.getcwd(),
+        )
+
+        if result.returncode != 0:
+            stderr = result.stderr.strip()
+            if "not logged in" in stderr.lower() or "auth" in stderr.lower():
+                print(f"{C.RED}ERROR: Claude CLI not authenticated.{C.RESET}")
+                print(f"  Run: {C.CYAN}claude login{C.RESET}")
+            else:
+                print(f"{C.RED}ERROR: claude CLI failed (exit code {result.returncode}){C.RESET}")
+                if stderr:
+                    print(f"  {C.DIM}{stderr[:500]}{C.RESET}")
+            sys.exit(1)
+
+        output = result.stdout.strip()
+        if not output:
+            print(f"{C.RED}ERROR: claude CLI returned empty output.{C.RESET}")
+            sys.exit(1)
+
+        # Strip any code fences if Claude wrapped the output
+        if output.startswith("```"):
+            lines = output.split("\n")
+            # Remove first and last code fence lines
+            if lines[0].startswith("```"):
+                lines = lines[1:]
+            if lines and lines[-1].strip() == "```":
+                lines = lines[:-1]
+            output = "\n".join(lines)
+
+        return output
+
+    except subprocess.TimeoutExpired:
+        print(f"{C.RED}ERROR: claude CLI timed out after 5 minutes.{C.RESET}")
+        print(f"  Try reducing your strategy size, or use --prompt mode.")
+        sys.exit(1)
+    except FileNotFoundError:
+        print(f"{C.RED}ERROR: Could not execute claude at: {claude_bin}{C.RESET}")
+        sys.exit(1)
+
+
+# ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
 
@@ -335,23 +456,23 @@ def main() -> int:
         description="Amenthyx AI Strategy Merger — intelligently merge user strategies into Amenthyx format using Claude AI",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=(
-            "Usage Modes:\n"
+            "Usage Modes (auto-detects best available):\n"
             "\n"
-            "  MODE 1 — Claude API (programmatic):\n"
+            "  MODE 1 — Claude Code CLI (no API key needed):\n"
+            "    %(prog)s my-idea.md --cli                        Merge via claude CLI\n"
+            "    %(prog)s my-idea.md --cli --team fullStack        Team-specific merge\n"
+            "    Requires: npm install -g @anthropic-ai/claude-code + claude login\n"
+            "\n"
+            "  MODE 2 — Claude API (programmatic):\n"
             "    %(prog)s my-idea.md                              Merge via API\n"
             "    %(prog)s my-idea.md --team fullStack              Team-specific merge\n"
             "    %(prog)s my-idea.md --model claude-opus-4-6       Use Opus model\n"
             "    Requires: ANTHROPIC_API_KEY env var + pip install anthropic\n"
             "\n"
-            "  MODE 2 — Claude Code / Claude.ai (interactive):\n"
+            "  MODE 3 — Prompt file (manual):\n"
             "    %(prog)s my-idea.md --prompt                     Generate prompt file\n"
             "    %(prog)s my-idea.md --prompt --team fullStack     With team context\n"
-            "    Then paste the prompt into Claude Code or Claude.ai.\n"
-            "    No API key needed — uses your Claude subscription directly.\n"
-            "\n"
-            "  MODE 3 — Claude Code CLI (direct):\n"
-            "    amenthyx merge-strategy my-idea.md               Via Amenthyx CLI\n"
-            "    Runs inside Claude Code as a subagent task.\n"
+            "    Paste into Claude.ai or any Claude interface.\n"
         ),
     )
     parser.add_argument("strategy", help="Path to user's strategy file (any format)")
@@ -360,7 +481,9 @@ def main() -> int:
     parser.add_argument("--model", "-m", default="claude-sonnet-4-6",
                         help="Claude model for API mode (default: claude-sonnet-4-6)")
     parser.add_argument("--prompt", "-p", action="store_true",
-                        help="Generate a prompt file instead of calling API (for Claude Code / Claude.ai users)")
+                        help="Generate a prompt file instead of calling API (for Claude.ai users)")
+    parser.add_argument("--cli", "-c", action="store_true",
+                        help="Use Claude Code CLI directly (no API key — uses your Claude subscription)")
 
     args = parser.parse_args()
 
@@ -393,8 +516,29 @@ def main() -> int:
 
     print()
 
+    # --- Determine merge mode ---
+    # Priority: --prompt > --cli > API key present > auto-detect claude CLI > fallback to prompt
+    use_cli = args.cli
+    use_prompt = args.prompt
+    use_api = False
+
+    if not use_cli and not use_prompt:
+        # Auto-detect: API key available? Use API. Claude CLI available? Use CLI. Otherwise prompt.
+        if os.environ.get("ANTHROPIC_API_KEY"):
+            use_api = True
+        elif find_claude_cli():
+            use_cli = True
+            print(f"  {C.CYAN}Auto-detected Claude Code CLI — using --cli mode (no API key needed){C.RESET}")
+            print()
+        else:
+            use_prompt = True
+            print(f"  {C.YELLOW}No ANTHROPIC_API_KEY and no Claude CLI found — generating prompt file{C.RESET}")
+            print(f"  {C.DIM}Install Claude Code: npm install -g @anthropic-ai/claude-code{C.RESET}")
+            print(f"  {C.DIM}Or set: export ANTHROPIC_API_KEY=sk-ant-...{C.RESET}")
+            print()
+
     # --- PROMPT MODE ---
-    if args.prompt:
+    if use_prompt:
         prompt = generate_prompt(user_strategy, template, team_context)
         prompt_path = args.output or args.strategy.replace(".md", "-merge-prompt.md")
         if prompt_path == args.strategy:
@@ -408,16 +552,13 @@ def main() -> int:
         print(f"  Size:    {len(prompt)} chars")
         print()
         print(f"  {C.CYAN}How to use:{C.RESET}")
-        print(f"  {C.DIM}Option A — Claude Code CLI:{C.RESET}")
-        print(f"    Open Claude Code, then paste the prompt file contents")
-        print(f"    Save Claude's output as your strategy.md")
+        print(f"  {C.DIM}Option A — Claude Code CLI (recommended):{C.RESET}")
+        print(f"    {C.CYAN}npm install -g @anthropic-ai/claude-code{C.RESET}")
+        print(f"    Then re-run this command (Claude CLI will be auto-detected)")
         print()
         print(f"  {C.DIM}Option B — Claude.ai:{C.RESET}")
-        print(f"    Go to claude.ai, paste the prompt, copy the output")
+        print(f"    Go to claude.ai, paste the prompt file contents, copy the output")
         print(f"    Save as strategy.md")
-        print()
-        print(f"  {C.DIM}Option C — Any Claude interface:{C.RESET}")
-        print(f"    Copy the prompt file contents into any Claude-powered tool")
         print()
         team_cmd = f" --team {args.team}" if args.team else " --team <teamName>"
         print(f"  {C.DIM}After getting the merged output, activate with:{C.RESET}")
@@ -425,8 +566,12 @@ def main() -> int:
         print()
         return 0
 
-    # --- API MODE ---
-    merged = merge_with_ai(user_strategy, template, team_context, args.model)
+    # --- CLI MODE (no API key needed) ---
+    if use_cli:
+        merged = merge_with_claude_cli(user_strategy, template, team_context)
+    else:
+        # --- API MODE ---
+        merged = merge_with_ai(user_strategy, template, team_context, args.model)
 
     # Check compliance
     report = check_compliance(merged)

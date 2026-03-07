@@ -128,7 +128,18 @@ function loadConfig(): ProjectConfig {
   return {};
 }
 
-const projectConfig = loadConfig();
+let projectConfig = loadConfig();
+
+// Reload config periodically to detect team activation mid-session
+function reloadConfig(): void {
+  const updated = loadConfig();
+  const wasActive = !!(projectConfig.projectName || projectConfig.teamName);
+  const nowActive = !!(updated.projectName || updated.teamName);
+  if (!wasActive && nowActive) {
+    log('info', `Project activated: ${updated.projectName || updated.teamName}`);
+  }
+  projectConfig = updated;
+}
 
 // ---------------------------------------------------------------------------
 // App Setup
@@ -264,14 +275,18 @@ app.use('/api', createRetentionRouter());
 app.use('/api', createBatchExportRouter());
 
 // Config endpoint — frontend can fetch dynamic project settings
+// Reloads config each call to detect team activation mid-session
 app.get('/api/config', (_req, res) => {
+  reloadConfig();
   const agents = getAgents();
   const budget = getBudget();
   const waves = getWaves();
+  const hasProject = !!(projectConfig.projectName || projectConfig.teamName);
   res.json({
     sessionId: SESSION_ID,
     projectName: projectConfig.projectName || projectConfig.teamName || 'Project',
     teamName: projectConfig.teamName || 'unknown',
+    projectActive: hasProject,
     agents,
     budget,
     waves,
@@ -282,7 +297,7 @@ app.get('/api/config', (_req, res) => {
 });
 
 // Serve static files in production
-const clientDistPath = path.resolve(__dirname, '../client/dist');
+const clientDistPath = path.resolve(__dirname, '../client');
 app.use(express.static(clientDistPath));
 
 // SPA fallback: serve index.html for unmatched routes (except /api)
@@ -392,8 +407,13 @@ server.listen(PORT, () => {
   log('info', `Git CWD: ${GIT_CWD} (branch: ${GIT_BRANCH})`);
 
   // Auto-open Mission Control in the default browser
-  const dashboardUrl = `http://localhost:4200`;
+  // Only opens if a project config exists (team activation created it)
+  // or if MC_FORCE_OPEN=1 is set for manual testing
+  const dashboardUrl = `http://localhost:${PORT}`;
   const noOpen = process.env.MC_NO_OPEN === '1' || process.env.MC_NO_OPEN === 'true';
+  const forceOpen = process.env.MC_FORCE_OPEN === '1' || process.env.MC_FORCE_OPEN === 'true';
+  const hasProject = projectConfig.projectName || projectConfig.teamName;
+
   if (!noOpen) {
     const openCommand =
       process.platform === 'win32' ? `start "" "${dashboardUrl}"` :
@@ -405,6 +425,9 @@ server.listen(PORT, () => {
         log('info', `Open manually: ${dashboardUrl}`);
       } else {
         log('info', `Browser opened: ${dashboardUrl}`);
+        if (!hasProject) {
+          log('info', 'Showing splash screen — waiting for team activation');
+        }
       }
     });
   }
