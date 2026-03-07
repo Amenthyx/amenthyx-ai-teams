@@ -94,7 +94,7 @@ jobs:
 
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.12'
 
       # Build PyInstaller bootloader from source to avoid AV false positives.
       # Pre-built bootloaders are flagged by heuristic scanners because their
@@ -173,9 +173,13 @@ jobs:
               "--name=amenthyx",
               "--console",
               "--noconfirm",
+              "--clean",          # Clean build cache for reproducible builds
               "--noupx",          # Disable UPX compression (triggers AV heuristics)
-              "--strip",          # Strip debug symbols (reduces size, cleaner binary)
           ]
+
+          # --strip corrupts PE binaries on Windows; only use on Unix
+          if sys.platform != "win32":
+              args.append("--strip")
 
           # Add Windows version info resource
           if sys.platform == "win32" and os.path.isfile("version_info.txt"):
