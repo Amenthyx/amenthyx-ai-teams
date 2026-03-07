@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [4.3.2] - 2026-03-07
+
+### Fixed
+- Windows console: output now stays in the same terminal window instead of opening a new one
+- Double-click from Explorer now pauses with "Press Enter to exit" so output is readable
+- Uses `GetConsoleProcessList` Win32 API to detect launch context (terminal vs Explorer)
+
 ## [4.1.0] - 2026-03-07
 
 ### Added
