@@ -222,8 +222,9 @@ EXECUTION SEQUENCE:
   Wave 0.1: PM DISCOVERY INTERVIEW → 20+ mandatory questions to TL → produces DISCOVERY_INTERVIEW.md
   Wave 0.2: TL produces COST_ESTIMATION.md (informed by interview findings) → WAITS for user approval
   Wave 0.5: MISSION CONTROL AUTO-DEPLOY (after cost approval, before Wave 1)
-  Wave 1: PM produces 2-3 alternative plans → .team/plans/
-  Wave 1.5: Judge evaluates plans → VERDICT.md → TL selects winner
+  Wave 1: PM produces exactly 3 alternative plans → .team/plans/PLAN_A.md, PLAN_B.md, PLAN_C.md
+  Wave 1.5: Judge evaluates plans → VERDICT.md with full justification
+  Wave 1.6: TL presents all 3 plans + VERDICT to user → WAITS for user approval (BLOCKING GATE)
   Wave 1.7: (Optional) A/B spike of runner-up if margin close
   Wave 2: Engineering (parallel agents) on `ai-team` with auto-sync
   Wave 2.5: Code Review (CR agent, blocking gate)

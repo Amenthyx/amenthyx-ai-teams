@@ -442,7 +442,7 @@ def _render_spawn_blocks(agents: List[dict]) -> str:
           9. Generate initial PDF -> `.team/reports/activity_001.pdf`
 
           IMPORTANT -- MULTI-PLAN REQUIREMENT (Judge Protocol):
-          Produce at least 2 (ideally 3) alternative plans in `.team/plans/`.
+          Produce exactly 3 alternative plans (ALL 3 ARE MANDATORY) in `.team/plans/`.
           See shared/JUDGE_PROTOCOL.md for required structure.
         \"\"\"
         )

@@ -197,13 +197,25 @@ Task(
   9. Generate initial PDF -> `.team/reports/activity_001.pdf`
   
   IMPORTANT -- MULTI-PLAN REQUIREMENT (Judge Protocol):
-  The PM MUST produce at least 2 (ideally 3) alternative plans:
+  The PM MUST produce exactly 3 alternative plans (ALL 3 ARE MANDATORY):
   - .team/plans/PLAN_A.md -- first approach
   - .team/plans/PLAN_B.md -- second approach (must differ meaningfully)
-  - .team/plans/PLAN_C.md -- third approach (optional, recommended)
+  - .team/plans/PLAN_C.md -- third approach (MANDATORY)
   Each plan must vary in at least 2 dimensions: architecture, technology,
   timeline, resource allocation, risk profile, or cost structure.
   See shared/JUDGE_PROTOCOL.md for the required plan document structure.
+  
+  DETAILED TO-DO LIST REQUIREMENT (MANDATORY IN EVERY PLAN):
+  Each plan MUST include an exhaustive to-do list covering:
+  - Every single task for every team member/component
+  - Dependencies between tasks (what blocks what)
+  - Execution order (what runs first, second, third...)
+  - Complexity rating per task (Low/Medium/High/Critical)
+  - Priority level (P0-P3)
+  - Estimated effort (hours/days)
+  - A dependency graph showing the critical path
+  - Parallel execution opportunities
+  See the "Detailed To-Do List" section in shared/JUDGE_PROTOCOL.md.
   After PM completes plans, TL spawns the Judge Agent to evaluate them.
 """
 )
@@ -232,11 +244,15 @@ Task(
 
   OUTPUT: Write verdict to .team/plans/VERDICT.md
   Include: scoring tables, comparative analysis, hidden assumptions,
+  MANDATORY: full justification for WHY the winning plan was chosen
+  and WHY each losing plan was NOT selected.
   missing considerations, and suggested modifications to winning plan.
   """
 )
-GATE: VERDICT.md must exist with a clear winner before engineering waves proceed.
-TL reads VERDICT and may override with documented rationale in DECISION_LOG.md.
+GATE: VERDICT.md must exist with a clear winner AND user must approve the plan before engineering waves proceed.
+TL presents ALL 3 plans + VERDICT to the user and WAITS for user approval.
+USER APPROVAL IS A BLOCKING GATE — no engineering work begins without it.
+User may choose Plan A, B, or C, request a hybrid, or ask for re-planning.
 ```
 
 ### Spawn: Marketing + Attorney (Background, Parallel)

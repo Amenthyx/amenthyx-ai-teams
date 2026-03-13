@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Judge Agent provides objective evaluation of competing plans, proposals, and design alternatives produced by the Project Manager (PM) or other team members. Instead of the PM delivering a single plan, the PM MUST produce **at least 2 (ideally 3) alternative plans** for every major decision. The Judge evaluates these alternatives systematically and delivers a scored recommendation to the Team Leader (TL).
+The Judge Agent provides objective evaluation of competing plans, proposals, and design alternatives produced by the Project Manager (PM) or other team members. The PM MUST produce **exactly 3 alternative plans** for every major decision. The Judge evaluates these alternatives systematically, delivers a scored recommendation with **full justification**, and the TL presents all 3 plans plus the Judge's verdict to the **user for final approval**. No plan may be executed without explicit user approval.
 
 ---
 
@@ -22,27 +22,37 @@ The Judge Agent provides objective evaluation of competing plans, proposals, and
 ## Protocol Flow
 
 ```
-1. PM produces N plans (minimum 2, recommended 3)
+1. PM produces exactly 3 plans (MANDATORY)
    -> .team/plans/PLAN_A.md
    -> .team/plans/PLAN_B.md
-   -> .team/plans/PLAN_C.md (optional)
+   -> .team/plans/PLAN_C.md
 
 2. TL spawns Judge Agent (foreground)
-   -> Judge reads ALL plans + PROJECT STRATEGY + constraints
+   -> Judge reads ALL 3 plans + PROJECT STRATEGY + constraints
 
-3. Judge produces VERDICT
+3. Judge produces VERDICT with full justification
    -> .team/plans/VERDICT.md
+   -> Judge MUST explain WHY the winning plan was chosen
+   -> Judge MUST explain WHY each losing plan was not selected
 
-4. TL reads VERDICT, presents to team
-   -> TL may override with documented rationale
+4. TL presents ALL 3 plans + VERDICT to the USER
+   -> TL summarizes each plan's approach in 2-3 sentences
+   -> TL shows the Judge's scores and justification
+   -> TL asks the user: "Which plan do you approve?"
+
+5. USER gives final approval (BLOCKING GATE)
+   -> User selects Plan A, B, or C
+   -> User may request modifications or a hybrid
+   -> User may reject all plans and ask PM to re-plan
    -> Selected plan becomes the EXECUTION PLAN
+   -> NO engineering work begins without user approval
 ```
 
 ---
 
 ## PM Multi-Plan Requirement
 
-The PM MUST produce alternative plans that differ in meaningful ways:
+The PM MUST produce **exactly 3 alternative plans** that differ in meaningful ways. This is not optional — all 3 plans are mandatory.
 
 ### Minimum Variation Dimensions
 Each plan MUST vary in at least 2 of these dimensions:
@@ -81,6 +91,29 @@ Each plan MUST include:
 
 ## Trade-offs
 [What this plan sacrifices vs what it optimizes for]
+
+## Detailed To-Do List (MANDATORY)
+For EVERY team member/component, provide:
+
+### [Role Name] — Tasks
+| # | Task | Description | Dependencies | Complexity | Priority | Est. Effort |
+|---|------|-------------|--------------|------------|----------|-------------|
+| 1 | [task name] | [detailed description of what needs to be done] | [which tasks/roles must complete first] | [Low/Medium/High/Critical] | [P0-P3] | [hours/days] |
+| 2 | ... | ... | ... | ... | ... | ... |
+
+### Execution Order & Dependency Graph
+```
+[Visual dependency graph showing which tasks block which, e.g.:]
+BE-1 (DB Schema) ──→ BE-2 (API endpoints) ──→ FE-3 (API integration)
+                                              ──→ MOB-2 (API integration)
+INFRA-1 (Cloud setup) ──→ DEVOPS-1 (CI/CD) ──→ QA-1 (E2E tests)
+```
+
+### Critical Path
+[Identify the longest dependency chain that determines minimum project duration]
+
+### Parallel Execution Opportunities
+[Which tasks can run simultaneously because they have no mutual dependencies]
 ```
 
 ---
@@ -139,7 +172,7 @@ FINAL_SCORE = (strategy * 0.25) + (feasibility * 0.20) + (risk * 0.15) +
 ### Plan B: [Name]
 [same table]
 
-### Plan C: [Name] (if applicable)
+### Plan C: [Name]
 [same table]
 
 ## Comparative Analysis
@@ -165,13 +198,28 @@ FINAL_SCORE = (strategy * 0.25) + (feasibility * 0.20) + (risk * 0.15) +
 - [gap 1 that no plan addressed]
 - [gap 2]
 
-## Final Recommendation
-[detailed paragraph explaining the selection with full reasoning]
+## Why This Plan Won (MANDATORY JUSTIFICATION)
+[Detailed paragraph explaining exactly WHY this plan is the best choice.
+The Judge MUST justify the selection with specific, concrete reasons tied
+to the project strategy, constraints, and success criteria. Vague statements
+like "it scored higher" are NOT acceptable — explain the reasoning.]
 
-### Suggested Modifications to Winning Plan
+## Why Each Other Plan Was Not Selected (MANDATORY)
+### Why Plan [X] Was Not Selected
+[Specific reasons this plan lost — what weaknesses, risks, or misalignments
+made it inferior to the winner. Be concrete.]
+
+### Why Plan [Y] Was Not Selected
+[Same as above for the other losing plan.]
+
+## Suggested Modifications to Winning Plan
 If applicable, list modifications from runner-up plans that should be incorporated:
 1. [modification 1]
 2. [modification 2]
+
+## USER APPROVAL REQUIRED
+This verdict is a RECOMMENDATION. The final decision belongs to the user.
+The TL will present all 3 plans and this verdict to the user for approval.
 ```
 
 ---
@@ -192,7 +240,7 @@ Task(
   Read these files:
   - .team/plans/PLAN_A.md
   - .team/plans/PLAN_B.md
-  - .team/plans/PLAN_C.md (if exists)
+  - .team/plans/PLAN_C.md
 
   EVALUATION RUBRIC:
   Use the 7-criterion rubric from shared/JUDGE_PROTOCOL.md.
@@ -210,20 +258,29 @@ Task(
 
 ---
 
-## TL Override Protocol
+## User Approval Protocol (BLOCKING GATE)
 
-The TL CAN override the Judge's verdict, but MUST:
-1. Document the override in `.team/DECISION_LOG.md`
-2. Provide explicit rationale
-3. Acknowledge the Judge's analysis
+The **user** has final authority over plan selection. The TL MUST:
+1. Present a clear summary of all 3 plans to the user
+2. Show the Judge's scores and justification
+3. Ask: "Which plan do you approve? You can choose A, B, or C, request a hybrid, or ask for re-planning."
+4. WAIT for user response — this is a BLOCKING gate
 
-Format:
+**User responses:**
+- **"Plan A/B/C"** or **"approved [plan]"** → TL proceeds with selected plan
+- **"hybrid"** or **"combine X from A with Y from B"** → TL documents hybrid in DECISION_LOG.md, creates hybrid execution plan
+- **"re-plan"** or **"none of these"** → TL re-spawns PM with user feedback for new plans
+- **Anything else** → TL asks for clarification
+
+**CRITICAL**: The TL CANNOT select a plan autonomously. Even if the Judge's verdict is unanimous, the user MUST approve. This gate cannot be skipped, automated, or timed out.
+
+Format for DECISION_LOG.md:
 ```markdown
-## Decision Override: [topic]
-- **Judge Recommended**: Plan [X]
-- **TL Selected**: Plan [Y]
-- **Rationale**: [why the TL disagrees]
-- **Acknowledged Risks**: [risks the Judge identified that TL accepts]
+## Plan Approval: [topic]
+- **Judge Recommended**: Plan [X] (score: X.XX)
+- **User Selected**: Plan [Y]
+- **User Rationale**: [why the user chose this plan, if different from Judge recommendation]
+- **Date**: YYYY-MM-DD
 ```
 
 ---

@@ -43,7 +43,7 @@ Task(
   \"\"\"
 )
 GATE: VERDICT.md must exist with a clear winner before engineering waves proceed.
-TL reads VERDICT and may override with documented rationale in DECISION_LOG.md.
+TL presents ALL 3 plans + VERDICT to the user and WAITS for user approval. USER APPROVAL IS A BLOCKING GATE.
 ```
 """
 
@@ -56,7 +56,7 @@ PLANS_DIR_ENTRY = """+-- plans/
 
 PM_MULTI_PLAN_NOTE = """
   IMPORTANT -- MULTI-PLAN REQUIREMENT (Judge Protocol):
-  The PM MUST produce at least 2 (ideally 3) alternative plans:
+  The PM MUST produce exactly 3 alternative plans (ALL 3 ARE MANDATORY):
   - .team/plans/PLAN_A.md -- first approach
   - .team/plans/PLAN_B.md -- second approach (must differ meaningfully)
   - .team/plans/PLAN_C.md -- third approach (optional, recommended)
