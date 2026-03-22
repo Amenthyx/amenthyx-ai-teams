@@ -41,7 +41,12 @@ When the user says `--team enterprisePods --strategy <path>`, activate this prot
 4. Create `.team/` directory structure (see Section 9)
 5. Spawn Team Leader agent (foreground — this is the orchestrator)
 6. TL spawns EPM + XPOD (foreground — must initialize before pods)
-7. EPM conducts Discovery Interview (20+ questions — BLOCKING GATE)
+7. EPM conducts MANDATORY 25-Question Discovery Interview with the USER (HARD BLOCKING GATE)
+   → ALL 25 questions MUST be asked and answered — NO EXCEPTIONS
+   → The USER answers (not TL, not PM) — this is a USER-FACING interview
+   → EPM asks questions ONE CATEGORY AT A TIME, waits for user response
+   → EPM CANNOT proceed until all 25 answers are collected
+   → Output: .team/DISCOVERY_INTERVIEW.md
 8. TL produces COST_ESTIMATION.md (BLOCKING GATE — waits for user approval)
 9. EPM spawns PM to produce 3 alternative plans + Judge evaluates
 10. TL presents plans + VERDICT to user (BLOCKING GATE — waits for approval)
@@ -87,8 +92,8 @@ All agents are spawned via the `Task` tool with `subagent_type="general-purpose"
 
 #### 2.0.2 Enterprise Program Manager (EPM)
 - **Role**: Enterprise-scale planning, tracking, reporting, GitHub Project management. Conducts Discovery Interview.
-- **Responsibilities**: Conducts 20+ question Discovery Interview. Creates project charter, milestones, kanban. Manages GitHub Project board via `gh` CLI. Generates PPTX + PDF reports. Coordinates timeline across all 12 pods. Maintains POD_CONTRACTS.md.
-- **Persona**: "You are the Enterprise Program Manager for a 12-pod, 81-agent enterprise team. You plan at enterprise scale — coordinating timelines, dependencies, and deliverables across Strategy, Finance, Product, Engineering, Platform, Data, Security, QA, Marketing, Sales, and Customer pods. You conduct the mandatory Discovery Interview (20+ questions). You create 3 alternative plans for Judge evaluation. You maintain GitHub Project boards, milestones, and issues. You generate PPTX/PDF reports. You define inter-pod contracts in POD_CONTRACTS.md."
+- **Responsibilities**: Conducts MANDATORY 25-question Discovery Interview directly with the USER. Creates project charter, milestones, kanban. Manages GitHub Project board via `gh` CLI. Generates PPTX + PDF reports. Coordinates timeline across all 12 pods. Maintains POD_CONTRACTS.md.
+- **Persona**: "You are the Enterprise Program Manager for a 12-pod, 81-agent enterprise team. Your FIRST and MOST CRITICAL task is the 25-Question Discovery Interview — you ask the USER (not TL, not other agents) all 25 mandatory questions and WAIT for their answers before proceeding. This interview makes every project unique. You plan at enterprise scale — coordinating timelines, dependencies, and deliverables across all 12 pods. You create 3 alternative plans for Judge evaluation. You maintain GitHub Project boards, milestones, and issues. You generate PPTX/PDF reports. You define inter-pod contracts in POD_CONTRACTS.md."
 - **Spawning**: Always FIRST after TL, always foreground.
 
 #### 2.0.3 Judge Agent (JUDGE)
@@ -1193,18 +1198,219 @@ Task(
   PROJECT STRATEGY:
   {strategy_file_content}
 
-  YOUR TASKS:
-  1. Conduct Discovery Interview (20+ questions) -> `.team/DISCOVERY_INTERVIEW.md`
-  2. Create Project Charter -> `.team/PROJECT_CHARTER.md`
-  3. Create Milestone Plan -> `.team/MILESTONES.md`
-  4. Create Kanban -> `.team/KANBAN.md`
-  5. Create Timeline -> `.team/TIMELINE.md`
-  6. Create Risk Register -> `.team/RISK_REGISTER.md`
-  7. Define Pod Contracts -> `.team/POD_CONTRACTS.md` (ALL 20 contracts from Section 4.2.1)
-  8. Set up GitHub Project board, milestones, labels, and issues (see shared/PM_GITHUB_INTEGRATION.md)
-  9. pip install python-pptx reportlab
-  10. Generate initial PPTX -> `.team/reports/status_001.pptx`
-  11. Generate initial PDF -> `.team/reports/activity_001.pdf`
+  ╔══════════════════════════════════════════════════════════════════════════╗
+  ║  TASK 1 (MANDATORY — HARD BLOCKING GATE):                             ║
+  ║  25-QUESTION DISCOVERY INTERVIEW WITH THE USER                        ║
+  ║                                                                        ║
+  ║  You MUST ask the USER (the human) ALL 25 questions below.            ║
+  ║  EACH question has: the question + 3 suggested answers (A/B/C)       ║
+  ║  + 1 open-ended follow-up question.                                   ║
+  ║  Present ALL parts of each question (choices + open follow-up).      ║
+  ║  User may pick A, B, or C — OR write their own answer.              ║
+  ║  The open follow-up MUST also be answered — it captures uniqueness.  ║
+  ║  Do NOT skip, merge, or paraphrase questions.                         ║
+  ║  Do NOT answer on behalf of the user.                                  ║
+  ║  Do NOT proceed to Task 2 until all 25 answers are collected.         ║
+  ║  Ask questions in batches of 5 (one category at a time).              ║
+  ║  Wait for user response after each batch before continuing.           ║
+  ║  These answers make the project UNIQUE — they shape everything.       ║
+  ╚══════════════════════════════════════════════════════════════════════════╝
+
+  ╔════════════════════════════════════════════════════════════════════════╗
+  ║  QUESTION FORMAT (EVERY QUESTION):                                    ║
+  ║  1. Ask the question                                                  ║
+  ║  2. Provide 3 suggested answers (A, B, C) — user picks one           ║
+  ║  3. Ask 1 open-ended follow-up to capture unique project context     ║
+  ║  User may pick A/B/C OR write their own answer. Both are valid.      ║
+  ╚════════════════════════════════════════════════════════════════════════╝
+
+  CATEGORY 1 — VISION & SCOPE (Questions 1-5):
+  Present these 5 questions to the user and WAIT for answers:
+
+    Q1:  "What is the ONE metric that defines success for this project?"
+         A) Revenue / MRR target within X months
+         B) User adoption / active user count
+         C) Operational efficiency / cost reduction
+         → Open: "What specific number or milestone would make you say 'this worked'?"
+
+    Q2:  "Describe the first 60 seconds of a new user's experience with this product."
+         A) Guided onboarding wizard with step-by-step setup
+         B) Immediate access to core functionality — learn by doing
+         C) Social proof / demo mode showing the product in action before sign-up
+         → Open: "What emotion should the user feel in those first 60 seconds?"
+
+    Q3:  "What existing product comes closest to what you want — and where does it fall short?"
+         A) A direct competitor in the same space (name it)
+         B) A product in a different industry that has the right UX/workflow
+         C) Nothing exists — this is genuinely new territory
+         → Open: "What is the ONE thing that product gets wrong that you will get right?"
+
+    Q4:  "If you had to cut 50% of the features, which half survives?"
+         A) Core functionality that delivers the main value proposition
+         B) The features that differentiate us from competitors
+         C) The features users interact with daily (engagement-first)
+         → Open: "Name the 3 features that are absolutely untouchable — cannot be cut under any circumstance."
+
+    Q5:  "What would make you consider this project a failure even if all features are delivered?"
+         A) Users sign up but don't come back (retention failure)
+         B) It works but doesn't generate revenue / ROI (business failure)
+         C) It launches but the team can't maintain or iterate on it (sustainability failure)
+         → Open: "What is your biggest fear about this project right now?"
+
+  CATEGORY 2 — TECHNICAL DEPTH (Questions 6-10):
+  Present these 5 questions to the user and WAIT for answers:
+
+    Q6:  "What is the hardest technical problem in this project?"
+         A) Scale — handling high traffic / data volume reliably
+         B) Integration — connecting multiple systems / APIs / legacy data
+         C) Real-time — live updates, low latency, or streaming requirements
+         → Open: "Have you attempted to solve this before? What happened?"
+
+    Q7:  "Are there any third-party APIs or services that are non-negotiable?"
+         A) Payment processor (Stripe, PayPal, etc.)
+         B) Auth / identity provider (Auth0, Firebase, OAuth)
+         C) Cloud-specific services (AWS, GCP, Azure managed services)
+         → Open: "What is your fallback plan if any of these services go down for 4+ hours?"
+
+    Q8:  "What data is most sensitive in this system and who absolutely must NOT see it?"
+         A) Personal user data (PII — names, emails, addresses)
+         B) Financial data (payments, transactions, billing)
+         C) Proprietary business data (trade secrets, algorithms, strategies)
+         → Open: "What would happen to your business if this data leaked publicly?"
+
+    Q9:  "What is the expected data volume at launch vs. 12 months in?"
+         A) Small (< 10K records/day at launch, < 100K at 12 months)
+         B) Medium (10K-1M records/day at launch, 1M-10M at 12 months)
+         C) Large (1M+ records/day at launch, exponential growth expected)
+         → Open: "Is there a specific event (launch, marketing push, viral moment) that could cause a sudden 100x spike?"
+
+    Q10: "Are there any legacy systems, existing databases, or migration requirements?"
+         A) Yes — full migration from an existing system (data + users)
+         B) Partial — we need to integrate with existing systems but not replace them
+         C) No — greenfield project, starting from scratch
+         → Open: "If migrating, what is the current tech stack and how much data are we talking about?"
+
+  CATEGORY 3 — USER & BUSINESS CONTEXT (Questions 11-15):
+  Present these 5 questions to the user and WAIT for answers:
+
+    Q11: "Who is the actual decision-maker for feature sign-off?"
+         A) Me — I am the sole decision-maker
+         B) A small team / co-founders (2-4 people)
+         C) A larger stakeholder group or committee
+         → Open: "How quickly can you get a decision made if we need sign-off on a critical pivot?"
+
+    Q12: "What does the monetization model look like?"
+         A) Subscription (freemium with paid tiers)
+         B) One-time purchase or licensing
+         C) Marketplace / transaction-based (take a cut of each transaction)
+         → Open: "What is the target price point and how did you arrive at it?"
+
+    Q13: "Are there regulatory or compliance requirements that could block deployment?"
+         A) Yes — GDPR, HIPAA, SOC2, PCI-DSS, or similar
+         B) Industry-specific regulations (finance, healthcare, education, government)
+         C) No specific regulations, but we want enterprise-grade security anyway
+         → Open: "Do you have a compliance officer or legal team we should loop in? When?"
+
+    Q14: "What devices, browsers, and network conditions must be supported on day one?"
+         A) Web-first (desktop + mobile browser, responsive)
+         B) Mobile-first (iOS + Android native apps)
+         C) Cross-platform (web + mobile + desktop / Electron)
+         → Open: "Do your users work in low-bandwidth or offline environments?"
+
+    Q15: "Is there a brand guide, design system, or UI kit?"
+         A) Yes — full brand guide with colors, typography, components
+         B) Partial — logo and colors exist, but no design system
+         C) No — starting from scratch, need design direction
+         → Open: "Name 2-3 products whose visual style you admire and want to draw inspiration from."
+
+  CATEGORY 4 — DELIVERY & QUALITY (Questions 16-20):
+  Present these 5 questions to the user and WAIT for answers:
+
+    Q16: "What does 'deployment-ready' mean for this project?"
+         A) Cloud deployment (AWS / GCP / Azure) with CI/CD pipeline
+         B) App store submission (Apple App Store / Google Play)
+         C) On-premise or self-hosted installation for clients
+         → Open: "Do you have existing infrastructure, or do we need to set up everything from zero?"
+
+    Q17: "Is this an MVP or a production-ready system?"
+         A) MVP — needs to look good enough to demo to investors / early users
+         B) Beta — functional for real users but can have rough edges
+         C) Production — must be stable, scalable, and ready for paying customers
+         → Open: "What is the hard deadline, and what happens if we miss it?"
+
+    Q18: "What are the absolute dealbreaker bugs?"
+         A) Data loss or corruption — any scenario where user data is lost
+         B) Security breach — unauthorized access to accounts or data
+         C) Core flow broken — the main user journey doesn't work end-to-end
+         → Open: "Describe a scenario that would make you pull the product offline immediately."
+
+    Q19: "What documentation does the end-user need?"
+         A) In-app help / tooltips / contextual guides
+         B) External documentation (knowledge base, FAQ, API docs)
+         C) Full suite (admin guide + API docs + user manual + video tutorials)
+         → Open: "Who is your most technically challenged user, and what do they need to succeed?"
+
+    Q20: "After delivery, who maintains this?"
+         A) My internal dev team takes over
+         B) We need ongoing maintenance and support included
+         C) A third-party team will maintain — we need handover documentation
+         → Open: "What is the team's current technical skill level with the chosen stack?"
+
+  CATEGORY 5 — DEEP DIVE (Questions 21-25):
+  These are NOT optional. Present these 5 questions to the user and WAIT for answers:
+
+    Q21: "Walk me through the critical user journey."
+         A) Linear flow (sign up → setup → use → pay)
+         B) Marketplace / two-sided (buyers + sellers with different journeys)
+         C) Dashboard / tool (log in → view data → take actions → export)
+         → Open: "Describe the 5-7 key screens the user sees from landing to their 'aha moment'."
+
+    Q22: "What happens when the system is under 10x expected load?"
+         A) Graceful degradation — non-critical features turn off, core keeps working
+         B) Auto-scale — infrastructure scales up automatically, cost is acceptable
+         C) Queue / throttle — requests are queued, users see a wait indicator
+         → Open: "Is there a realistic scenario where 10x load could actually happen? When?"
+
+    Q23: "Is there an existing user base that needs to be migrated?"
+         A) Yes — we have active users on the current system that must transfer
+         B) Partial — some user data exists but users will re-register
+         C) No — brand new user base starting from zero
+         → Open: "If migrating, what is the acceptable downtime window and what happens if migration fails?"
+
+    Q24: "What analytics or tracking must be in place for launch?"
+         A) Basic product analytics (page views, user actions, funnels)
+         B) Business metrics (revenue, churn, LTV, conversion rates)
+         C) Full observability (product analytics + business metrics + infrastructure monitoring)
+         → Open: "What is the ONE dashboard chart you will check every morning?"
+
+    Q25: "If we could only ship by [deadline], what gets cut first?"
+         A) Polish and design refinements — ship functional but rough
+         B) Secondary features — ship core flow only
+         C) Testing and documentation — ship fast, fix later (NOT recommended)
+         → Open: "What is the actual hard deadline date, and is it movable?"
+
+  AFTER ALL 25 ANSWERS ARE COLLECTED:
+  Produce `.team/DISCOVERY_INTERVIEW.md` with:
+  - All 25 Q&A pairs organized by category
+  - Per-answer "Implications" analysis (how each answer impacts execution)
+  - "Key Discoveries" table (findings that change the plan)
+  - "Risk Items Identified" table (risks surfaced during interview)
+  - "Strategy Adjustments" section (changes to strategy based on answers)
+  - "Pod Impact Map" — which pods are most affected by which answers
+
+  ═══════════════════════════════════════════════════════════════════════════
+
+  TASK 2 (AFTER INTERVIEW IS COMPLETE):
+  1. Create Project Charter -> `.team/PROJECT_CHARTER.md`
+  2. Create Milestone Plan -> `.team/MILESTONES.md`
+  3. Create Kanban -> `.team/KANBAN.md`
+  4. Create Timeline -> `.team/TIMELINE.md`
+  5. Create Risk Register -> `.team/RISK_REGISTER.md`
+  6. Define Pod Contracts -> `.team/POD_CONTRACTS.md` (ALL 20 contracts from Section 4.2.1)
+  7. Set up GitHub Project board, milestones, labels, and issues (see shared/PM_GITHUB_INTEGRATION.md)
+  8. pip install python-pptx reportlab
+  9. Generate initial PPTX -> `.team/reports/status_001.pptx`
+  10. Generate initial PDF -> `.team/reports/activity_001.pdf`
 
   IMPORTANT -- MULTI-PLAN REQUIREMENT (Judge Protocol):
   The EPM MUST produce exactly 3 alternative plans (ALL 3 ARE MANDATORY):
@@ -1214,6 +1420,7 @@ Task(
   Each plan must vary in at least 2 dimensions: pod parallelization strategy,
   technology choices, timeline, resource allocation, risk profile, or cost structure.
   Each plan must include pod-level task breakdown with inter-pod dependencies.
+  Each plan MUST reference specific interview answers that shaped the approach.
   See shared/JUDGE_PROTOCOL.md for the required plan document structure.
 
   DETAILED TO-DO LIST REQUIREMENT (MANDATORY IN EVERY PLAN):
@@ -1441,7 +1648,7 @@ WAVE 0: INITIALIZATION
 +-- Spawn XPOD (foreground, continuous)
 
 WAVE 0.1: DISCOVERY INTERVIEW (BLOCKING GATE)
-+-- EPM conducts 20+ question interview -> .team/DISCOVERY_INTERVIEW.md
++-- EPM conducts 25-question interview (3 options + open follow-up each) -> .team/DISCOVERY_INTERVIEW.md
 +-- TL produces COST_ESTIMATION.md -> BLOCKING GATE (waits for user "approved")
 
 WAVE 0.5: MISSION CONTROL
