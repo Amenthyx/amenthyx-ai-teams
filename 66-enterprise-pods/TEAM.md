@@ -35,22 +35,34 @@ When the user says `--team enterprisePods --strategy <path>`, activate this prot
 
 ### Initialization Sequence
 ```
+★ STEP 0: DEPLOY MISSION CONTROL IMMEDIATELY (before anything else)
+   → Copy shared/mission-control/ → .mission-control/
+   → npm install + generate config (12 pods, 81 agents)
+   → Start dashboard in background: http://localhost:4200
+   → AUTO-OPEN browser — user sees live dashboard within seconds
+   → Dashboard starts empty, populates in real-time as work begins
+   → This is NON-BLOCKING — proceed to Step 1 immediately
+
 1. Read this TEAM.md completely
 2. Read the strategy file at <path> — this becomes PROJECT STRATEGY
 3. Read shared/ENHANCED_EXECUTION_PROTOCOL.md — mandatory execution rules
 4. Create `.team/` directory structure (see Section 9)
+   → Mission Control detects .team/ creation, begins file watching
 5. Spawn Team Leader agent (foreground — this is the orchestrator)
 6. TL spawns EPM + XPOD (foreground — must initialize before pods)
 7. EPM conducts MANDATORY 25-Question Discovery Interview with the USER (HARD BLOCKING GATE)
    → ALL 25 questions MUST be asked and answered — NO EXCEPTIONS
    → The USER answers (not TL, not PM) — this is a USER-FACING interview
    → EPM asks questions ONE CATEGORY AT A TIME, waits for user response
+   → Each answer streams to Mission Control in real-time
    → EPM CANNOT proceed until all 25 answers are collected
    → Output: .team/DISCOVERY_INTERVIEW.md
 8. TL produces COST_ESTIMATION.md (BLOCKING GATE — waits for user approval)
+   → Cost breakdown visible in Mission Control budget panel
 9. EPM spawns PM to produce 3 alternative plans + Judge evaluates
 10. TL presents plans + VERDICT to user (BLOCKING GATE — waits for approval)
 11. Begin wave-based pod execution (see Section 7)
+    → All pod activations, events, kanban updates visible in Mission Control
 ```
 
 ### Strategy Integration
@@ -1187,6 +1199,70 @@ Wave 3:
 
 ## 5. SUBAGENT ORCHESTRATION ENGINE
 
+### ★ Spawn: Mission Control (FIRST — Background, Non-Blocking)
+```
+# This MUST be the VERY FIRST action — before reading strategy, before spawning TL/EPM.
+# The user sees a live dashboard within seconds of typing --team X --strategy Y.
+
+Bash(command="""
+  # 1. Copy mission control to project
+  cp -r "$HOME/.amenthyx-ai-teams/shared/mission-control" .mission-control
+
+  # 2. Gitignore it
+  echo -e "\n.mission-control/\n.mission-control/node_modules/" >> .gitignore
+
+  # 3. Install dependencies (fast — node_modules cached)
+  cd .mission-control && npm install --silent 2>/dev/null
+
+  # 4. Generate config for 12 pods + 81 agents
+  node -e "
+    const config = {
+      sessionId: require('crypto').randomUUID(),
+      projectName: '$(basename $(pwd))',
+      teamName: 'enterprise-pods',
+      teamSize: 81,
+      pods: 12,
+      podNames: ['command','strategy','finance','product','engineering','platform','data','security','qa','marketing','sales','customer'],
+      agents: [],  // Will be populated by file watchers as agents spawn
+      budget: { currency: 'USD', allocated: 0, spent: 0 },
+      waves: [
+        { id: 'wave-0', name: 'Mission Control + Init', status: 'active' },
+        { id: 'wave-0.1', name: 'Discovery Interview', status: 'pending' },
+        { id: 'wave-0.2', name: 'Cost Estimation', status: 'pending' },
+        { id: 'wave-1', name: 'Planning', status: 'pending' },
+        { id: 'wave-2', name: 'Engineering', status: 'pending' },
+        { id: 'wave-3', name: 'QA', status: 'pending' },
+        { id: 'wave-4', name: 'Release', status: 'pending' },
+        { id: 'wave-5', name: 'Reporting', status: 'pending' }
+      ],
+      projectActive: true
+    };
+    require('fs').writeFileSync('mission-control.config.json', JSON.stringify(config, null, 2));
+  "
+
+  # 5. Start dashboard in background
+  npm run dashboard &
+
+  # 6. Wait for health (max 30s)
+  for i in $(seq 1 30); do
+    curl -s http://localhost:4201/api/health > /dev/null 2>&1 && break
+    sleep 1
+  done
+
+  # 7. Auto-open browser
+  case "$(uname -s)" in
+    MINGW*|MSYS*|CYGWIN*) start http://localhost:4200 ;;
+    Darwin*) open http://localhost:4200 ;;
+    *) xdg-open http://localhost:4200 2>/dev/null || true ;;
+  esac
+
+  echo "✓ Mission Control running at http://localhost:4200"
+""", run_in_background=True)
+
+# Dashboard is now LIVE and watching .team/ for changes.
+# Proceed immediately — do NOT wait for dashboard.
+```
+
 ### Spawn: Enterprise Program Manager (Foreground, Sequential)
 ```
 Task(
@@ -1641,20 +1717,29 @@ See `shared/PM_GITHUB_INTEGRATION.md` for full `gh` command reference.
 ## 7. WAVE-BASED PARALLEL EXECUTION
 
 ```
-WAVE 0: INITIALIZATION
-+-- Team Leader spawns (foreground)
-+-- Read strategy file + TEAM.md + Enhanced Execution Protocol
-+-- Create .team/ directory structure (including /pods/ subdirectories)
-+-- Spawn XPOD (foreground, continuous)
+WAVE 0: MISSION CONTROL + INITIALIZATION
++-- ★ STEP 1: Deploy Mission Control IMMEDIATELY (background, non-blocking)
+|   +-- Copy shared/mission-control/ → .mission-control/
+|   +-- npm install (background)
+|   +-- Generate config for 12 pods + 81 agents
+|   +-- Start dashboard: http://localhost:4200
+|   +-- AUTO-OPEN browser → user sees live dashboard within seconds
+|   +-- Dashboard starts empty, populates in real-time via file watchers
+|
++-- STEP 2 (parallel with dashboard startup):
+|   +-- Team Leader spawns (foreground)
+|   +-- Read strategy file + TEAM.md + Enhanced Execution Protocol
+|   +-- Create .team/ directory structure (including /pods/ subdirectories)
+|   +-- → Dashboard detects .team/ creation, starts watching for files
+|
++-- STEP 3: Spawn XPOD (foreground, continuous)
 
 WAVE 0.1: DISCOVERY INTERVIEW (BLOCKING GATE)
-+-- EPM conducts 25-question interview (3 options + open follow-up each) -> .team/DISCOVERY_INTERVIEW.md
++-- EPM conducts 25-question interview (3 options + open follow-up each)
++-- → Each answer appears in Mission Control in real-time
++-- Output: .team/DISCOVERY_INTERVIEW.md
 +-- TL produces COST_ESTIMATION.md -> BLOCKING GATE (waits for user "approved")
-
-WAVE 0.5: MISSION CONTROL
-+-- Auto-deploy mission control dashboard
-+-- Configure for 12 pods + 81 agents
-+-- Start dashboard: http://localhost:4200
++-- → Cost breakdown visible in Mission Control budget panel
 
 WAVE 1: PLANNING (Sequential — EPM foreground)
 +-- EPM: Charter, Milestones, Kanban, Timeline, Risk Register, Pod Contracts

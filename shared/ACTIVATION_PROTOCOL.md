@@ -218,10 +218,10 @@ CRITICAL REQUIREMENTS (v4.0):
     levels. See `shared/RISK_ESCALATION_MATRIX.md`.
 
 EXECUTION SEQUENCE:
-  Wave 0: TL reads everything → creates `ai-team` branch
-  Wave 0.1: PM DISCOVERY INTERVIEW → 20+ mandatory questions to TL → produces DISCOVERY_INTERVIEW.md
+  Wave 0: MISSION CONTROL AUTO-DEPLOY (FIRST — background, non-blocking)
+          → TL reads everything → creates `ai-team` branch
+  Wave 0.1: PM DISCOVERY INTERVIEW → 25 mandatory questions to USER → produces DISCOVERY_INTERVIEW.md
   Wave 0.2: TL produces COST_ESTIMATION.md (informed by interview findings) → WAITS for user approval
-  Wave 0.5: MISSION CONTROL AUTO-DEPLOY (after cost approval, before Wave 1)
   Wave 1: PM produces exactly 3 alternative plans → .team/plans/PLAN_A.md, PLAN_B.md, PLAN_C.md
   Wave 1.5: Judge evaluates plans → VERDICT.md with full justification
   Wave 1.6: TL presents all 3 plans + VERDICT to user → WAITS for user approval (BLOCKING GATE)
@@ -253,7 +253,7 @@ TL COST ESTIMATION SEQUENCE:
 7. TL WAITS for user response — this is a BLOCKING gate
 
 USER RESPONSES:
-- "approved" → TL proceeds to Wave 0.5 (Mission Control deploy)
+- "approved" → TL proceeds to Wave 1 (PM planning)
 - "approved with cap of $X" → TL proceeds with hard cost ceiling
 - "too expensive, tailor it" → TL proposes reductions, re-estimates
 - "change X" → TL revises specific item, re-estimates
@@ -263,15 +263,25 @@ CRITICAL: The TL must NOT spawn the PM or any other agent until
 approval is received. This gate cannot be skipped or timed out.
 ```
 
-#### 6.2 Mission Control Auto-Deploy (AUTOMATIC — after cost approval)
+#### 6.2 Mission Control Auto-Deploy (IMMEDIATE — first action in Wave 0)
 
-After cost approval but BEFORE Wave 1 (PM spawn), the TL MUST deploy Mission Control:
+Mission Control launches BEFORE anything else — it is the VERY FIRST action when
+`--team X --strategy Y` is invoked. The dashboard starts empty and auto-populates
+in real-time as agents spawn, files are created, and events flow in.
 
 ```
-MISSION CONTROL DEPLOY SEQUENCE (Wave 0.5):
+MISSION CONTROL DEPLOY SEQUENCE (Wave 0 — STEP 1, BEFORE TL reads strategy):
+
+WHY FIRST:
+- User sees a live dashboard within seconds of activation
+- Discovery interview answers appear in real-time as they're collected
+- Cost estimation, agent spawns, pod activations — all visible as they happen
+- The user NEVER stares at a blank terminal wondering "is anything happening?"
+
+SEQUENCE:
 1. Copy $HOME/.amenthyx-ai-teams/shared/mission-control/ → .mission-control/
 2. Add .mission-control/ and .mission-control/node_modules/ to .gitignore
-3. Run: cd .mission-control && npm install
+3. Run: cd .mission-control && npm install (background, non-blocking)
 4. Generate mission-control.config.json with:
    - sessionId (UUID v4), projectName, teamName, agents roster, budget info
    - AI tool detection (Claude Code, Cursor, Aider, or unknown)
@@ -282,10 +292,20 @@ MISSION CONTROL DEPLOY SEQUENCE (Wave 0.5):
 7. Wait for health check (GET http://localhost:4201/api/health — max 30s)
 8. AUTO-OPEN browser to http://localhost:4200 (cross-platform: start/open/xdg-open)
 9. Print: "✓ Mission Control running at http://localhost:4200"
-10. POST initial state (agents, budget, waves) to dashboard API
-10. Initialize `.team/screenshots/` directory structure
-11. Initialize `.team/DISCOVERY_INTERVIEW.md` placeholder
-12. Initialize `.team/DECISION_LOG.md` for tracking all decisions
+10. Create .team/ directory structure (mkdir -p .team/pods .team/plans .team/reviews
+    .team/retros .team/reports .team/screenshots .team/learnings)
+11. Initialize `.team/DECISION_LOG.md` for tracking all decisions
+12. POST initial state (agents, budget, waves) to dashboard API
+    — dashboard now shows agent roster, wave timeline, empty kanban
+13. IMMEDIATELY proceed to TL initialization (do NOT wait for dashboard to fully load)
+    — dashboard populates in real-time via file watchers + WebSocket
+
+THE DASHBOARD IS NOW LIVE. From this point forward:
+- Discovery interview Q&A appears in real-time as user answers
+- Cost estimation appears when TL writes COST_ESTIMATION.md
+- Pod activations light up as pod leads spawn
+- Kanban cards move as work progresses
+- Event stream shows every agent action
 
 IMPORTANT:
 - Dashboard failure is NON-BLOCKING — if install/start fails, warn and continue
@@ -293,7 +313,7 @@ IMPORTANT:
 - Every agent's events flow to the dashboard automatically via hooks or file watchers
 - The browser opens AUTOMATICALLY — the user sees Mission Control immediately without any manual action
 - Set MC_NO_OPEN=1 to disable auto-open if running headless
-- All subsequent waves (1-5) will have their events captured by Mission Control
+- All waves (0.1 through 5) have their events captured by Mission Control from the start
 
 LIFECYCLE:
 - pause team → dashboard keeps running
