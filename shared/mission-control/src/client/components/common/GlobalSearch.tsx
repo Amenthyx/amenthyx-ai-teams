@@ -44,11 +44,17 @@ export const GlobalSearch: React.FC = () => {
       const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
       if (res.ok) {
         const data = await res.json();
-        setResults({
-          events: data.events || [],
-          commits: data.commits || [],
-          decisions: data.decisions || [],
-        });
+        // API returns { results: [...] } with type field — group into categories
+        const rawResults: Array<{ type: string; id: string; text: string; timestamp: string }> = data.results || [];
+        const grouped: GroupedResults = { events: [], commits: [], decisions: [] };
+        for (const r of rawResults) {
+          const mapped: SearchResult = { id: r.id, type: r.type as any, title: r.text, description: r.timestamp };
+          if (r.type === 'event') grouped.events.push(mapped);
+          else if (r.type === 'commit') grouped.commits.push(mapped);
+          else if (r.type === 'decision') grouped.decisions.push(mapped);
+          else grouped.events.push(mapped);
+        }
+        setResults(grouped);
       }
     } catch {
       // Search endpoint may not be available — clear results silently

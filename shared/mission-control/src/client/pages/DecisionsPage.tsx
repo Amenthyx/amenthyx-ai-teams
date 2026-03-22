@@ -26,8 +26,9 @@ export const DecisionsPage: React.FC = () => {
         if (!response.ok) {
           throw new Error(`Failed to fetch decisions: ${response.statusText}`);
         }
-        const data: Decision[] = await response.json();
-        setDecisions(data);
+        const json = await response.json();
+        const data: Decision[] = json.decisions || json;
+        setDecisions(data.map(d => ({ ...d, decision: (d as any).decision_text || d.decision })));
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load decisions');
       } finally {

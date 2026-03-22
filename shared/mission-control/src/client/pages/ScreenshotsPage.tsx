@@ -22,7 +22,8 @@ export const ScreenshotsPage: React.FC = () => {
         if (!response.ok) {
           throw new Error(`Failed to fetch screenshots: ${response.statusText}`);
         }
-        const data: Screenshot[] = await response.json();
+        const json = await response.json();
+        const data: Screenshot[] = json.screenshots || json;
         setScreenshots(data);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load screenshots');

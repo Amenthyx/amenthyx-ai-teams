@@ -18,7 +18,8 @@ export const InterviewPage: React.FC = () => {
         if (!response.ok) {
           throw new Error(`Failed to fetch interviews: ${response.statusText}`);
         }
-        const data: Interview[] = await response.json();
+        const json = await response.json();
+        const data: Interview[] = json.interviews || json;
         setInterviews(data);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load interviews');
