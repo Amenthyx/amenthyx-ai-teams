@@ -1,16 +1,31 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Download, FileText, Code, FileJson } from 'lucide-react';
+import { Download, FileText, Code, FileJson, Printer } from 'lucide-react';
 
-type ExportFormat = 'markdown' | 'html' | 'json';
+type ExportFormat = 'pdf' | 'pdf-preview' | 'markdown' | 'html' | 'json';
 
 interface ExportOption {
   format: ExportFormat;
   label: string;
   icon: React.ReactNode;
   filename: string;
+  /** If true, opens in new tab instead of downloading */
+  openInTab?: boolean;
 }
 
 const EXPORT_OPTIONS: ExportOption[] = [
+  {
+    format: 'pdf-preview',
+    label: 'Full Report (PDF)',
+    icon: <Printer size={14} />,
+    filename: 'mission-control-enterprise-report.html',
+    openInTab: true,
+  },
+  {
+    format: 'pdf',
+    label: 'Full Report (Download)',
+    icon: <FileText size={14} />,
+    filename: 'mission-control-enterprise-report.html',
+  },
   {
     format: 'markdown',
     label: 'Markdown (.md)',
@@ -69,7 +84,16 @@ export const ExportMenu: React.FC = () => {
   const handleExport = async (option: ExportOption) => {
     setDownloading(option.format);
     try {
-      const res = await fetch(`/api/export/${option.format}`);
+      // PDF preview opens in a new tab so user can use browser Print → Save as PDF
+      if (option.openInTab) {
+        const apiPath = option.format === 'pdf-preview' ? '/api/export/pdf/preview' : `/api/export/${option.format}`;
+        window.open(apiPath, '_blank');
+        setOpen(false);
+        return;
+      }
+
+      const apiPath = `/api/export/${option.format}`;
+      const res = await fetch(apiPath);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
       const blob = await res.blob();

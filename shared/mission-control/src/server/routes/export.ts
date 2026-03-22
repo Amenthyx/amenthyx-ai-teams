@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { generateMarkdownReport } from '../services/markdown-exporter';
 import { generateHtmlReport } from '../services/html-exporter';
+import { generateEnterprisePDF } from '../services/enterprise-pdf-generator';
 import { getEvents, getAgents, getBudget, getWaves } from '../db/database';
 
 function log(level: string, message: string): void {
@@ -52,6 +53,46 @@ export function createExportRouter(): Router {
       const message = err instanceof Error ? err.message : 'Unknown error';
       log('error', `Failed to export HTML report: ${message}`);
       res.status(500).json({ error: 'Failed to export HTML report', detail: message });
+    }
+  });
+
+  /**
+   * GET /api/export/pdf
+   * Returns the full enterprise report as a print-ready HTML page.
+   * The browser renders it with a "Save as PDF" button that triggers window.print().
+   * Covers ALL data: agents, budget, waves, gates, UAT, decisions, interviews,
+   * CI/CD, evidence, artifacts, messages, events, sessions, and analytics.
+   */
+  router.get('/export/pdf', (_req: Request, res: Response) => {
+    try {
+      const report = generateEnterprisePDF();
+
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.setHeader('Content-Disposition', 'attachment; filename="mission-control-enterprise-report.html"');
+      res.send(report);
+
+      log('info', 'Exported enterprise PDF report');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      log('error', `Failed to export enterprise PDF report: ${message}`);
+      res.status(500).json({ error: 'Failed to export enterprise PDF report', detail: message });
+    }
+  });
+
+  /**
+   * GET /api/export/pdf/preview
+   * Same report but opens inline (no download header) so user can preview before printing.
+   */
+  router.get('/export/pdf/preview', (_req: Request, res: Response) => {
+    try {
+      const report = generateEnterprisePDF();
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.send(report);
+      log('info', 'Previewed enterprise PDF report');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      log('error', `Failed to preview enterprise PDF report: ${message}`);
+      res.status(500).json({ error: 'Failed to preview report', detail: message });
     }
   });
 
